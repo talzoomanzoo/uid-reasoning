@@ -101,8 +101,15 @@ def parse_args():
     parser.add_argument(
         '--use_jina',
         type=bool,
-        default=False,
+        default=True,
         help="Whether to use Jina API for document fetching."
+    )
+
+    parser.add_argument(
+        '--jina_api_key',
+        type=str,
+        default='None',
+        help="Your Jina API Key to Fetch URL Content."
     )
 
     # Model configuration
@@ -177,7 +184,6 @@ def main():
     MAX_TURN = args.max_turn
     top_k = args.top_k
     max_doc_len = args.max_doc_len
-    use_jina = args.use_jina
     model_path = args.model_path
     temperature = args.temperature
     top_p = args.top_p
@@ -186,7 +192,9 @@ def main():
     max_tokens = args.max_tokens
     bing_subscription_key = args.bing_subscription_key
     bing_endpoint = args.bing_endpoint
-
+    use_jina = args.use_jina
+    jina_api_key = args.jina_api_key
+    
     # Adjust parameters based on dataset
     if dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
         MAX_SEARCH_LIMIT = 5
@@ -195,6 +203,9 @@ def main():
             MAX_TURN = 15
         top_k = 10
         max_doc_len = 3000
+    
+    if args.jina_api_key == 'None':
+        jina_api_key = None
 
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
@@ -608,6 +619,7 @@ def main():
                     fetched_contents = fetch_page_content(
                         list(all_urls_to_fetch),
                         use_jina=use_jina,
+                        jina_api_key=jina_api_key,
                         # snippets=url_snippets  # Do not pass snippets when updating url_cache directly
                     )
                     print(f"Fetched {len(fetched_contents)} URLs successfully.")

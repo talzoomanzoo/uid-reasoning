@@ -12,13 +12,13 @@ from utils.math_equivalence import is_equiv
 def extract_answer(output, mode='gen'):
     extracted_text = ''
     if mode == 'codegen':
-        # 提取 ```python 和 ``` 之间的代码
+        # Extract the code between ```python and ```
         pattern = r'```python\s*(.*?)\s*```'
         matches = re.findall(pattern, output, re.DOTALL | re.IGNORECASE)
         if matches:
-            extracted_text = matches[-1].strip()  # 取最后一个匹配项
+            extracted_text = matches[-1].strip()  # Take the last match
     elif mode == 'infogen':
-        # 提取 **Final Information** 或 **Modified Reasoning Steps** 之后的内容
+        # Extract content after **Final Information** or **Modified Reasoning Steps**
         pattern_info = "\n**Final Information**"
         pattern_step = "\n**Modified Reasoning Steps**"
         if pattern_info in output:
@@ -28,17 +28,17 @@ def extract_answer(output, mode='gen'):
         else:
             extracted_text = "No helpful information found."
     else:
-        # 现有的 gen 和 choose 模式提取逻辑
+        # Existing extraction logic for 'gen' and 'choose' modes
         pattern = r'\\boxed\{(.*)\}'
         matches = re.findall(pattern, output)
         if matches:
-            extracted_text = matches[-1]  # 取最后一个匹配项
+            extracted_text = matches[-1]  # Take the last match
             if mode in ['choose', 'qa']:
-                # 处理 choose 模式
+                # Handle 'choose' mode
                 inner_pattern = r'\\text\{(.*)\}'
                 inner_matches = re.findall(inner_pattern, extracted_text)
                 if inner_matches:
-                    extracted_text = inner_matches[-1]  # 取最后一个匹配项
+                    extracted_text = inner_matches[-1]  # Take the last match
                 extracted_text = extracted_text.strip("()")
     return extracted_text
 
@@ -59,6 +59,7 @@ def normalize_answer_qa(s):
     def lower(text):
         return text.lower()
     return white_space_fix(remove_articles(remove_punc(lower(s))))
+
 
 def evaluate_predictions(output, labeled_answer, mode='gen'):
     final_metric = {"is_valid_answer": False, "acc": 0, "em": 0, "f1": 0, 'math_equal': 0}
@@ -168,10 +169,10 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         metrics, results, final_metadata = codegen_metrics(
             samples_list,
             generations_list,
-            k_list=[1],  # 评估前1个生成结果
-            num_process_evaluate=2,   # 并行评测
-            timeout=10,  # 设置超时时间为10秒
-            debug=False,  # 启用调试模式
+            k_list=[1],  # Evaluate the top 1 generated result
+            num_process_evaluate=2,   # Parallel evaluation
+            timeout=10,  # Set timeout to 10 seconds
+            debug=False,  # Enable debug mode
         )
         # print('samples_list', samples_list)
         # print('generations_list', generations_list)
@@ -194,7 +195,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
 
         # Compute overall pass@1
         overall_metrics = {
-            'pass@1': pass_at_1,# / num_valid_answer * len(input_list),
+            'pass@1': pass_at_1,  # / num_valid_answer * len(input_list),
             'num_valid_answer': f'{num_valid_answer} of {len(input_list)}',
             'query_latency': f'{(total_time / len(input_list) * 1000):.0f} ms',
         }
@@ -220,7 +221,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
         num_valid_answer = 0
 
-        # 若数据集为GPQA，统计每个domain的指标
+        # If the dataset is GPQA, track metrics per domain
         domain_metrics = {}
 
         for item, input_prompt, result in zip(filtered_data, input_list, output_list):
@@ -249,7 +250,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             item['Metrics'] = metric
             item['Question'] = input_prompt
 
-            # 判断预测答案的有效性
+            # Determine the validity of the predicted answer
             my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
             avg_em.append(metric['em'])
@@ -260,7 +261,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             if my_method_valid:
                 num_valid_answer += 1
 
-            # 如果是GPQA数据集，尝试按照domain统计分指标
+            # If the dataset is GPQA, attempt to track metrics per domain
             if dataset_name == 'gpqa':
                 domain = item.get("High-level domain", "Unknown")
                 if domain not in domain_metrics:
@@ -277,7 +278,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
         metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
 
-        # 计算总体指标
+        # Compute overall metrics
         overall_results = {
             'em': np.mean(avg_em) if len(avg_em) > 0 else 0.0,
             'acc': np.mean(avg_acc) if len(avg_acc) > 0 else 0.0,
@@ -287,7 +288,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             'query_latency': f'{(total_time / len(input_list) * 1000):.0f} ms',
         }
 
-        # 如果是GPQA数据集，输出分domain的平均指标
+        # If the dataset is GPQA, output average metrics per domain
         domain_avg_metrics = {}
         if dataset_name == 'gpqa':
             for dm, m in domain_metrics.items():
@@ -299,11 +300,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}'
                 }
 
-        # 保存总体和分domain的指标
-        final_metrics = {'overall': overall_results}
-        if dataset_name == 'gpqa':
-            final_metrics['per_domain'] = domain_avg_metrics
-
+        # Save overall and per-domain metrics
+        final_metrics = {
+            'overall': overall_results,
+            'per_domain': per_difficulty_metrics
+        }
 
     t = time.localtime()
     result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
@@ -312,7 +313,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         result_json_name = output_dir
         metrics_json_name = output_dir.replace('.json', '.metrics.backoff.json')
 
-    # 保存预测结果及度量
+    # Save prediction results and metrics
     with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
         json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
 

@@ -26,11 +26,6 @@ headers = {
     'Connection': 'keep-alive',
     'Upgrade-Insecure-Requests': '1'
 }
-jina_headers = {
-    'Authorization': 'Bearer jina_xxxxx',
-    'X-Return-Format': 'markdown',
-    # 'X-With-Links-Summary': 'true'
-}
 
 # 初始化会话
 session = requests.Session()
@@ -98,7 +93,7 @@ def extract_snippet_with_context(full_text: str, snippet: str, context_chars: in
     except Exception as e:
         return False, f"Failed to extract snippet context due to {str(e)}"
 
-def extract_text_from_url(url, use_jina=False, snippet: Optional[str] = None):
+def extract_text_from_url(url, use_jina=False, jina_api_key=None, snippet: Optional[str] = None):
     """
     从 URL 中提取文本。如果提供了 snippet，则提取与之相关的上下文。
 
@@ -112,6 +107,11 @@ def extract_text_from_url(url, use_jina=False, snippet: Optional[str] = None):
     """
     try:
         if use_jina:
+            jina_headers = {
+                'Authorization': f'Bearer {jina_api_key}',
+                'X-Return-Format': 'markdown',
+                # 'X-With-Links-Summary': 'true'
+            }
             response = requests.get(f'https://r.jina.ai/{url}', headers=jina_headers).text
             # 去除 URL
             pattern = r"\(https?:.*?\)|\[https?:.*?\]"

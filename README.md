@@ -78,6 +78,8 @@ You can run different inference modes using the provided scripts. Below are exam
         --dataset_name gpqa \
         --split diamond \
         --model_path "YOUR_MODEL_PATH" \
+        --use_jina True \
+        --jina_api_key "YOUR_JINA_API_KEY" \
         --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
     ```
 
@@ -90,6 +92,8 @@ You can run different inference modes using the provided scripts. Below are exam
         --max_url_fetch 5 \
         --max_turn 10 \
         --top_k 10 \
+        --use_jina True \
+        --jina_api_key "YOUR_JINA_API_KEY" \
         --model_path "YOUR_MODEL_PATH" \
         --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
     ```
@@ -103,7 +107,8 @@ You can run different inference modes using the provided scripts. Below are exam
         --max_turn 10 \
         --top_k 10 \
         --max_doc_len 3000 \
-        --use_jina False \
+        --use_jina True \
+        --jina_api_key "YOUR_JINA_API_KEY" \
         --model_path "YOUR_MODEL_PATH" \
         --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
     ```
@@ -119,8 +124,9 @@ You can run different inference modes using the provided scripts. Below are exam
 - `--top_k`: Number of top documents to retrieve.
 - `--max_doc_len`: Maximum length of each retrieved document.
 - `--use_jina`: Whether to use Jina for document processing.
+- `--jina_api_key`: Your Jina API subscription key for URL content fetching.
 
-Ensure you replace `"YOUR_MODEL_PATH"` with your actual model path and replace `"YOUR_BING_SUBSCRIPTION_KEY"` with your Bing Search API key.
+Ensure you replace `"YOUR_MODEL_PATH"` with your actual model path, replace `"YOUR_BING_SUBSCRIPTION_KEY"` and `"YOUR_JINA_API_KEY"` with your Bing Search and Jina API key.
 
 ## 📊 Results
 

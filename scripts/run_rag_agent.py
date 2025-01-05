@@ -100,6 +100,20 @@ def parse_args():
         help="Path to the pre-trained model."
     )
 
+    parser.add_argument(
+        '--use_jina',
+        type=bool,
+        default=True,
+        help="Whether to use Jina API for document fetching."
+    )
+
+    parser.add_argument(
+        '--jina_api_key',
+        type=str,
+        default='None',
+        help="Your Jina API Key to Fetch URL Content."
+    )
+
     # Sampling parameters
     parser.add_argument(
         '--temperature',
@@ -172,6 +186,8 @@ def main():
     max_tokens = args.max_tokens
     bing_subscription_key = args.bing_subscription_key
     bing_endpoint = args.bing_endpoint
+    use_jina = args.use_jina
+    jina_api_key = args.jina_api_key
 
     # Adjust parameters based on dataset
     if dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
@@ -183,6 +199,9 @@ def main():
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 if 'qwq' in model_path.lower() else 1.0
+    
+    if args.jina_api_key == 'None':
+        jina_api_key = None
 
     # Data paths based on dataset
     if dataset_name == 'livecode':
@@ -429,7 +448,7 @@ def main():
                     if urls_to_fetch_filtered:
                         try:
                             # Batch pass uncached URLs
-                            contents = fetch_page_content(urls_to_fetch_filtered, use_jina=True)
+                            contents = fetch_page_content(urls_to_fetch_filtered, use_jina=use_jina, jina_api_key=jina_api_key)
                             for url, content in contents.items():
                                 url_cache[url] = content
                                 print(f"Fetched and cached URL content for URL: {url}")

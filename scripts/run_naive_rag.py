@@ -78,6 +78,20 @@ def parse_args():
         help="Path to the pre-trained model."
     )
 
+    parser.add_argument(
+        '--use_jina',
+        type=bool,
+        default=True,
+        help="Whether to use Jina API for document fetching."
+    )
+
+    parser.add_argument(
+        '--jina_api_key',
+        type=str,
+        default='None',
+        help="Your Jina API Key to Fetch URL Content."
+    )
+
     # Sampling parameters
     parser.add_argument(
         '--temperature',
@@ -148,10 +162,15 @@ def main():
     max_tokens = args.max_tokens
     bing_subscription_key = args.bing_subscription_key
     bing_endpoint = args.bing_endpoint
+    use_jina = args.use_jina
+    jina_api_key = args.jina_api_key
 
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 if 'qwq' in model_path.lower() else 1.0
+    
+    if args.jina_api_key == 'None':
+        jina_api_key = None
 
     # Paths to datasets
     if dataset_name == 'livecode':
@@ -259,7 +278,8 @@ def main():
     print(f"Fetching {len(urls_to_fetch)} unique URLs...")
     fetched_contents = fetch_page_content(
         urls_to_fetch,
-        use_jina=True,
+        use_jina=use_jina,
+        jina_api_key=jina_api_key,
         # snippets=url_snippets_map
     )
 
