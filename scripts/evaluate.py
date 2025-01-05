@@ -338,71 +338,72 @@ if __name__ == "__main__":
         output_metrics_path = output_path.replace('.json', '.metrics.json')
 
     # Determine dataset name based on the output path
+    # NOTE: To apply back off strategy for retrieval-augmented reasoning methods, please replace normal_output_path with your actual path for results with run_direct_gen.
     if 'gpqa' in output_path:
         dataset_name = 'gpqa'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/gpqa.qwq.direct/diamond.12.13,18:23.json'
+        normal_output_path = './outputs/gpqa.qwq.direct/diamond.12.13,18:23.json'
         if 'extended' in output_path:
-            normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/gpqa.qwq.direct/extended.12.28,15:44.json'
+            normal_output_path = './outputs/gpqa.qwq.direct/extended.12.28,15:44.json'
         if 'qwq' not in output_path:
-            normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.baselines/gpqa.qwen2.5-32b-instruct.direct/diamond.12.14,20:34.json'
+            normal_output_path = './outputs/runs.baselines/gpqa.qwen2.5-32b-instruct.direct/diamond.12.14,20:34.json'
     elif 'math500' in output_path:
         dataset_name = 'math500'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/math500.qwq.direct/test.12.13,18:26.json'
+        normal_output_path = './outputs/math500.qwq.direct/test.12.13,18:26.json'
         if 'qwq' not in output_path:
-            normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.baselines/math500.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
+            normal_output_path = './outputs/runs.baselines/math500.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
     elif 'aime' in output_path:
         dataset_name = 'aime'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/aime.qwq.direct/2024.12.13,19:36.json'
+        normal_output_path = './outputs/aime.qwq.direct/2024.12.13,19:36.json'
         if 'qwq' not in output_path:
-            normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.baselines/aime.qwen2.5-32b-instruct.direct/test.12.14,20:28.json'
+            normal_output_path = './outputs/runs.baselines/aime.qwen2.5-32b-instruct.direct/test.12.14,20:28.json'
     elif 'amc' in output_path:
         dataset_name = 'amc'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/amc.qwq.direct/test.12.14,14:31.json'
+        normal_output_path = './outputs/amc.qwq.direct/test.12.14,14:31.json'
         if 'qwq' not in output_path:
-            normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.baselines/amc.qwen2.5-32b-instruct.direct/test.12.14,20:26.json'
+            normal_output_path = './outputs/runs.baselines/amc.qwen2.5-32b-instruct.direct/test.12.14,20:26.json'
     elif 'livecode' in output_path:
         dataset_name = 'livecode'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/livecode.qwq.direct/test.12.13,21:24.json'
+        normal_output_path = './outputs/livecode.qwq.direct/test.12.13,21:24.json'
         if 'qwq' not in output_path:
-            normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.baselines/livecode.qwen2.5-32b-instruct.direct/test.12.14,20:32.json'
+            normal_output_path = './outputs/runs.baselines/livecode.qwen2.5-32b-instruct.direct/test.12.14,20:32.json'
     elif 'nq' in output_path:
         dataset_name = 'nq'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/nq.qwq.direct/test.12.15,14:50.json'
+        normal_output_path = './outputs/runs.qa/nq.qwq.direct/test.12.15,14:50.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
     elif 'triviaqa' in output_path:
         dataset_name = 'triviaqa'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/triviaqa.qwq.direct/test.12.15,15:35.json'
+        normal_output_path = './outputs/runs.qa/triviaqa.qwq.direct/test.12.15,15:35.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
     elif 'hotpotqa' in output_path:
         dataset_name = 'hotpotqa'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/hotpotqa.qwq.direct/test.12.15,14:52.json'
+        normal_output_path = './outputs/runs.qa/hotpotqa.qwq.direct/test.12.15,14:52.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
     elif 'musique' in output_path:
         dataset_name = 'musique'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/musique.qwq.direct/test.12.27,16:44.json'
+        normal_output_path = './outputs/runs.qa/musique.qwq.direct/test.12.27,16:44.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
     elif 'bamboogle' in output_path:
         dataset_name = 'bamboogle'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/bamboogle.qwq.direct/test.12.28,9:51.json'
+        normal_output_path = './outputs/runs.qa/bamboogle.qwq.direct/test.12.28,9:51.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
     elif '2wiki' in output_path:
         dataset_name = '2wiki'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/2wiki.qwq.direct/test.12.15,15:32.json'
+        normal_output_path = './outputs/runs.qa/2wiki.qwq.direct/test.12.15,15:32.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
     elif 'medmcqa' in output_path:
         dataset_name = 'medmcqa'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/medmcqa.qwq.direct/test.12.15,16:57.json'
+        normal_output_path = './outputs/runs.qa/medmcqa.qwq.direct/test.12.15,16:57.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
     elif 'pubhealth' in output_path:
         dataset_name = 'pubhealth'
-        normal_output_path = '/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/pubhealth.qwq.direct/test.12.15,20:32.json'
+        normal_output_path = './outputs/runs.qa/pubhealth.qwq.direct/test.12.15,20:32.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
 
