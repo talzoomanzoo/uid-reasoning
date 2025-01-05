@@ -15,7 +15,7 @@ from typing import Optional, Tuple
 from nltk.tokenize import sent_tokenize
 
 
-# ----------------------- 自定义请求头 -----------------------
+# ----------------------- Custom Headers -----------------------
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                   'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -27,18 +27,18 @@ headers = {
     'Upgrade-Insecure-Requests': '1'
 }
 
-# 初始化会话
+# Initialize session
 session = requests.Session()
 session.headers.update(headers)
 
 
 
 def remove_punctuation(text: str) -> str:
-    """移除文本中的标点符号。"""
+    """Remove punctuation from the text."""
     return text.translate(str.maketrans("", "", string.punctuation))
 
 def f1_score(true_set: set, pred_set: set) -> float:
-    """计算两个词集合之间的 F1 分数。"""
+    """Calculate the F1 score between two sets of words."""
     intersection = len(true_set.intersection(pred_set))
     if not intersection:
         return 0.0
@@ -48,15 +48,15 @@ def f1_score(true_set: set, pred_set: set) -> float:
 
 def extract_snippet_with_context(full_text: str, snippet: str, context_chars: int = 2500) -> Tuple[bool, str]:
     """
-    从完整文本中提取与 snippet 最匹配的句子及其上下文。
+    Extract the sentence that best matches the snippet and its context from the full text.
 
     Args:
-        full_text (str): 从网页中提取的完整文本。
-        snippet (str): 要匹配的片段。
-        context_chars (int): 片段前后要包含的字符数。
+        full_text (str): The full text extracted from the webpage.
+        snippet (str): The snippet to match.
+        context_chars (int): Number of characters to include before and after the snippet.
 
     Returns:
-        Tuple[bool, str]: 第一个元素表示是否成功提取，第二个元素是提取的上下文内容。
+        Tuple[bool, str]: The first element indicates whether extraction was successful, the second element is the extracted context.
     """
     try:
         full_text = full_text[:50000]
@@ -68,8 +68,8 @@ def extract_snippet_with_context(full_text: str, snippet: str, context_chars: in
         best_sentence = None
         best_f1 = 0.2
 
-        # sentences = re.split(r'(?<=[.!?]) +', full_text)  # 使用正则表达式分割句子，支持 ., !, ? 结尾
-        sentences = sent_tokenize(full_text)  # 使用 nltk 的 sent_tokenize 分割句子
+        # sentences = re.split(r'(?<=[.!?]) +', full_text)  # Split sentences using regex, supporting ., !, ? endings
+        sentences = sent_tokenize(full_text)  # Split sentences using nltk's sent_tokenize
 
         for sentence in sentences:
             key_sentence = sentence.lower()
@@ -88,22 +88,22 @@ def extract_snippet_with_context(full_text: str, snippet: str, context_chars: in
             context = full_text[start_index:end_index]
             return True, context
         else:
-            # 如果未找到匹配句子，返回全文的前 context_chars*2 字符
+            # If no matching sentence is found, return the first context_chars*2 characters of the full text
             return False, full_text[:context_chars * 2]
     except Exception as e:
         return False, f"Failed to extract snippet context due to {str(e)}"
 
 def extract_text_from_url(url, use_jina=False, jina_api_key=None, snippet: Optional[str] = None):
     """
-    从 URL 中提取文本。如果提供了 snippet，则提取与之相关的上下文。
+    Extract text from a URL. If a snippet is provided, extract the context related to it.
 
     Args:
-        url (str): 网页或 PDF 的 URL。
-        use_jina (bool): 是否使用 Jina 进行提取。
-        snippet (Optional[str]): 要查找的片段。
+        url (str): URL of a webpage or PDF.
+        use_jina (bool): Whether to use Jina for extraction.
+        snippet (Optional[str]): The snippet to search for.
 
     Returns:
-        str: 提取的文本或上下文。
+        str: Extracted text or context.
     """
     try:
         if use_jina:
@@ -113,18 +113,18 @@ def extract_text_from_url(url, use_jina=False, jina_api_key=None, snippet: Optio
                 # 'X-With-Links-Summary': 'true'
             }
             response = requests.get(f'https://r.jina.ai/{url}', headers=jina_headers).text
-            # 去除 URL
+            # Remove URLs
             pattern = r"\(https?:.*?\)|\[https?:.*?\]"
             text = re.sub(pattern, "", response).replace('---','-').replace('===','=').replace('   ',' ').replace('   ',' ')
         else:
-            response = session.get(url, timeout=20)  # 设置超时时间为20秒
-            response.raise_for_status()  # 如果请求失败，抛出 HTTPError
-            # 判断返回的内容类型
+            response = session.get(url, timeout=20)  # Set timeout to 20 seconds
+            response.raise_for_status()  # Raise HTTPError if the request failed
+            # Determine the content type
             content_type = response.headers.get('Content-Type', '')
             if 'pdf' in content_type:
-                # 如果是 PDF 文件，提取 PDF 文本
+                # If it's a PDF file, extract PDF text
                 return extract_pdf_text(url)
-            # 尝试使用 lxml 解析，如果不可用则使用 html.parser
+            # Try using lxml parser, fallback to html.parser if unavailable
             try:
                 soup = BeautifulSoup(response.text, 'lxml')
             except Exception:
@@ -139,7 +139,7 @@ def extract_text_from_url(url, use_jina=False, jina_api_key=None, snippet: Optio
             else:
                 return text
         else:
-            # 如果未提供片段，则直接返回
+            # If no snippet is provided, return directly
             return text[:8000]
     except requests.exceptions.HTTPError as http_err:
         return f"HTTP error occurred: {http_err}"
@@ -152,20 +152,20 @@ def extract_text_from_url(url, use_jina=False, jina_api_key=None, snippet: Optio
 
 def fetch_page_content(urls, max_workers=4, use_jina=False, snippets: Optional[dict] = None):
     """
-    并发地从多个 URL 中获取内容。
+    Concurrently fetch content from multiple URLs.
 
     Args:
-        urls (list): 要抓取的 URL 列表。
-        max_workers (int): 最大并发线程数。
-        use_jina (bool): 是否使用 Jina 进行提取。
-        snippets (Optional[dict]): 一个字典，将 URL 映射到相应的片段。
+        urls (list): List of URLs to scrape.
+        max_workers (int): Maximum number of concurrent threads.
+        use_jina (bool): Whether to use Jina for extraction.
+        snippets (Optional[dict]): A dictionary mapping URLs to their respective snippets.
 
     Returns:
-        dict: 一个字典，将 URL 映射到提取的内容或上下文。
+        dict: A dictionary mapping URLs to the extracted content or context.
     """
     results = {}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # 使用 tqdm 显示进度条
+        # Use tqdm to display a progress bar
         futures = {
             executor.submit(extract_text_from_url, url, use_jina, snippets.get(url) if snippets else None): url
             for url in urls
@@ -177,26 +177,26 @@ def fetch_page_content(urls, max_workers=4, use_jina=False, snippets: Optional[d
                 results[url] = data
             except Exception as exc:
                 results[url] = f"Error fetching {url}: {exc}"
-            time.sleep(0.2)  # 简单的速率限制
+            time.sleep(0.2)  # Simple rate limiting
     return results
 
 
 def bing_web_search(query, subscription_key, endpoint, market='en-US', language='en', timeout=20):
     """
-    使用 Bing Web Search API 进行搜索，并设置超时时间。
+    Perform a search using the Bing Web Search API with a set timeout.
 
     Args:
-        query (str): 搜索查询。
-        subscription_key (str): Bing 搜索 API 的订阅密钥。
-        endpoint (str): Bing 搜索 API 的终端。
-        market (str): 市场，例如 "en-US" 或 "zh-CN"。
-        language (str): 返回的语言，例如 "en"。
-        timeout (int or float or tuple): 请求超时时间，单位为秒。
-                                         可以是一个浮点数表示总的超时时间，
-                                         也可以是一个 (connect timeout, read timeout) 元组。
+        query (str): Search query.
+        subscription_key (str): Subscription key for the Bing Search API.
+        endpoint (str): Endpoint for the Bing Search API.
+        market (str): Market, e.g., "en-US" or "zh-CN".
+        language (str): Language of the results, e.g., "en".
+        timeout (int or float or tuple): Request timeout in seconds.
+                                         Can be a float representing the total timeout,
+                                         or a tuple (connect timeout, read timeout).
 
     Returns:
-        dict: 搜索结果的 JSON 响应。如果请求超时，则返回 None 或抛出异常。
+        dict: JSON response of the search results. Returns None or raises an exception if the request times out.
     """
     headers = {
         "Ocp-Apim-Subscription-Key": subscription_key
@@ -211,33 +211,33 @@ def bing_web_search(query, subscription_key, endpoint, market='en-US', language=
 
     try:
         response = requests.get(endpoint, headers=headers, params=params, timeout=timeout)
-        response.raise_for_status()  # 如果请求失败，抛出异常
+        response.raise_for_status()  # Raise exception if the request failed
         search_results = response.json()
         return search_results
     except Timeout:
-        print(f"请求 Bing Web Search 超时 ({timeout} 秒) for query: {query}")
-        return {}  # 或者你可以选择抛出异常
+        print(f"Bing Web Search request timed out ({timeout} seconds) for query: {query}")
+        return {}  # Or you can choose to raise an exception
     except requests.exceptions.RequestException as e:
-        print(f"请求 Bing Web Search 出错: {e}")
+        print(f"Error occurred during Bing Web Search request: {e}")
         return {}
 
 
 def extract_pdf_text(url):
     """
-    从 PDF 中提取文本。
+    Extract text from a PDF.
 
     Args:
-        url (str): PDF 文件的 URL。
+        url (str): URL of the PDF file.
 
     Returns:
-        str: 提取的文本内容或错误信息。
+        str: Extracted text content or error message.
     """
     try:
-        response = session.get(url, timeout=20)  # 设置超时时间为20秒
+        response = session.get(url, timeout=20)  # Set timeout to 20 seconds
         if response.status_code != 200:
             return f"Error: Unable to retrieve the PDF (status code {response.status_code})"
         
-        # 使用 pdfplumber 打开 PDF 文件
+        # Open the PDF file using pdfplumber
         with pdfplumber.open(BytesIO(response.content)) as pdf:
             full_text = ""
             for page in pdf.pages:
@@ -245,7 +245,7 @@ def extract_pdf_text(url):
                 if text:
                     full_text += text
         
-        # 限制文本长度
+        # Limit the text length
         cleaned_text = ' '.join(full_text.split()[:600])
         return cleaned_text
     except requests.exceptions.Timeout:
@@ -255,27 +255,27 @@ def extract_pdf_text(url):
 
 def extract_relevant_info(search_results):
     """
-    从 Bing 搜索结果中提取相关信息。
+    Extract relevant information from Bing search results.
 
     Args:
-        search_results (dict): Bing Web Search API 的 JSON 响应。
+        search_results (dict): JSON response from the Bing Web Search API.
 
     Returns:
-        list: 包含提取信息的字典列表。
+        list: A list of dictionaries containing the extracted information.
     """
     useful_info = []
     
     if 'webPages' in search_results and 'value' in search_results['webPages']:
         for id, result in enumerate(search_results['webPages']['value']):
             info = {
-                'id': id + 1,  # 增加 id，方便后续操作
+                'id': id + 1,  # Increment id for easier subsequent operations
                 'title': result.get('name', ''),
                 'url': result.get('url', ''),
                 'site_name': result.get('siteName', ''),
                 'date': result.get('datePublished', '').split('T')[0],
-                'snippet': result.get('snippet', ''),  # 去除 HTML 标签
-                # 将上下文内容添加到信息中
-                'context': ''  # 预留字段，将在后续填充
+                'snippet': result.get('snippet', ''),  # Remove HTML tags
+                # Add context content to the information
+                'context': ''  # Reserved field to be filled later
             }
             useful_info.append(info)
     
@@ -285,18 +285,18 @@ def extract_relevant_info(search_results):
 # ------------------------------------------------------------
 
 if __name__ == "__main__":
-    # 示例用法
-    # 定义要搜索的查询
+    # Example usage
+    # Define the query to search
     query = "Structure of dimethyl fumarate"
     
-    # Bing搜索API的订阅密钥和终端
+    # Subscription key and endpoint for Bing Search API
     BING_SUBSCRIPTION_KEY = "YOUR_BING_SUBSCRIPTION_KEY"
     if not BING_SUBSCRIPTION_KEY:
         raise ValueError("Please set the BING_SEARCH_V7_SUBSCRIPTION_KEY environment variable.")
     
     bing_endpoint = "https://api.bing.microsoft.com/v7.0/search"
     
-    # 执行搜索
+    # Perform the search
     print("Performing Bing Web Search...")
     search_results = bing_web_search(query, BING_SUBSCRIPTION_KEY, bing_endpoint)
     
@@ -305,7 +305,7 @@ if __name__ == "__main__":
 
     print("Fetching and extracting context for each snippet...")
     for info in tqdm(extracted_info, desc="Processing Snippets"):
-        full_text = extract_text_from_url(info['url'], use_jina=True)  # 获取完整网页文本
+        full_text = extract_text_from_url(info['url'], use_jina=True)  # Get full webpage text
         if full_text and not full_text.startswith("Error"):
             success, context = extract_snippet_with_context(full_text, info['snippet'])
             if success:
