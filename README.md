@@ -1,4 +1,4 @@
-# <div align="center">🔍 Search-o1: Agentic Search-Enhanced Large Reasoning Models</div>
+# <div align="center">🔍 Search-o1: Agentic Search-Enhanced</br> Large Reasoning Models</div>
 
 <div align="center"> 
 
