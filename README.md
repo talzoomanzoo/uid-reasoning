@@ -72,7 +72,7 @@ You can run different inference modes using the provided scripts. Below are exam
         --model_path "YOUR_MODEL_PATH"
     ```
 
-2. **Naive Retrieval-Augmented Generation (RAG)**
+2. **Standard Retrieval-Augmented Generation (RAG)**
     ```bash
     python scripts/run_naive_rag.py \
         --dataset_name gpqa \
@@ -98,7 +98,7 @@ You can run different inference modes using the provided scripts. Below are exam
         --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
     ```
 
-4. **Search-o1 Enhanced Reasoning (Ours)**
+4. **Search-o1 (Ours)**
     ```bash
     python scripts/run_search_o1.py \
         --dataset_name aime \
