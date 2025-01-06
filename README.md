@@ -17,7 +17,9 @@
 
 Large Reasoning Models (LRMs) like OpenAI's o1 have showcased remarkable stepwise reasoning capabilities through extensive reinforcement learning. Despite their strengths, these models often encounter knowledge insufficiencies during prolonged reasoning processes, resulting in frequent uncertainties and potential errors.
 
-![Uncertainty](figures/uncertainty.jpg)
+<p align="center">
+  <img src="figures/uncertainty.jpg" width="95%" />
+</p>
 
 To overcome these challenges, we present **Search-o1**, a framework that augments LRMs with an **agentic Retrieval-Augmented Generation (RAG)** mechanism and a **Reason-in-Documents** module for deep analysis and integration of retrieved documents into the reasoning chain.
 - **Agentic Search Workflow**: Integrates an agentic search process into the reasoning workflow, allowing models to dynamically retrieve external knowledge whenever they encounter uncertain information.
