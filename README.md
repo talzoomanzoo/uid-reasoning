@@ -58,13 +58,13 @@ To preprocess the datasets, follow these steps:
 
 1. Open the Jupyter notebook `data/data_pre_process.ipynb`.
 2. For each dataset, run the corresponding preprocessing cells to convert the raw data into the unified JSON format.
-3. The processed datasets will be saved in the `data/processed/` directory.
+3. The processed datasets will be saved in the `data/` directory.
 
 ### Running Inference
 
 You can run different inference modes using the provided scripts. Below are examples of how to execute each mode:
 
-1. **Direct Reasoning (Standard Generation)**
+1. **Direct Reasoning (Direct Generation)**
     ```bash
     python scripts/run_direct_gen.py \
         --dataset_name gpqa \
@@ -72,7 +72,7 @@ You can run different inference modes using the provided scripts. Below are exam
         --model_path "YOUR_MODEL_PATH"
     ```
 
-2. **Standard Retrieval-Augmented Generation (RAG)**
+2. **Naive Retrieval-Augmented Generation (RAG)**
     ```bash
     python scripts/run_naive_rag.py \
         --dataset_name gpqa \
