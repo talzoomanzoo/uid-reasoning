@@ -10,7 +10,7 @@
 </div>
 
 ## ✨ Latest News
-- **01/05/2025**: The homepage for Search-o1 is available. You can access it [here](https://search-o1.github.io/). Our paper is coming soon.
+- **01/06/2025**: The homepage for Search-o1 is available. You can access it [here](https://search-o1.github.io/). Our paper is coming soon.
 - **01/05/2025**: The code for Search-o1 has been released. You can now apply Search-o1 to enhance your large reasoning models.
 
 ## 💡 Overview
