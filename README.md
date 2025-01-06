@@ -62,7 +62,7 @@ To preprocess the datasets, follow these steps:
 2. For each dataset, run the corresponding preprocessing cells to convert the raw data into the unified JSON format.
 3. The processed datasets will be saved in the `data/` directory.
 
-### Running Inference
+### Model Inference
 
 You can run different inference modes using the provided scripts. Below are examples of how to execute each mode:
 
@@ -130,11 +130,18 @@ You can run different inference modes using the provided scripts. Below are exam
 
 Ensure you replace `"YOUR_MODEL_PATH"` with your actual model path, replace `"YOUR_BING_SUBSCRIPTION_KEY"` and `"YOUR_JINA_API_KEY"` with your Bing Search and Jina API key.
 
-## 📊 Results
+### Evaluation
 
-To evaluate the performance of Search-o1, compare it against standard RAG and direct reasoning approaches using the provided evaluation scripts. Refer to the `results/` directory for detailed performance metrics and analysis.
+Our model inference scripts will automatically save the model's input and output texts for evaluation. However, for methods with retrieval, since the model has not been trained to use the retrieved text effectively, it often fails to provide a final answer. We apply a backoff strategy to use the direct generation result when the retrieval-based methods do not provide a final answer for a given data point.
 
-Refer to our paper for detailed experimental setups, benchmarks, and analysis.
+To use this backoff strategy, you need to provide the path to the direct generation results in the `scripts/evaluate.py` file, and then use the following command to get the backoff results for retrieval-based methods:
+
+```bash
+python scripts/evaluate.py \
+    --output_path outputs/... \
+    --apply_backoff
+```
+
 
 ## 📄 Citation
 
