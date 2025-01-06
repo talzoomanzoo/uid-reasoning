@@ -79,8 +79,8 @@ You can run different inference modes using the provided scripts. Below are exam
     python scripts/run_naive_rag.py \
         --dataset_name gpqa \
         --split diamond \
-        --model_path "YOUR_MODEL_PATH" \
         --use_jina True \
+        --model_path "YOUR_MODEL_PATH" \
         --jina_api_key "YOUR_JINA_API_KEY" \
         --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
     ```
@@ -95,8 +95,8 @@ You can run different inference modes using the provided scripts. Below are exam
         --max_turn 10 \
         --top_k 10 \
         --use_jina True \
-        --jina_api_key "YOUR_JINA_API_KEY" \
         --model_path "YOUR_MODEL_PATH" \
+        --jina_api_key "YOUR_JINA_API_KEY" \
         --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
     ```
 
@@ -110,8 +110,8 @@ You can run different inference modes using the provided scripts. Below are exam
         --top_k 10 \
         --max_doc_len 3000 \
         --use_jina True \
-        --jina_api_key "YOUR_JINA_API_KEY" \
         --model_path "YOUR_MODEL_PATH" \
+        --jina_api_key "YOUR_JINA_API_KEY" \
         --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
     ```
 
