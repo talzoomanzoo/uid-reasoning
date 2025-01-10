@@ -11,7 +11,7 @@
 
 ## ✨ Latest News
 - **01/10/2025**: The brief introduction of our Search-O1 can be found on platforms like [X](https://x.com/_akhaliq/status/1877584951840764166?t=fnbTblnqhiPtAyYr1PHbbw&s=19), [Zhihu](https://zhuanlan.zhihu.com/p/17527068532), and [Weixin](https://mp.weixin.qq.com/s/gqnGyMM_KYYwDbHyWkIIuw). Please check it out!
-- **01/10/2025**: The paper for Search-o1 is available. You can access it [here](https://arxiv.org/abs/2501.05366).
+- **01/10/2025**: The paper for Search-o1 is available. You can access it on [arxiv](https://arxiv.org/abs/2501.05366) and [HF-paper](https://huggingface.co/papers/2501.05366).
 - **01/06/2025**: The homepage for Search-o1 is available. You can access it [here](https://search-o1.github.io/).
 - **01/05/2025**: The code for Search-o1 has been released. You can now apply Search-o1 to enhance your large reasoning models.
 
