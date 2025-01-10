@@ -3,14 +3,15 @@
 <div align="center"> 
 
 [![Homepage](https://img.shields.io/badge/Homepage-Search--o1-red)](https://search-o1.github.io/) 
-[![Paper](https://img.shields.io/badge/Paper-arXiv-b5212f.svg?logo=arxiv)](https://arxiv.org/abs/xxxx) 
+[![Paper](https://img.shields.io/badge/Paper-arXiv-b5212f.svg?logo=arxiv)](https://arxiv.org/abs/2501.05366) 
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg)](https://opensource.org/licenses/MIT) 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/) 
 
 </div>
 
 ## ✨ Latest News
-- **01/06/2025**: The homepage for Search-o1 is available. You can access it [here](https://search-o1.github.io/). Our paper is coming soon.
+- **01/10/2025**: The paper for Search-o1 is available. You can access it [here](https://arxiv.org/abs/2501.05366).
+- **01/06/2025**: The homepage for Search-o1 is available. You can access it [here](https://search-o1.github.io/).
 - **01/05/2025**: The code for Search-o1 has been released. You can now apply Search-o1 to enhance your large reasoning models.
 
 ## 💡 Overview
@@ -168,11 +169,11 @@ If you find this work helpful, please cite our paper:
             Peitian Zhang and
             Zhicheng Dou},
     journal={CoRR},
-    volume={abs/xxxx.xxxxxx},
+    volume={abs/2501.05366},
     year={2025},
-    url={https://arxiv.org/abs/xxxx.xxxxxx},
+    url={https://arxiv.org/abs/2501.05366},
     eprinttype={arXiv},
-    eprint={xxxx.xxxxxx}
+    eprint={2501.05366}
 }
 ```
 
