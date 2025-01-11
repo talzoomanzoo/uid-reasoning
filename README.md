@@ -12,6 +12,7 @@
 </div>
 
 <div align="center"> 
+	
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/on-gpqa)](https://paperswithcode.com/sota/on-gpqa?p=search-o1-agentic-search-enhanced-large)
 
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/code-generation-on-livecodebench)](https://paperswithcode.com/sota/code-generation-on-livecodebench?p=search-o1-agentic-search-enhanced-large)
