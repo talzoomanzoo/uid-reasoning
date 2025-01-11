@@ -1,4 +1,8 @@
-# <div align="center">🔍 Search-o1: Agentic Search-Enhanced</br> Large Reasoning Models</div>
+
+<h2 align="center"> <a href="https://arxiv.org/abs/2501.05366">🔍 Search-o1: Agentic Search-Enhanced</br> Large Reasoning Models</a></h2>
+
+<h5 align="center"> If you like our project, please give us a star ⭐ on GitHub for the latest update.</h5>
+
 
 <div align="center"> 
 
@@ -6,10 +10,10 @@
 [![Paper](https://img.shields.io/badge/Paper-arXiv-b5212f.svg?logo=arxiv)](https://arxiv.org/abs/2501.05366) 
 [![License](https://img.shields.io/badge/LICENSE-MIT-green.svg)](https://opensource.org/licenses/MIT) 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/) 
-
+[![X (formerly Twitter) URL](https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2FKevin_GuoweiXu%2Fstatus%2F1858338565463421244)](https://x.com/_akhaliq/status/1877584951840764166?t=fnbTblnqhiPtAyYr1PHbbw&s=19)
 </div>
 
-## ✨ Latest News
+## 📣 Latest News
 - **01/10/2025**: The brief introduction of our Search-O1 can be found on platforms like [X](https://x.com/_akhaliq/status/1877584951840764166?t=fnbTblnqhiPtAyYr1PHbbw&s=19), [Zhihu](https://zhuanlan.zhihu.com/p/17527068532), and [Weixin](https://mp.weixin.qq.com/s/gqnGyMM_KYYwDbHyWkIIuw). Please check it out!
 - **01/10/2025**: The paper for Search-o1 is available. You can access it on [arxiv](https://arxiv.org/abs/2501.05366) and [HF-paper](https://huggingface.co/papers/2501.05366).
 - **01/06/2025**: The homepage for Search-o1 is available. You can access it [here](https://search-o1.github.io/).
@@ -23,7 +27,7 @@ Large Reasoning Models (LRMs) like OpenAI's o1 have showcased remarkable stepwis
   <img src="figures/uncertainty.jpg" width="95%" />
 </p>
 
-### Method
+### ✨ Method
 
 To overcome these challenges, we present **Search-o1**, a framework that augments LRMs with an **agentic Retrieval-Augmented Generation (RAG)** mechanism and a **Reason-in-Documents** module for deep analysis and integration of retrieved documents into the reasoning chain.
 - **Agentic Search Workflow**: Integrates an agentic search process into the reasoning workflow, allowing models itself to dynamically retrieve external knowledge whenever they encounter uncertain information.
