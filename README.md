@@ -36,7 +36,7 @@ To overcome these challenges, we present **Search-o1**, a framework that augment
 ![Model Comparison](figures/compare.jpg)
 
 
-### Inference Process
+### ✨ Inference Process
 
 Search-o1 incorporates a batch generation mechanism with interleaved search. We initialize reasoning sequences by combining task instructions with input questions. It simultaneously generates tokens for all sequences, detecting search queries to retrieve relevant documents in batches. These documents are then refined and seamlessly integrated back into the reasoning chains, iterating this process until all sequences are completed and final answers are produced.
 
