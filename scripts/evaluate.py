@@ -300,11 +300,10 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}'
                 }
 
-        # Save overall and per-domain metrics
-        final_metrics = {
-            'overall': overall_results,
-            'per_domain': per_difficulty_metrics
-        }
+        # 保存总体和分domain的指标
+        final_metrics = {'overall': overall_results}
+        if dataset_name == 'gpqa':
+            final_metrics['per_domain'] = domain_avg_metrics
 
     t = time.localtime()
     result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
