@@ -174,15 +174,15 @@ def main():
 
     # Paths to datasets
     if dataset_name == 'livecode':
-        data_path = f'/home/u2023000153/Projects/2024/Retro_O1/data/LiveCodeBench/{split}.json'
+        data_path = f'./data/LiveCodeBench/{split}.json'
     elif dataset_name in ['math500', 'gpqa', 'aime', 'amc']:
-        data_path = f'/home/u2023000153/Projects/2024/Retro_O1/data/{dataset_name.upper()}/{split}.json'
+        data_path = f'./data/{dataset_name.upper()}/{split}.json'
     else:
-        data_path = f'/home/u2023000153/Projects/2024/Retro_O1/data/QA_Datasets/{dataset_name}.json'
+        data_path = f'./data/QA_Datasets/{dataset_name}.json'
 
     # ---------------------- Caching Mechanism ----------------------
     # Define cache directories and file paths
-    cache_dir = '/home/u2023000153/Projects/2024/Retro_O1/cache'
+    cache_dir = './cache'
     search_cache_path = os.path.join(cache_dir, 'search_cache.json')
     url_cache_path = os.path.join(cache_dir, 'url_cache.json')
 
@@ -218,12 +218,12 @@ def main():
     # Define output directory based on model and dataset
     if 'qwq' in model_path.lower():
         if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
-            output_dir = f'/home/u2023000153/Projects/2024/Retro_O1/outputs/{dataset_name}.qwq.naive_rag'
+            output_dir = f'./outputs/{dataset_name}.qwq.naive_rag'
         else:
-            output_dir = f'/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.qa/{dataset_name}.qwq.naive_rag'
+            output_dir = f'./outputs/runs.qa/{dataset_name}.qwq.naive_rag'
     else:
         model_short_name = model_path.split('/')[-1].lower().replace('-instruct', '')
-        output_dir = f'/home/u2023000153/Projects/2024/Retro_O1/outputs/runs.baselines/{dataset_name}.{model_short_name}.naive_rag'
+        output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.naive_rag'
     os.makedirs(output_dir, exist_ok=True)
 
     # ---------------------- Data Loading ----------------------
