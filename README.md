@@ -24,9 +24,22 @@
             <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/code-generation-on-livecodebench" alt="Livecodebench Badge">
         </a>
     </span>
-   
+    <span style="display:inline-block; margin-right: 10px;">
+        <a href="https://paperswithcode.com/sota/mathematical-reasoning-on-aime24?p=search-o1-agentic-search-enhanced-large">
+            <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/mathematical-reasoning-on-aime24" alt="AIME24 Badge">
+        </a>
+    </span>
+    <span style="display:inline-block; margin-right: 10px;">
+        <a href="https://paperswithcode.com/sota/mathematical-reasoning-on-amc23?p=search-o1-agentic-search-enhanced-large">
+            <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/mathematical-reasoning-on-amc23" alt="AMC23 Badge">
+        </a>
+    </span>
+    <span style="display:inline-block; margin-right: 10px;">
+        <a href="https://paperswithcode.com/sota/mathematical-reasoning-on-math500?p=search-o1-agentic-search-enhanced-large">
+            <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/mathematical-reasoning-on-math500" alt="Math500 Badge">
+        </a>
+    </span>
 </div>
-
 
 <h5 align="center"> If you like our project, please give us a star ⭐ on GitHub for the latest update.</h5>
 
