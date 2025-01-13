@@ -46,9 +46,9 @@
 
 Large Reasoning Models (LRMs) like OpenAI's o1 have showcased remarkable long stepwise reasoning capabilities through large-scale reinforcement learning. Despite their strengths, these models often encounter knowledge insufficiencies during prolonged reasoning processes, resulting in frequent uncertainties and potential errors, as shown in the following figure.
 
-<!-- <p align="center">
+<p align="center">
   <img src="figures/uncertainty.jpg" width="95%" />
-</p> -->
+</p>
 
 ### ✨ Method
 
