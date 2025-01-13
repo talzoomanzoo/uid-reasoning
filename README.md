@@ -13,27 +13,8 @@
 [![X (formerly Twitter) URL](https://img.shields.io/twitter/url?url=https%3A%2F%2Fx.com%2FKevin_GuoweiXu%2Fstatus%2F1858338565463421244)](https://x.com/_akhaliq/status/1877584951840764166?t=fnbTblnqhiPtAyYr1PHbbw&s=19)
 </div>
 
+
 <!-- <div align="center">
-    <span style="display:inline-block; margin-right: 10px;">
-        <a href="https://paperswithcode.com/sota/on-gpqa?p=search-o1-agentic-search-enhanced-large">
-            <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/on-gpqa" alt="GPQA Badge">
-        </a>
-    </span>
-    <span style="display:inline-block; margin-right: 10px;">
-        <a href="https://paperswithcode.com/sota/mathematical-reasoning-on-aime24?p=search-o1-agentic-search-enhanced-large">
-            <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/mathematical-reasoning-on-aime24" alt="AIME24 Badge">
-        </a>
-    </span>
-    <span style="display:inline-block; margin-right: 10px;">
-        <a href="https://paperswithcode.com/sota/mathematical-reasoning-on-amc23?p=search-o1-agentic-search-enhanced-large">
-            <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/mathematical-reasoning-on-amc23" alt="AMC23 Badge">
-        </a>
-    </span>
- 
-</div> -->
-
-
-<div align="center">
     <span style="display:inline-block; margin-right: 10px;">
         <a href="https://paperswithcode.com/sota/mathematical-reasoning-on-aime24?p=search-o1-agentic-search-enhanced-large">
             <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/mathematical-reasoning-on-aime24" alt="AIME24 Badge">
@@ -49,7 +30,7 @@
             <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/search-o1-agentic-search-enhanced-large/on-gpqa" alt="GPQA Badge">
         </a>
     </span>
-</div>
+</div> -->
 
 
 
@@ -117,8 +98,10 @@ Use the code provided in `data/data_pre_process.ipynb` to preprocess each datase
 To preprocess the datasets, follow these steps:
 
 1. Open the Jupyter notebook `data/data_pre_process.ipynb`.
-2. For each dataset, run the corresponding preprocessing cells to convert the raw data into the unified JSON format.
+2. For each dataset, run the corresponding preprocessing cells to convert the raw data into a unified JSON format.
 3. The processed datasets will be saved in the `data/` directory.
+
+If your task does not belong to any of the datasets mentioned above, for generation tasks such as QA, math, or code, etc., format the data as `{'Question': str, 'answer': str}`. For multi-choice tasks, format the data as `{'Question': str, 'Correct Choice': str}`. Additionally, modify `scripts/evaluate.py`, `scripts/prompts.py`, and `scripts/run_xxx_xxx.py` to match your task.
 
 ### Model Inference
 
