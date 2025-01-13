@@ -1,5 +1,5 @@
 
-<h2 align="center"> <a href="https://arxiv.org/abs/2501.05366">🔍 Search-o1: Agentic Search-Enhanced</br> Large Reasoning Models</a></h2>
+<h1 align="center"> <a href="https://arxiv.org/abs/2501.05366">🔍 Search-o1: Agentic Search-Enhanced</br> Large Reasoning Models</a></h1>
 
 
 
