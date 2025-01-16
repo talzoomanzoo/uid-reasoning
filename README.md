@@ -56,14 +56,14 @@ To overcome these challenges, we present **Search-o1**, a framework that augment
 - **Agentic Search Workflow**: Integrates an agentic search process into the reasoning workflow, allowing models itself to dynamically retrieve external knowledge whenever they encounter uncertain information.
 - **Reason-in-Documents Module**: Seamlessly integrates the retrieved information, reducing noise and maintaining a coherent reasoning chain.
 
-![Model Comparison](figures/compare.jpg)
+![Model Comparison](figures/compare.png)
 
 
 ### ✨ Inference Process
 
 Search-o1 incorporates a batch generation mechanism with interleaved search. We initialize reasoning sequences by combining task instructions with input questions. It simultaneously generates tokens for all sequences, detecting search queries to retrieve relevant documents in batches. These documents are then refined and seamlessly integrated back into the reasoning chains, iterating this process until all sequences are completed and final answers are produced.
 
-![Inference](figures/algorithm.jpg)
+![Inference](figures/algorithm.png)
 
 This approach enhances the reliability and accuracy of LRMs, enabling them to handle complex reasoning tasks more effectively by addressing knowledge gaps in real-time.
 
