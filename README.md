@@ -44,7 +44,7 @@
 
 ## ✏️ To Do List
 - [ ] Add results of Search-o1 with different backbone reasoning models like Sky-T1 and DeepSeek-R1
-- [ ] Train large reasoning models to better utilize search and other tools
+- [ ] Train the reasoning models to better utilize search and other tools in Search-o1 framework
 
 ## 💡 Overview
 
