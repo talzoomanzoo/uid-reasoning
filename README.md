@@ -43,8 +43,8 @@
 - **01/05/2025**: The code for Search-o1 has been released. You can now apply Search-o1 to enhance your large reasoning models.
 
 ## ✏️ To Do List
-- [ ] Add results of Search-o1 with different backbone reasoning models like Sky-T1 and DeepSeek-R1
-- [ ] Train the reasoning models to better utilize search and other tools in Search-o1 framework
+- [ ] Add results of Search-o1 with different backbone reasoning models like [Sky-T1](https://novasky-ai.github.io/posts/sky-t1) and [DeepSeek-R1](https://github.com/deepseek-ai/DeepSeek-R1)
+- [ ] Train the reasoning models to better utilize search and other tools in the Search-o1 framework
 
 ## 💡 Overview
 
