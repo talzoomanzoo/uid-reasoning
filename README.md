@@ -42,6 +42,10 @@
 - **01/06/2025**: The homepage for Search-o1 is available. You can access it [here](https://search-o1.github.io/).
 - **01/05/2025**: The code for Search-o1 has been released. You can now apply Search-o1 to enhance your large reasoning models.
 
+## ✏️ To Do List
+- [ ] Add results of Search-o1 with different backbone reasoning models like Sky-T1 and DeepSeek-R1
+- [ ] Train large reasoning models to better utilize search and other tools
+
 ## 💡 Overview
 
 Large Reasoning Models (LRMs) like OpenAI's o1 have showcased remarkable long stepwise reasoning capabilities through large-scale reinforcement learning. Despite their strengths, these models often encounter knowledge insufficiencies during prolonged reasoning processes, resulting in frequent uncertainties and potential errors, as shown in the following figure.
