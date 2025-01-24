@@ -113,53 +113,53 @@ If your task does not belong to any of the datasets mentioned above, for generat
 You can run different inference modes using the provided scripts. Below are examples of how to execute each mode:
 
 1. **Direct Reasoning (Direct Generation)**
-    ```bash
-    python scripts/run_direct_gen.py \
-        --dataset_name gpqa \
-        --split diamond \
-        --model_path "YOUR_MODEL_PATH"
-    ```
+```bash
+python scripts/run_direct_gen.py \
+    --dataset_name gpqa \
+    --split diamond \
+    --model_path "YOUR_MODEL_PATH"
+```
 
 2. **Naive Retrieval-Augmented Generation (RAG)**
-    ```bash
-    python scripts/run_naive_rag.py \
-        --dataset_name gpqa \
-        --split diamond \
-        --use_jina True \
-        --model_path "YOUR_MODEL_PATH" \
-        --jina_api_key "YOUR_JINA_API_KEY" \
-        --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
-    ```
+```bash
+python scripts/run_naive_rag.py \
+    --dataset_name gpqa \
+    --split diamond \
+    --use_jina True \
+    --model_path "YOUR_MODEL_PATH" \
+    --jina_api_key "YOUR_JINA_API_KEY" \
+    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+```
 
 3. **RAG with Agentic Search**
-    ```bash
-    python scripts/run_rag_agent.py \
-        --dataset_name gpqa \
-        --split diamond \
-        --max_search_limit 5 \
-        --max_url_fetch 5 \
-        --max_turn 10 \
-        --top_k 10 \
-        --use_jina True \
-        --model_path "YOUR_MODEL_PATH" \
-        --jina_api_key "YOUR_JINA_API_KEY" \
-        --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
-    ```
+```bash
+python scripts/run_rag_agent.py \
+    --dataset_name gpqa \
+    --split diamond \
+    --max_search_limit 5 \
+    --max_url_fetch 5 \
+    --max_turn 10 \
+    --top_k 10 \
+    --use_jina True \
+    --model_path "YOUR_MODEL_PATH" \
+    --jina_api_key "YOUR_JINA_API_KEY" \
+    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+```
 
 4. **Search-o1 (Ours)**
-    ```bash
-    python scripts/run_search_o1.py \
-        --dataset_name aime \
-        --split test \
-        --max_search_limit 5 \
-        --max_turn 10 \
-        --top_k 10 \
-        --max_doc_len 3000 \
-        --use_jina True \
-        --model_path "YOUR_MODEL_PATH" \
-        --jina_api_key "YOUR_JINA_API_KEY" \
-        --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
-    ```
+```bash
+python scripts/run_search_o1.py \
+    --dataset_name aime \
+    --split test \
+    --max_search_limit 5 \
+    --max_turn 10 \
+    --top_k 10 \
+    --max_doc_len 3000 \
+    --use_jina True \
+    --model_path "YOUR_MODEL_PATH" \
+    --jina_api_key "YOUR_JINA_API_KEY" \
+    --bing_subscription_key "YOUR_BING_SUBSCRIPTION_KEY"
+```
 
 **Parameters Explanation:**
 - `--dataset_name`: Name of the dataset to use (e.g., gpqa, aime).
