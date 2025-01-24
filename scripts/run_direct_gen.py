@@ -102,7 +102,7 @@ def main():
     
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
-        repetition_penalty = 1.05 if 'qwq' in model_path.lower() else 1.0
+        repetition_penalty = 1.05 if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
     
     # Paths to datasets
     if dataset_name == 'math500':
@@ -127,12 +127,25 @@ def main():
     tokenizer.padding_side = 'left'
     
     if 'qwq' in model_path.lower():
-        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
-            output_dir = f'./outputs/{dataset_name}.qwq.direct'
-        else:
-            output_dir = f'./outputs/runs.qa/{dataset_name}.qwq.direct'
+        model_short_name = 'qwq'
+    elif 'deepseek' in model_path.lower():
+        if 'llama-8b' in model_path.lower():
+            model_short_name = 'ds-llama-8b'
+        elif 'qwen-7b' in model_path.lower():
+            model_short_name = 'ds-qwen-7b'
+        elif 'qwen-32b' in model_path.lower():
+            model_short_name = 'ds-qwen-32b'
+    elif 'sky-t1' in model_path.lower():
+        model_short_name = 'sky-t1'
     else:
         model_short_name = model_path.split('/')[-1].lower().replace('-instruct', '')
+
+    if model_short_name in ['qwq', 'ds-llama-8b', 'ds-qwen-7b', 'ds-qwen-32b', 'sky-t1']:
+        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
+            output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
+        else:
+            output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct'
+    else:
         output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
     os.makedirs(output_dir, exist_ok=True)
     
@@ -151,19 +164,19 @@ def main():
     for item in filtered_data:
         question = item['Question']
         if dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
-            if 'qwq' in model_path.lower():
+            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_openqa(question, model_name='qwq')
             else:
                 user_prompt = get_task_instruction_openqa(question)
 
         elif dataset_name in ['math500', 'aime', 'amc']:
-            if 'qwq' in model_path.lower():
+            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_math(question, model_name='qwq')
             else:
                 user_prompt = get_task_instruction_math(question)
 
         elif dataset_name in ['gpqa']:
-            if 'qwq' in model_path.lower():
+            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_multi_choice(question, model_name='qwq')
             elif 'llama' in model_path.lower():
                 user_prompt = get_task_instruction_multi_choice(question, model_name='llama')
@@ -172,7 +185,7 @@ def main():
             
         elif dataset_name == 'livecode':
             question_title = item.get('question_title', '')
-            if 'qwq' in model_path.lower():
+            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_code(question, question_title=question_title, model_name='qwq')
             else:
                 user_prompt = get_task_instruction_code(question)
@@ -188,7 +201,7 @@ def main():
     
     # Set default max_tokens if not provided
     if max_tokens is None:
-        if 'qwq' in model_path.lower():
+        if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'livecode']:
                 max_tokens = 32768
             else:
