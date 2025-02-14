@@ -118,7 +118,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, apply_backoff=False): #run evaluation 고쳐서 보기. 
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []

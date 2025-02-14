@@ -7,6 +7,7 @@ import os, time
 import numpy as np
 from tqdm import tqdm
 from vllm import LLM, SamplingParams
+from openai import OpenAI
 from transformers import AutoTokenizer
 from evaluate import run_evaluation
 from prompts import (
@@ -14,9 +15,11 @@ from prompts import (
     get_task_instruction_math, 
     get_task_instruction_multi_choice, 
     get_task_instruction_code, 
+    get_task_instruction_medical,
 )
 import argparse
 
+#configured medical
 def parse_args():
     parser = argparse.ArgumentParser(description="Run direct generation for various datasets and models.")
     
@@ -24,7 +27,7 @@ def parse_args():
         '--dataset_name', 
         type=str, 
         required=True, 
-        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth'],
+        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets'],
         help="Name of the dataset to use."
     )
     
@@ -32,7 +35,7 @@ def parse_args():
         '--split', 
         type=str, 
         required=True, 
-        choices=['test', 'diamond', 'main', 'extended'],
+        choices=['diamond', 'main', 'extended', 'train', 'test'],
         help="Dataset split to use."
     )
     
@@ -53,7 +56,7 @@ def parse_args():
     parser.add_argument(
         '--temperature', 
         type=float, 
-        default=0.7, 
+        default=0, 
         help="Sampling temperature."
     )
     
@@ -115,6 +118,8 @@ def main():
         data_path = f'./data/AMC/{split}.json'
     elif dataset_name == 'livecode':
         data_path = f'./data/LiveCodeBench/{split}.json'
+    elif dataset_name in ['medbullets', 'medqa', 'jama', 'medxpertqa']:
+        data_path = f"./data/medical/{dataset_name}_{split}.json"
     elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
         data_path = f'./data/QA_Datasets/{dataset_name}.json'
     else:
@@ -149,10 +154,12 @@ def main():
         output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
     os.makedirs(output_dir, exist_ok=True)
     
-    llm = LLM(
-        model=model_path,
-        tensor_parallel_size=torch.cuda.device_count(),
-        gpu_memory_utilization=0.95,
+    llm = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        base_url="http://localhost:8100/v1",
+        # model=model_path,
+        # tensor_parallel_size=torch.cuda.device_count(),
+        # gpu_memory_utilization=0.95,
     )
     
     # Load data
@@ -162,8 +169,17 @@ def main():
     # prepare input
     input_list = []
     for item in filtered_data:
-        question = item['Question']
-        if dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
+        # question = item['Question']
+        question = item['question']
+        if dataset_name in ['medbullets', 'medqa', 'jama', 'medxpertqa']:
+            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
+                user_prompt = get_task_instruction_medical(question, model_name='qwq')
+            elif 'llama' in model_path.lower():
+                user_prompt = get_task_instruction_medical(question, model_name='llama')
+            else:
+                user_prompt = get_task_instruction_medical(question)
+
+        elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_openqa(question, model_name='qwq')
             else:
@@ -203,24 +219,47 @@ def main():
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'livecode']:
-                max_tokens = 32768
+                max_tokens = 3000
             else:
-                max_tokens = 25600
+                max_tokens = 3000
         else:
-            max_tokens = 3096
+            max_tokens = 3000
+    # Adjust max_tokens to fit within the model's context length
+    max_tokens = min(max_tokens, 3000 - 243)  # Ensure total tokens do not exceed 4096
     
     t_start = time.time()
     # Generate model outputs
-    output_list = llm.generate(
-        input_list, 
-        sampling_params=SamplingParams(
-            max_tokens=max_tokens, 
-            temperature=temperature, 
-            top_p=top_p, 
-            top_k=top_k, 
-            repetition_penalty=repetition_penalty,
-        )
+    # output_list = llm.generate(
+    #     input_list, 
+    #     sampling_params=SamplingParams(
+    #         max_tokens=max_tokens, 
+    #         temperature=temperature, 
+    #         top_p=top_p, 
+    #         top_k=top_k, 
+    #         repetition_penalty=repetition_penalty,
+    #     )
+    # )
+
+    # output_list = llm.chat.completions.create(
+    #     model=model_path,
+    #     messages=input_list,
+    #     max_tokens=max_tokens,
+    #     temperature=temperature,
+    #     top_p=top_p,
+    #     # top_k=top_k,
+    #     # repetition_penalty=repetition_penalty,
+    # )
+
+    output_list = llm.completions.create(
+        model=model_path,
+        prompt=input_list,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        # top_k=top_k,
+        # repetition_penalty=repetition_penalty,
     )
+
     total_time = time.time() - t_start
     
     # Run evaluation

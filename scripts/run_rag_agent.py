@@ -44,7 +44,7 @@ def parse_args():
         '--dataset_name',
         type=str,
         required=True,
-        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth'],
+        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets'],
         help="Name of the dataset to use."
     )
 
@@ -52,7 +52,7 @@ def parse_args():
         '--split',
         type=str,
         required=True,
-        choices=['test', 'diamond', 'main', 'extended'],
+        choices=['diamond', 'main', 'extended', 'train', 'test'],
         help="Dataset split to use."
     )
 

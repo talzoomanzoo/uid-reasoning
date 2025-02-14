@@ -1,5 +1,3 @@
-
-
 def get_gpqa_search_o1_instruction(MAX_SEARCH_LIMIT):
     return (
         "You are a reasoning assistant with the ability to perform web searches to help "
@@ -353,6 +351,20 @@ def get_naive_rag_instruction(question, documents):
     )
 
 
+def get_task_instruction_medical(question, model_name=None): ##should change the prompt 
+    if model_name == 'qwq':
+        user_prompt = (
+            'Please answer the following question. '
+            'You should provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
+            f'Question:\n{question}\n\n'
+        )
+    else:
+        user_prompt = (
+            'Please answer the following question. You should think step by step to solve it.\n\n'
+            'Provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
+            f'Question:\n{question}\n\n'
+        )
+    return user_prompt
 
 def get_task_instruction_openqa(question, model_name=None):
     if model_name == 'qwq':
