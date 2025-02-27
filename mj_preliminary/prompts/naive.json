@@ -1,0 +1,4 @@
+{
+    "system_prompt": "Given a question and options, analyze the medical case carefully, and lead to the final answer. ALWAYS give the final answer between TRIPLE BACKTICKS, exactly like this: Final Answer:```Option{option_idx}```",
+    "user_input": "```Question:{question}\n\nOptions: OptionA: {opa}\nOptionB: {opb}\nOptionC: {opc}\nOptionD: {opd}```"
+}
