@@ -6,6 +6,8 @@ from langchain_openai import ChatOpenAI
 from transformers import AutoTokenizer
 import torch
 
+#code for manipulating <think> tokens
+
 parser = argparse.ArgumentParser()
 parser.add_argument("question", type=str)
 parser.add_argument(
@@ -29,13 +31,12 @@ _, _start_think_token, end_think_token = tokenizer.encode("<think></think>")
 # Use OpenAI-compatible vLLM server
 model = ChatOpenAI(
     model=args.model_name,
-    base_url=f"http://localhost:{args.port}/v1",  # vLLM OpenAI-compatible API
+    base_url=f"http://localhost:{args.port}/v1",
     temperature=0,
     max_tokens=3000,
     max_retries=100,
     openai_api_key=openai_api_key,
-    streaming=True  # Enables streaming response
-)
+    streaming=True #check 
 
 def reasoning_effort(question: str, min_thinking_tokens: int):
     """
