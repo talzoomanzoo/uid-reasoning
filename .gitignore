@@ -1,2 +1,3 @@
+data/medical/*
 outputs/*
-mj_preliminary/outputs/*
+__pycache__/*

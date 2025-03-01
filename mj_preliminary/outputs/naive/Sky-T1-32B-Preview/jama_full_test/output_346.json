@@ -1,0 +1,25 @@
+{
+    "id": 1580,
+    "model_input": "Question: A 56-year-old man with systemic lupus erythematosus was taking chloroquine for 7 years (2.6 mg/kg daily; cumulative dose, 332 g). He was diagnosed as having nephropathy 5 years ago. He presented with a history of bilateral, painless, progressive visual diminution for 2 years. On examination, his best-corrected visual acuity was 20/200 in both eyes. He had bilateral posterior subcapsular cataracts. Both the corneas were clear. Intraocular pressures were 14 and 16 mm Hg in the right and left eyes, respectively, by Goldmann applanation tonometry. Dilated ophthalmoscopy revealed a hypopigmented zone in the parafoveal macula (Figure). Color vision testing revealed red-green deficiencies in both eyes. What Would You Do Next?\nOptions: A:Discontinue treatment with chloroquine B:Reassure and observe C:Treat with intravitreous corticosteroids D:Examine family members for macular dystrophy\n Which option is the correct answer to the question? ALWAYS provide the option index of the final answer AT THE END with TRIPLE BACKTICKS among A, B, C, D, EXACTLY like this: The answer is ```X```. DO NOT add any other text or variations.",
+    "link": "https://jamanetwork-com-ssl.ymlproxy.yonsei.ac.kr/journals/jamaophthalmology/fullarticle/2292601",
+    "images_link": [
+        "./jama_raw_updated/jamaophthalmology/fullarticle/2292601/1.png"
+    ],
+    "caption": [
+        "Advanced chloroquine retinopathy. Fundus photographs of the right (A) and left (B) eyes showing hypopigmented zones concentric to the fovea consistent with chloroquine retinopathy."
+    ],
+    "opa": "Discontinue treatment with chloroquine",
+    "opb": "Reassure and observe",
+    "opc": "Treat with intravitreous corticosteroids",
+    "opd": "Examine family members for macular dystrophy",
+    "diagnosis": "Chloroquine toxicity",
+    "answer_idx": "A",
+    "answer": "Discontinue treatment with chloroquine.",
+    "explanation": "Chloroquine and its analogue hydroxychloroquine are used as disease-modifying antirheumatic drugs in autoimmune diseases, such as rheumatoid arthritis and systemic lupus erythematosus. Ocular manifestations of toxicity include whorl-pattern epithelial keratopathy, subcapsular cataracts, retinopathy, optic atrophy, paralysis of accommodation, and extraocular muscle palsy.1The risk of retinal toxic effects from chloroquine is approximately 1% after 5 to 7 years of use.2 Hydroxychloroquine is less toxic than chloroquine. The drug binds to melanin in the retinal pigment epithelium, which prolongs its toxic effects. The earliest changes of retinopathy might be picked up by automated central visual field charting, multifocal electroretinography, spectral-domain optical coherence tomography, or fundus autofluorescence.3 Fundus changes progress from the loss of foveal reflex and subtle parafoveal depigmentation to bull s-eye maculopathy. Once fundus changes appear, the disease may be irreversible and progressive.4 Patients with renal dysfunction are at an increased risk of toxic effects because of decreased clearance of the drug. There is no medical therapy for the treatment of the toxic effects other than cessation of use of the drug. Hence, periodic screening is absolutely essential.The American Academy of Ophthalmology recommends annual screening from the initiation of therapy in patients with nephropathy. The recommended screening procedures at each visit should include a thorough ocular examination, automated visual fields (acquired bilateral paracentral scotomas), and one or more of the following objective tests: multifocal electroretinography (localized paracentral electroretinographic depression), spectral-domain optical coherence tomography (ellipsoid parafoveal loss), and fundus autofluorescence (reduced autofluorescence that indicates subtle retinal pigment epithelial defects and increased autofluorescence that indicates areas of early photoreceptor damage and accumulation of outer segment debris in the parafoveal macula).3Chloroquine was substituted with methotrexate. However, vision continued to worsen and ultimately resulted in optic atrophy.",
+    "field": "JAMA Ophthalmology Clinical Challenge",
+    "Question": "A 56-year-old man with systemic lupus erythematosus was taking chloroquine for 7 years (2.6 mg/kg daily; cumulative dose, 332 g). He was diagnosed as having nephropathy 5 years ago. He presented with a history of bilateral, painless, progressive visual diminution for 2 years. On examination, his best-corrected visual acuity was 20/200 in both eyes. He had bilateral posterior subcapsular cataracts. Both the corneas were clear. Intraocular pressures were 14 and 16 mm Hg in the right and left eyes, respectively, by Goldmann applanation tonometry. Dilated ophthalmoscopy revealed a hypopigmented zone in the parafoveal macula (Figure). Color vision testing revealed red-green deficiencies in both eyes. What Would You Do Next?",
+    "raw_response": "The answer is ```A```.",
+    "prediction": "A",
+    "is_correct": true,
+    "correct_token_used": 325
+}
