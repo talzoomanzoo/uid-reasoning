@@ -7,6 +7,7 @@ import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
+from tqdm import tqdm
 
 
 def extract_answer(output, mode='gen'):
@@ -118,7 +119,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, apply_backoff=False): #run evaluation 고쳐서 보기. 
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -129,7 +130,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         per_difficulty_count = {}
         num_valid_answer = 0
 
-        for item, input_prompt, result in zip(filtered_data, input_list, output_list):
+        #added code for medbullets, qwq-llama-distill
+        output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
+        
+        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list), total=len(filtered_data)):
+            #import pdb; pdb.set_trace()
             if type(result) == str:
                 item['Output'] = result
             else:
@@ -215,7 +220,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             'overall': overall_metrics,
             'per_domain': per_difficulty_metrics
         }
-
+        
     else:
         # Existing evaluation for other datasets
         avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
@@ -224,9 +229,12 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # If the dataset is GPQA, track metrics per domain
         domain_metrics = {}
 
-        for item, input_prompt, result in zip(filtered_data, input_list, output_list):
+        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list), total=len(filtered_data)):
+            #import pdb; pdb.set_trace()
             if type(result) == str:
                 item['Output'] = result
+            elif type(result) == tuple:
+                item['Output'] = result[0].text
             else:
                 item['Output'] = result.outputs[0].text
             if dataset_name in ['gpqa', 'medmcqa']:
@@ -242,6 +250,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             elif dataset_name in ['pubhealth']:
                 labeled_answer = item["answer"]
                 mode = 'choose'
+            elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
+                labeled_answer = item["answer"]
+                mode = 'choose' #prompt should consider to "choose"
             else:
                 raise ValueError(f"Unknown dataset_name: {dataset_name}")
 
@@ -311,6 +322,10 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
     if apply_backoff:
         result_json_name = output_dir
         metrics_json_name = output_dir.replace('.json', '.metrics.backoff.json')
+
+    # Ensure the output directory exists
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     # Save prediction results and metrics
     with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
@@ -406,6 +421,27 @@ if __name__ == "__main__":
         normal_output_path = './outputs/runs.qa/pubhealth.qwq.direct/test.12.15,20:32.json'
         if 'qwq' not in output_path:
             normal_output_path = ''
+    #medical datasets
+    elif "medbullets" in output_path:
+        dataset_name = 'medbullets'
+        normal_output_path = './outputs/runs.qa/medbullets.qwq.direct/test.12.15,20:32.json'
+        if 'qwq' not in output_path:
+            normal_output_path = ''
+    elif "jama_full" in output_path:
+        dataset_name = 'jama_full'
+        normal_output_path = './outputs/runs.qa/jama_full.qwq.direct/test.12.15,20:32.json'
+        if 'qwq' not in output_path:
+            normal_output_path = ''
+    elif "medqa" in output_path:
+        dataset_name = 'medqa'
+        normal_output_path = './outputs/runs.qa/medqa.qwq.direct/test.12.15,20:32.json'
+        if 'qwq' not in output_path:
+            normal_output_path = ''
+    elif "medxpertqa" in output_path:
+        dataset_name = 'medxpertqa'
+        normal_output_path = './outputs/runs.qa/medxpertqa.qwq.direct/test.12.15,20:32.json'
+        if 'qwq' not in output_path:
+            normal_output_path = ''
 
     # Load main output data
     with open(output_path, mode='r', encoding='utf-8') as file:
@@ -460,6 +496,10 @@ if __name__ == "__main__":
                 labeled_answer = item["answer"]
                 mode = 'choose'
                 domain = 'Unknown'
+            elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
+                labeled_answer = item["answer"]
+                mode = 'choose' #prompt should consider to "choose"
+                domain = 'Unknown'
             else:
                 raise ValueError(f"Unsupported dataset: {dataset_name}")
 
@@ -490,6 +530,9 @@ if __name__ == "__main__":
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'qa'
                 elif dataset_name in ['pubhealth']:
+                    normal_labeled_answer = normal_item["answer"]
+                    normal_mode = 'choose'
+                elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'choose'
                 else:
@@ -573,7 +616,11 @@ if __name__ == "__main__":
 
         # Prepare input_list and output_list for run_evaluation
         input_list = [item['Question'] for item in data]
-        output_list = [item['Output'] for item in data]
+        output_list = [item['Output'] for item in data]\
+        
+        # import pdb; pdb.set_trace()
+        #added code for medbullets, qwq-llama-distill
+        output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
 
         # Estimate total_time (if available). Here, set to 0 as a placeholder.
         total_time = 0  # Modify if timing information is available

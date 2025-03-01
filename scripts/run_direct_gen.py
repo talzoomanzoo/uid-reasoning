@@ -17,7 +17,9 @@ from prompts import (
     get_task_instruction_code, 
     get_task_instruction_medical,
 )
+from tqdm import tqdm
 import argparse
+import asyncio
 
 #configured medical
 def parse_args():
@@ -27,7 +29,7 @@ def parse_args():
         '--dataset_name', 
         type=str, 
         required=True, 
-        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets'],
+        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa'],
         help="Name of the dataset to use."
     )
     
@@ -87,6 +89,13 @@ def parse_args():
         default=32768, 
         help="Maximum number of tokens to generate. If not set, defaults based on the model and dataset."
     )
+
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=8100,
+        help="Port to use for the OpenAI API."
+    )
     
     return parser.parse_args()
 
@@ -118,7 +127,7 @@ def main():
         data_path = f'./data/AMC/{split}.json'
     elif dataset_name == 'livecode':
         data_path = f'./data/LiveCodeBench/{split}.json'
-    elif dataset_name in ['medbullets', 'medqa', 'jama', 'medxpertqa']:
+    elif dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
         data_path = f"./data/medical/{dataset_name}_{split}.json"
     elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
         data_path = f'./data/QA_Datasets/{dataset_name}.json'
@@ -156,7 +165,7 @@ def main():
     
     llm = OpenAI(
         api_key=os.getenv("OPENAI_API_KEY"),
-        base_url="http://localhost:8100/v1",
+        base_url=f"http://localhost:{args.port}/v1",
         # model=model_path,
         # tensor_parallel_size=torch.cuda.device_count(),
         # gpu_memory_utilization=0.95,
@@ -168,10 +177,9 @@ def main():
     
     # prepare input
     input_list = []
-    for item in filtered_data:
-        # question = item['Question']
-        question = item['question']
-        if dataset_name in ['medbullets', 'medqa', 'jama', 'medxpertqa']:
+    for item in tqdm(filtered_data):
+        question = item['Question']
+        if dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_medical(question, model_name='qwq')
             elif 'llama' in model_path.lower():
@@ -250,18 +258,33 @@ def main():
     #     # repetition_penalty=repetition_penalty,
     # )
 
-    output_list = llm.completions.create(
-        model=model_path,
-        prompt=input_list,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        # top_k=top_k,
-        # repetition_penalty=repetition_penalty,
-    )
+    # output_list = llm.completions.create(
+    #     model=model_path,
+    #     prompt=input_list,
+    #     max_tokens=max_tokens,
+    #     temperature=temperature,
+    #     top_p=top_p,
+    #     # top_k=top_k,
+    #     # repetition_penalty=repetition_penalty,
+    # )
+
+    async def generate_outputs(llm, input_batches, model_path, max_tokens, temperature, top_p):
+        output_list = []
+        for input_list in input_batches:
+            batch_output = await llm.completions.create(
+                model=model_path,
+                prompt=input_list,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+        )
+        output_list.extend(batch_output)
+        return output_list
 
     total_time = time.time() - t_start
     
+    output_list = asyncio.run(generate_outputs(llm, input_list, model_path, max_tokens, temperature, top_p))
+
     # Run evaluation
     run_evaluation(
         filtered_data, 
@@ -274,4 +297,4 @@ def main():
     )
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
