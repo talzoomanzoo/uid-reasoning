@@ -20,6 +20,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=50)
     parser.add_argument("--start_index", type=int, default=0)
     parser.add_argument("--port", type=int, default=8100)
+    parser.add_argument("--temperature", type=float, default=0.6)
 
     args = parser.parse_args()
 
@@ -35,10 +36,34 @@ async def generate_concurrently(cur_model_data, start_index, end_index, output_d
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEY is not set")
-    llm = ChatOpenAI(
-        model=model_name,
+    
+    openrouter_api_key = os.getenv("OPEN_ROUTER_API_KEY")
+    if not openrouter_api_key:
+        raise ValueError("OPENROUTER_API_KEY is not set")
+    
+    if "gpt" in model_name:
+        llm = ChatOpenAI(
+            model=model_name,
+            base_url=f"https://api.openai.com/v1",
+            temperature=args.temperature,
+            max_tokens=3000,
+            max_retries=100,
+            openai_api_key=openai_api_key
+        )
+    elif "gemini" in model_name:
+        llm = ChatOpenAI(
+            model=model_name,
+            base_url=f"https://openrouter.ai/api/v1",
+            temperature=args.temperature,
+            max_tokens=3000,
+            max_retries=100,
+            api_key=openrouter_api_key
+        )
+    else:
+        llm = ChatOpenAI(
+            model=model_name,
         base_url=f"http://localhost:{args.port}/v1",
-        temperature=0,
+        temperature=args.temperature,
         max_tokens=3000,
         max_retries=100,
         openai_api_key=openai_api_key
@@ -75,9 +100,7 @@ async def async_generate(llm, model_data, output_file_path, idx, prompt_data):
             opd=model_data["opd"]
             )
             messages = [[SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]]
-            # import pdb; pdb.set_trace()
             response = await llm.agenerate(messages)
-            # import pdb; pdb.set_trace()
             token_used = response.llm_output["token_usage"]["total_tokens"]
             result = deepcopy(model_data)
             result["raw_response"] = response.generations[0][0].text
@@ -137,7 +160,7 @@ async def main(args):
             print(f"Processing batch starting at index: {start_index}")
             try:
                 results = await generate_concurrently(cur_model_data, start_index, start_index + args.batch_size, args.output_dir, args.batch_size, args.model_name)
-                print(f"Results from generate_concurrently: {results}")
+                # print(f"Results from generate_concurrently: {results}")
                 all_results.extend(results)
             except Exception as e:
                 print(f"Error during generate_concurrently: {e}")

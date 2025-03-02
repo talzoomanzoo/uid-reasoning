@@ -20,7 +20,8 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=50)
     parser.add_argument("--start_index", type=int, default=0)
     parser.add_argument("--port", type=int, default=8100)
-    parser.add_argument("--step_level_model_name", type=str, default="gpt-4o-mini")
+    parser.add_argument("--temperature", type=float, default=0.6)
+    parser.add_argument("--max_tokens", type=int, default=3000)
 
     args = parser.parse_args()
 
@@ -36,10 +37,34 @@ async def generate_concurrently(cur_model_data, start_index, end_index, output_d
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEY is not set")
-    llm = ChatOpenAI(
-        model=model_name,
+    
+    openrouter_api_key = os.getenv("OPEN_ROUTER_API_KEY")
+    if not openrouter_api_key:
+        raise ValueError("OPENROUTER_API_KEY is not set")
+    
+    if model_name.startswith("gpt"):
+        llm = ChatOpenAI(
+            model=model_name,
+            base_url=f"https://api.openai.com/v1",
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
+            max_retries=100,
+            openai_api_key=openai_api_key
+        )
+    elif "gemini" in model_name:
+        llm = ChatOpenAI(
+            model=model_name,
+            base_url=f"https://openrouter.ai/api/v1",
+            temperature=args.temperature,
+            max_tokens=3000,
+            max_retries=100,
+            api_key=openrouter_api_key
+        )
+    else:
+        llm = ChatOpenAI(
+            model=model_name,
         base_url=f"http://localhost:{args.port}/v1",
-        temperature=0,
+        temperature=args.temperature,
         max_tokens=3000,
         max_retries=100,
         openai_api_key=openai_api_key

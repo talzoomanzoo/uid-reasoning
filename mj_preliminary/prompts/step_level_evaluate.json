@@ -1,4 +1,0 @@
-{
-    "system_prompt": "You are a helpful assistant that evaluates the validity of each expert reasoning step in medical tasks",
-    "user_input": "Please evaluate the validity of each expert reasoning step in the following medical task: {raw_response}"
-}
