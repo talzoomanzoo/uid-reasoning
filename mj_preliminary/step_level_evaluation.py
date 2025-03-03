@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument("--input_dir", type=str, default="./outputs/temp_06/expert/Sky-T1-32B-Preview/jama_full_test")
     parser.add_argument("--output_dir", type=str, default="./outputs/step_level_evaluation/temp_06/Sky-T1-32B-Preview/gpt-4o-mini/jama_full_test")
     parser.add_argument("--batch_size", type=int, default=100)
-    parser.add_argument("--start_index", type=int, default=0)
+    parser.add_argument("--start_index", type=int, default=350)
     parser.add_argument("--final_accuracy_file", type=str, default="./outputs/temp_06/expert/Sky-T1-32B-Preview/jama_full_test/all_correct_scores.json")
 
     args = parser.parse_args()
@@ -26,14 +26,8 @@ def parse_args():
     return args
 
 def parse_stepwise_evaluation(response: str):
-    count_yes = 0
-    count_no = 0
-    match_yes = re.search(r'```yes```', response, re.IGNORECASE)
-    match_no = re.search(r'```no```', response, re.IGNORECASE)
-    if match_yes:
-        count_yes += 1
-    elif match_no:
-        count_no += 1
+    count_yes = len(re.findall(r'```yes```', response, re.IGNORECASE))
+    count_no = len(re.findall(r'```no```', response, re.IGNORECASE))
     return count_yes, count_no
 
 async def generate_concurrently(cur_model_data, start_index, end_index, output_dir, batch_size, model_name):
@@ -88,6 +82,7 @@ async def async_generate(llm, model_data, output_file_path, idx, prompt_data):
         except Exception as e:
             print(f"Error generating for {idx}: {e}")
             continue
+    return result
 
 def load_and_prepare_data(prompt_file: str, input_dir: str):
     with open(prompt_file, "r") as f:
@@ -136,6 +131,7 @@ async def main(args):
         all_evaluation_results = await generate_concurrently(all_model_data, 0, len(all_model_data), args.output_dir, args.batch_size, args.model_name)
 
     ##correlation between average stepwise accuracy and accuracy
+    import pdb; pdb.set_trace()
     all_stepwise_accuracy = [result["stepwise_evaluation_accuracy"] for result in all_evaluation_results]
     avg_stepwise_accuracy = sum(all_stepwise_accuracy) / len(all_stepwise_accuracy)
     final_accuracy = json.load(open(args.final_accuracy_file, "r"))
