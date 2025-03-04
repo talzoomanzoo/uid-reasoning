@@ -135,11 +135,12 @@ async def main(args):
     all_stepwise_accuracy = [result["stepwise_evaluation_accuracy"] for result in all_evaluation_results]
     avg_stepwise_accuracy = sum(all_stepwise_accuracy) / len(all_stepwise_accuracy)
     final_accuracy = json.load(open(args.final_accuracy_file, "r"))
-    final_accuracy = final_accuracy[:-3]
+    final_accuracy = final_accuracy[-3]
+    all_final_accuracy = [float(result["is_correct"]) for result in all_evaluation_results] #change is_correct to acc
     print(f"Average stepwise accuracy: {avg_stepwise_accuracy}")
     print(f"Final accuracy: {final_accuracy}")
-    pearson_corr = np.corrcoef(avg_stepwise_accuracy, final_accuracy)[0, 1]
-    print(f"Pearson correlation between average stepwise accuracy and final accuracy: {pearson_corr}")
+    pearson_corr = np.corrcoef(all_stepwise_accuracy, all_final_accuracy)[0, 1]
+    print(f"Pearson correlation between stepwise accuracy and final accuracy: {pearson_corr}")
 
 if __name__ == "__main__":
     args = parse_args()
