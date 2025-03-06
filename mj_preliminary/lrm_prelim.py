@@ -11,6 +11,8 @@ import re
 from utils.evaluate import evaluate_prediction
 from utils.average import average_score, average_token_used
 
+TOTAL_COST = 0
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", type=str, default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B")
@@ -19,7 +21,7 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, default=None)
     parser.add_argument("--batch_size", type=int, default=50)
     parser.add_argument("--start_index", type=int, default=0)
-    parser.add_argument("--port", type=int, default=8100)
+    parser.add_argument("--port", type=int, default=None)
     parser.add_argument("--temperature", type=float, default=0.6)
 
     args = parser.parse_args()
@@ -89,6 +91,7 @@ async def generate_concurrently(cur_model_data, start_index, end_index, output_d
         return []
 
 async def async_generate(llm, model_data, output_file_path, idx, prompt_data):
+    global TOTAL_COST
     system_prompt = prompt_data["system_prompt"]
     while True:
         try:
@@ -112,6 +115,8 @@ async def async_generate(llm, model_data, output_file_path, idx, prompt_data):
                 result["incorrect_token_used"] = token_used
             with open(os.path.join(output_file_path, f"output_{idx}.json"), "w", encoding="utf-8") as f:
                 json.dump(result, f, indent=4, ensure_ascii=False)
+            TOTAL_COST += token_used / 1000 * 0.002
+            print(idx, TOTAL_COST)
             break
         except Exception as e:
             print(f"Error: {e}")

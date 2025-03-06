@@ -9,14 +9,18 @@ from tqdm import tqdm
 from copy import deepcopy
 import asyncio
 import numpy as np
+from sklearn.linear_model import LogisticRegression
+from scipy.stats import pointbiserialr, binned_statistic
+from sklearn.metrics import roc_auc_score
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", type=str, default="gpt-4o-mini")
     parser.add_argument("--temperature", type=float, default=0)
     parser.add_argument("--max_tokens", type=int, default=3000)
-    parser.add_argument("--prompt_file", type=str, default="./prompts/step_level_evaluation.json")
+    parser.add_argument("--prompt_file", type=str, default="./prompts/step_level_evaluation_divided.json")
     parser.add_argument("--input_dir", type=str, default="./outputs/temp_06/expert/Sky-T1-32B-Preview/jama_full_test")
-    parser.add_argument("--output_dir", type=str, default="./outputs/step_level_evaluation/temp_06/Sky-T1-32B-Preview/gpt-4o-mini/jama_full_test")
+    parser.add_argument("--output_dir", type=str, default="./outputs/step_level_evaluation_divided_corrs/temp_06/Sky-T1-32B-Preview/gpt-4o-mini/jama_full_test")
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--start_index", type=int, default=350)
     parser.add_argument("--final_accuracy_file", type=str, default="./outputs/temp_06/expert/Sky-T1-32B-Preview/jama_full_test/all_correct_scores.json")
@@ -29,6 +33,33 @@ def parse_stepwise_evaluation(response: str):
     count_yes = len(re.findall(r'```yes```', response, re.IGNORECASE))
     count_no = len(re.findall(r'```no```', response, re.IGNORECASE))
     return count_yes, count_no
+
+def parse_step(response: str, step: int):
+    steps = {
+        1: ("Step1.", "\nStep2."),
+        2: ("Step2.", "\nStep3.1."),
+        3_1: ("Step3.1.", "\nStep3.2."),
+        3_2: ("Step3.2.", "\nStep3.3."),
+        3_3: ("Step3.3.", "\nStep4."),
+        4: ("Step4.", None)
+    }
+    
+    start, end = steps[step]
+    
+    # Handle optional triple hashtags
+    start_pattern = f"(###?\\s*{start})"
+    end_pattern = f"(###?\\s*{end})" if end else None
+    
+    if end:
+        match = re.search(f"{start_pattern}(.*?){end_pattern}", response, re.DOTALL)
+    else:
+        match = re.search(f"{start_pattern}(.*)", response, re.DOTALL)
+    
+    if match:
+        # Include the start step marker in the result
+        return match.group(1) + match.group(2).strip()
+    else:
+        return ""
 
 async def generate_concurrently(cur_model_data, start_index, end_index, output_dir, batch_size, model_name):
     openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -65,7 +96,12 @@ async def async_generate(llm, model_data, output_file_path, idx, prompt_data):
     while True:
         try:
             user_prompt = prompt_data["user_input"].format(
-                raw_response=model_data["raw_response"]
+                Step1=parse_step(model_data["raw_response"], 1),
+                Step2=parse_step(model_data["raw_response"], 2),
+                Step3_1=parse_step(model_data["raw_response"], 3_1),
+                Step3_2=parse_step(model_data["raw_response"], 3_2),
+                Step3_3=parse_step(model_data["raw_response"], 3_3),
+                Step4=parse_step(model_data["raw_response"], 4)
             )
             messages = [[SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]]
             response = await llm.agenerate(messages)
@@ -102,7 +138,13 @@ def load_and_prepare_data(prompt_file: str, input_dir: str):
         input_temp = dict()
         input_temp['id'] = i
         input_temp['model_input'] = prompt_data["user_input"].format(**{
-            "raw_response": initial_model_data[i]["raw_response"]
+            "raw_response": initial_model_data[i]["raw_response"],
+            "Step1": parse_step(initial_model_data[i]["raw_response"], 1),
+            "Step2": parse_step(initial_model_data[i]["raw_response"], 2),
+            "Step3_1": parse_step(initial_model_data[i]["raw_response"], 3_1),
+            "Step3_2": parse_step(initial_model_data[i]["raw_response"], 3_2),
+            "Step3_3": parse_step(initial_model_data[i]["raw_response"], 3_3),
+            "Step4": parse_step(initial_model_data[i]["raw_response"], 4)
         })
         for key in initial_model_data[i].keys():
             input_temp[key] = initial_model_data[i][key]
@@ -141,13 +183,25 @@ async def main(args):
         0 if result["stepwise_evaluation_no_count"] > 0 else result["stepwise_evaluation_accuracy"]
         for result in all_evaluation_results
     ]
-    avg_stepwise_accuracy_with_no_as_zero = sum(stepwise_accuracy_with_no_as_zero) / len(stepwise_accuracy_with_no_as_zero)
+
+    # logistic_regression = LogisticRegression()
+    # # Reshape all_stepwise_accuracy to be a 2D array
+    # all_stepwise_accuracy_reshaped = np.array(all_stepwise_accuracy).reshape(-1, 1)
+    # logistic_regression.fit(all_stepwise_accuracy_reshaped, all_final_accuracy)
+    point_biserial_correlation = pointbiserialr(all_stepwise_accuracy, all_final_accuracy)
+    point_biserial_correlation_values = [point_biserial_correlation.statistic, point_biserial_correlation.pvalue]
+    auc_score = roc_auc_score(all_final_accuracy, all_stepwise_accuracy)
+    #binned_accuracy = binned_statistic(all_stepwise_accuracy, all_final_accuracy, bins=10, statistic='mean')
+    # import pdb; pdb.set_trace()
+    
     # Create a dictionary to store the results
     results_dict = {
         "average_stepwise_accuracy": avg_stepwise_accuracy,
         "final_accuracy": final_accuracy,
         "pearson_correlation": np.corrcoef(all_stepwise_accuracy, all_final_accuracy)[0, 1],
-        "pearson_correlation_with_no_as_zero": np.corrcoef(stepwise_accuracy_with_no_as_zero, all_final_accuracy)[0, 1]
+        "pearson_correlation_with_no_as_zero": np.corrcoef(stepwise_accuracy_with_no_as_zero, all_final_accuracy)[0, 1],
+        "point_biserial_correlation": point_biserial_correlation_values, #sky-t1: SignificanceResult(statistic=0.05052362508696974, pvalue=0.34252549971452834)
+        "auc_score": auc_score, #sky-t1: 0.5
     }
     
     # Save the results to a JSON file

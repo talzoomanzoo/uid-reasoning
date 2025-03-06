@@ -5,11 +5,11 @@ import torch
 import re
 import os, time
 import numpy as np
-from tqdm import tqdm
 from vllm import LLM, SamplingParams
 from openai import OpenAI
 from transformers import AutoTokenizer
 from evaluate import run_evaluation
+from langchain_openai import ChatOpenAI
 from prompts import (
     get_task_instruction_openqa, 
     get_task_instruction_math, 
@@ -34,7 +34,7 @@ def parse_args():
     )
     
     parser.add_argument(
-        '--split', 
+        '--split',
         type=str, 
         required=True, 
         choices=['diamond', 'main', 'extended', 'train', 'test'],
@@ -58,7 +58,7 @@ def parse_args():
     parser.add_argument(
         '--temperature', 
         type=float, 
-        default=0, 
+        default=0.6, #default LRM temp 0.5~0.7 preferred, with 0.6 recommended
         help="Sampling temperature."
     )
     
@@ -86,7 +86,7 @@ def parse_args():
     parser.add_argument(
         '--max_tokens', 
         type=int, 
-        default=32768, 
+        default=3000, 
         help="Maximum number of tokens to generate. If not set, defaults based on the model and dataset."
     )
 
@@ -97,11 +97,23 @@ def parse_args():
         help="Port to use for the OpenAI API."
     )
     
+    parser.add_argument(
+        '--batch_size',
+        type=int,
+        default=100,
+        help="Batch size for the OpenAI API."
+    )
+
+    parser.add_argument(
+        '--data_limit',
+        type=int,
+        default=-1,
+        help="Number of examples to process. Defaults to all if not specified."
+    )
+
     return parser.parse_args()
 
-def main():
-    args = parse_args()
-    
+def main(args):
     dataset_name = args.dataset_name
     split = args.split
     subset_num = args.subset_num
@@ -111,7 +123,9 @@ def main():
     top_k = args.top_k
     repetition_penalty = args.repetition_penalty
     max_tokens = args.max_tokens
-    
+    batch_size = args.batch_size
+    data_limit = args.data_limit
+
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
@@ -128,7 +142,7 @@ def main():
     elif dataset_name == 'livecode':
         data_path = f'./data/LiveCodeBench/{split}.json'
     elif dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
-        data_path = f"./data/medical/{dataset_name}_{split}.json"
+        data_path = f"../data/medical/{dataset_name}_{split}.json"
     elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
         data_path = f'./data/QA_Datasets/{dataset_name}.json'
     else:
@@ -162,26 +176,30 @@ def main():
     else:
         output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
     os.makedirs(output_dir, exist_ok=True)
-    
-    llm = OpenAI(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        base_url=f"http://localhost:{args.port}/v1",
-        # model=model_path,
-        # tensor_parallel_size=torch.cuda.device_count(),
-        # gpu_memory_utilization=0.95,
-    )
+
+    llm = ChatOpenAI(
+                model=model_path,
+                base_url=f"http://localhost:{args.port}/v1",
+                temperature=temperature,
+                max_tokens=max_tokens,
+                openai_api_key=os.getenv("OPENAI_API_KEY"),
+                max_retries=100,
+                top_p=top_p,
+            )
     
     # Load data
     with open(data_path, mode='r', encoding='utf-8') as json_file:
         filtered_data = json.load(json_file)
+        filtered_data = filtered_data[:data_limit]
     
     # prepare input
     input_list = []
-    for item in tqdm(filtered_data):
+    for item in filtered_data:
         question = item['Question']
+        options = [item['opa'], item['opb'], item['opc'], item['opd']]
         if dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-                user_prompt = get_task_instruction_medical(question, model_name='qwq')
+                user_prompt = get_task_instruction_medical(question, options, model_name='qwq')
             elif 'llama' in model_path.lower():
                 user_prompt = get_task_instruction_medical(question, model_name='llama')
             else:
@@ -229,7 +247,7 @@ def main():
             if dataset_name in ['aime', 'amc', 'livecode']:
                 max_tokens = 3000
             else:
-                max_tokens = 3000
+                max_tokens = 3000 
         else:
             max_tokens = 3000
     # Adjust max_tokens to fit within the model's context length
@@ -268,22 +286,26 @@ def main():
     #     # repetition_penalty=repetition_penalty,
     # )
 
-    async def generate_outputs(llm, input_batches, model_path, max_tokens, temperature, top_p):
+    async def generate_outputs(llm, input_batches, model_path, max_tokens, temperature, top_p, batch_size):
         output_list = []
-        for input_list in input_batches:
-            batch_output = await llm.completions.create(
-                model=model_path,
-                prompt=input_list,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                top_p=top_p,
-        )
-        output_list.extend(batch_output)
+        if len(input_batches) > batch_size:
+            for start_index in tqdm(range(0, len(input_batches), batch_size)):
+                cur_input_list = input_batches[start_index:start_index + batch_size]
+                batch_output = await llm.agenerate(cur_input_list)
+                output_list.extend(batch_output)
+        else:
+            output_list = await llm.agenerate(input_list)
         return output_list
-
+        #     batch_output = await llm.completions.create(
+        #         model=model_path,
+        #         prompt=input_list,
+        #         max_tokens=max_tokens,
+        #         temperature=temperature,
+        #         top_p=top_p,
+        # )
     total_time = time.time() - t_start
     
-    output_list = asyncio.run(generate_outputs(llm, input_list, model_path, max_tokens, temperature, top_p))
+    output_list = asyncio.run(generate_outputs(llm, input_list, model_path, max_tokens, temperature, top_p, batch_size))
 
     # Run evaluation
     run_evaluation(
@@ -297,4 +319,5 @@ def main():
     )
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    args = parse_args()
+    asyncio.run(main(args))
