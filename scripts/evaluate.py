@@ -133,41 +133,41 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         #added code for medbullets, qwq-llama-distill
         output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
         
-        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list), total=len(filtered_data)):
-            #import pdb; pdb.set_trace()
-            if type(result) == str:
-                item['Output'] = result
-            else:
-                item['Output'] = result.outputs[0].text
-            difficulty = item.get("difficulty", "Unknown")
-            difficulties.append(difficulty)
-            # Track metrics per domain
-            if difficulty not in per_difficulty_count.keys():
-                per_difficulty_count[difficulty] = 0
+        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list)):
+            for i in range(len(result)):
+                if type(result[i]) == str:
+                    item['Output'] = result[i]
+                else:
+                    item['Output'] = result[i].outputs[0].text
+                difficulty = item.get("difficulty", "Unknown")
+                difficulties.append(difficulty)
+                # Track metrics per domain
+                if difficulty not in per_difficulty_count.keys():
+                    per_difficulty_count[difficulty] = 0
 
-            pred_code = extract_answer(item['Output'], mode='codegen')
-            if pred_code != '':
-                num_valid_answer += 1
-                per_difficulty_count[difficulty] += 1
-            # Assuming each item has 'input_output' with 'inputs' and 'outputs'
-            public_test_cases = json.loads(item.get("public_test_cases", "{}"))
+                pred_code = extract_answer(item['Output'], mode='codegen')
+                if pred_code != '':
+                    num_valid_answer += 1
+                    per_difficulty_count[difficulty] += 1
+                # Assuming each item has 'input_output' with 'inputs' and 'outputs'
+                public_test_cases = json.loads(item.get("public_test_cases", "{}"))
 
-            inputs, outputs = [], []
-            for case in public_test_cases:
-                inputs.append(case["input"])
-                outputs.append(case["output"])
+                inputs, outputs = [], []
+                for case in public_test_cases:
+                    inputs.append(case["input"])
+                    outputs.append(case["output"])
 
-            sample = {
-                "input_output": json.dumps({
+                sample = {
+                    "input_output": json.dumps({
                     "inputs": inputs,
                     "outputs": outputs
                 }),
             }
 
-            samples_list.append(sample)
-            generations_list.append([pred_code])
-            item['Pred_Answer'] = pred_code
-            item['Question'] = input_prompt
+                samples_list.append(sample)
+                generations_list.append([pred_code])
+                item['Pred_Answer'] = pred_code
+                item['Question'] = input_prompt
 
 
         # Call codegen_metrics with pass@1
@@ -229,14 +229,13 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # If the dataset is GPQA, track metrics per domain
         domain_metrics = {}
 
-        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list), total=len(filtered_data)):
-            #import pdb; pdb.set_trace()
+        for i, (item, input_prompt, result) in enumerate(tqdm(filtered_data, input_list, output_list)):
+            length_of_filtered_data = len(filtered_data)
+            # Use length_of_filtered_data wherever you need the length
             if type(result) == str:
                 item['Output'] = result
             elif type(result) == tuple:
-                item['Output'] = result[0].text
-            else:
-                item['Output'] = result.outputs[0].text
+                item['Output'] = result[1][i][0].text
             if dataset_name in ['gpqa', 'medmcqa']:
                 labeled_answer = item["Correct Choice"]
                 # labeled_choice_answer = item["Correct Answer"]
@@ -504,6 +503,8 @@ if __name__ == "__main__":
                 raise ValueError(f"Unsupported dataset: {dataset_name}")
 
             output = item['Output']
+
+
 
             metric, pred_answer = evaluate_predictions(
                 output=output, 

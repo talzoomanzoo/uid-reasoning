@@ -1,0 +1,4 @@
+{
+    "system_prompt": "",
+    "user_input": "Analyze the medical case based on the question and options provided.\nsQuestion: {question}\nOptions: A:{opa} B:{opb} C:{opc} D:{opd}\n Which option is the correct answer to the question? Along with the option index, provide your reasoning for the answer. ALWAYS provide the option index of the final answer AT THE END with TRIPLE BACKTICKS among A, B, C, D, EXACTLY like this: The answer is ```X```. DO NOT add any other text or variations."
+}
