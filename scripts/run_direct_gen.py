@@ -123,7 +123,7 @@ def main(args):
     top_k = args.top_k
     repetition_penalty = args.repetition_penalty
     max_tokens = args.max_tokens
-    batch_size = args.batch_size
+    batch_size = args.batch_size 
     data_limit = args.data_limit
 
     # Set default repetition_penalty if not provided
@@ -307,6 +307,7 @@ def main(args):
     
     output_list = asyncio.run(generate_outputs(llm, input_list, model_path, max_tokens, temperature, top_p, batch_size))
 
+
     # Run evaluation
     run_evaluation(
         filtered_data, 
@@ -316,8 +317,9 @@ def main(args):
         output_dir, 
         total_time, 
         split,
+        args.data_limit
     )
 
 if __name__ == "__main__":
     args = parse_args()
-    asyncio.run(main(args))
+    main(args)

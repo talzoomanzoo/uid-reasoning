@@ -119,7 +119,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -129,14 +129,13 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         difficulties = []
         per_difficulty_count = {}
         num_valid_answer = 0
-
-        #added code for medbullets, qwq-llama-distill
-        output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
         
         for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list)):
             for i in range(len(result)):
                 if type(result[i]) == str:
                     item['Output'] = result[i]
+                elif type(result[i]) == tuple or type(result[i]) == list:
+                    item['Output'] = result[1][i][0].text
                 else:
                     item['Output'] = result[i].outputs[0].text
                 difficulty = item.get("difficulty", "Unknown")
@@ -220,6 +219,63 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             'overall': overall_metrics,
             'per_domain': per_difficulty_metrics
         }
+
+    elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
+        # Existing evaluation for other datasets
+        avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
+        num_valid_answer = 0
+
+        #added code for medbullets, qwq-llama-distill
+        # import pdb;pdb.set_trace()
+        # output_list = output_list.generations
+
+        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list[0][1])):
+            for i in range(len(result)):
+                if type(result) == str:
+                    item['Output'] = result[i]
+                elif type(result) == tuple or type(result) == list:
+                    # print("first pdb")
+                    # import pdb; pdb.set_trace()
+                    try:
+                        item['Output'] = result[0].text
+                    except:
+                        raise Exception("Error in result")
+                else:
+                    item['Output'] = result[i].outputs[0].text
+                
+                if dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
+                    labeled_answer = item["answer_idx"]
+                    mode = 'choose'
+                else:
+                    raise ValueError(f"Unknown dataset_name: {dataset_name}")
+
+                metric, pred_answer = evaluate_predictions(output=item['Output'], labeled_answer=labeled_answer, mode=mode)
+                item['Pred_Answer'] = pred_answer
+                item['Metrics'] = metric
+                item['Question'] = input_prompt
+
+                # Determine the validity of the predicted answer
+                my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
+
+                avg_em.append(metric['em'])
+                avg_acc.append(metric['acc'])
+                avg_f1.append(metric['f1'])
+
+                if my_method_valid:
+                    num_valid_answer += 1
+        
+        # print("second pdb")
+        # import pdb;pdb.set_trace()
+
+        final_metrics = {
+            'em': np.mean(avg_em) if len(avg_em) > 0 else 0.0,
+            'acc': np.mean(avg_acc) if len(avg_acc) > 0 else 0.0,
+            'f1': np.mean(avg_f1) if len(avg_f1) > 0 else 0.0,
+            'num_valid_answer': f'{num_valid_answer} of {len(input_list)}',
+            'query_latency': f'{(total_time / len(input_list) * 1000):.0f} ms',
+        }
+
+                    
         
     else:
         # Existing evaluation for other datasets
@@ -229,13 +285,10 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # If the dataset is GPQA, track metrics per domain
         domain_metrics = {}
 
-        for i, (item, input_prompt, result) in enumerate(tqdm(filtered_data, input_list, output_list)):
-            length_of_filtered_data = len(filtered_data)
-            # Use length_of_filtered_data wherever you need the length
+        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list)):
+            # length_of_filtered_data = len(filte red_data)
             if type(result) == str:
                 item['Output'] = result
-            elif type(result) == tuple:
-                item['Output'] = result[1][i][0].text
             if dataset_name in ['gpqa', 'medmcqa']:
                 labeled_answer = item["Correct Choice"]
                 # labeled_choice_answer = item["Correct Answer"]
@@ -285,8 +338,8 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[domain]['num_valid_answer'] += 1
 
         t = time.localtime()
-        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
-        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
+        result_json_name = f'{split}_{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{data_limit}.json'
+        metrics_json_name = f'{split}_{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{data_limit}.metrics.json'
 
         # Compute overall metrics
         overall_results = {
@@ -316,8 +369,8 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             final_metrics['per_domain'] = domain_avg_metrics
 
     t = time.localtime()
-    result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
-    metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
+    result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{data_limit}.json'
+    metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{data_limit}.metrics.json'
     if apply_backoff:
         result_json_name = output_dir
         metrics_json_name = output_dir.replace('.json', '.metrics.backoff.json')
@@ -617,11 +670,7 @@ if __name__ == "__main__":
 
         # Prepare input_list and output_list for run_evaluation
         input_list = [item['Question'] for item in data]
-        output_list = [item['Output'] for item in data]\
-        
-        # import pdb; pdb.set_trace()
-        #added code for medbullets, qwq-llama-distill
-        output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
+        output_list = [item['Output'] for item in data]
 
         # Estimate total_time (if available). Here, set to 0 as a placeholder.
         total_time = 0  # Modify if timing information is available

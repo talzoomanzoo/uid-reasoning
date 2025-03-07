@@ -354,9 +354,10 @@ def get_naive_rag_instruction(question, documents):
 def get_task_instruction_medical(question, options, model_name=None): ##should change the prompt 
     if model_name == 'qwq': #qwq is the alias for LRM right now
         user_prompt = (
-            'Select the option that is the correct answer to the question.'
-            'Provide the option index of your final answer in the format \\boxed{OPTION_INDEX}.\n\n'
+            'Analyze the medical case based on the question and options provided.'
             f'Question:\n{question}\nOptions:\nA:{options[0]}\nB:{options[1]}\nC:{options[2]}\nD:{options[3]}\n\n'
+            'Which option is the correct answer to the question? Along with the option index, provide your reasoning for the answer. ALWAYS provide the option index of the final answer AT THE END in boxed format EXACTLY like this: \\boxed{OPTION_INDEX}.\n\n'
+            'DO NOT add any other text or any other variations.'
         )
     else:
         user_prompt = (
