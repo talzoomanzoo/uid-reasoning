@@ -88,8 +88,15 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
                 final_metric[k] = max(eval(k), final_metric[k])
 
     else:
-        normalized_pred_answer = normalize_answer(pred_answer)
-        normalized_ground_truth = normalize_answer(labeled_answer)
+        try:
+            normalized_pred_answer = normalize_answer(pred_answer)
+        except:
+            normalized_pred_answer = "none"
+
+        try:
+            normalized_ground_truth = normalize_answer(labeled_answer)
+        except:
+            normalized_ground_truth = "none"
 
         em = int(normalized_pred_answer == normalized_ground_truth)
         acc = int(normalized_ground_truth in normalized_pred_answer)
@@ -119,7 +126,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, model_path, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -220,49 +227,106 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             'per_domain': per_difficulty_metrics
         }
 
-    elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
+    # elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa'] and 'sky-t1' in model_path:
+    #     # Existing evaluation for other datasets
+    #     avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
+    #     num_valid_answer = 0
+
+    #     #added code for medbullets, qwq-llama-distill
+    #     # import pdb;pdb.set_trace()
+    #     # output_list = output_list.generations
+    #     \
+
+    #     for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list[0][1])): #fo sky-t1
+    #         for i in range(len(result)):
+
+    #             # print("run_evaluation check for results")
+    #             # import pdb; pdb.set_trace()
+
+    #             if type(result) == str:
+    #                 item['Output'] = result[i]
+    #             elif type(result) == tuple or type(result) == list: #for sky-t1
+    #                 # print("first pdb")
+    #                 # import pdb; pdb.set_trace()
+    #                 try:
+    #                     item['Output'] = result[0].text
+    #                 except:
+    #                     raise Exception("Error in result")
+    #             else:
+    #                 item['Output'] = result[i].outputs[0].text
+                
+    #             if dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
+    #                 labeled_answer = item["answer_idx"]
+    #                 mode = 'choose'
+    #             else:
+    #                 raise ValueError(f"Unknown dataset_name: {dataset_name}")
+
+    #             metric, pred_answer = evaluate_predictions(output=item['Output'], labeled_answer=labeled_answer, mode=mode)
+    #             item['Pred_Answer'] = pred_answer
+    #             item['Metrics'] = metric
+    #             item['Question'] = input_prompt
+
+    #             # Determine the validity of the predicted answer
+    #             my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
+
+    #             avg_em.append(metric['em'])
+    #             avg_acc.append(metric['acc'])
+    #             avg_f1.append(metric['f1'])
+
+    #             if my_method_valid:
+    #                 num_valid_answer += 1
+        
+    #     # print("second pdb")
+    #     # import pdb;pdb.set_trace()
+
+    #     final_metrics = {
+    #         'em': np.mean(avg_em) if len(avg_em) > 0 else 0.0,
+    #         'acc': np.mean(avg_acc) if len(avg_acc) > 0 else 0.0,
+    #         'f1': np.mean(avg_f1) if len(avg_f1) > 0 else 0.0,
+    #         'num_valid_answer': f'{num_valid_answer} of {len(input_list)}',
+    #         'query_latency': f'{(total_time / len(input_list) * 1000):.0f} ms',
+    #     }
+
+    elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa'] and ('sky-t1' in model_path or 'deepseek' in model_path):
         # Existing evaluation for other datasets
         avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
         num_valid_answer = 0
 
-        #added code for medbullets, qwq-llama-distill
-        # import pdb;pdb.set_trace()
-        # output_list = output_list.generations
+        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list)): #fo sky-t1
 
-        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list[0][1])):
-            for i in range(len(result)):
-                if type(result) == str:
-                    item['Output'] = result[i]
-                elif type(result) == tuple or type(result) == list:
-                    # print("first pdb")
-                    # import pdb; pdb.set_trace()
-                    try:
-                        item['Output'] = result[0].text
-                    except:
-                        raise Exception("Error in result")
-                else:
-                    item['Output'] = result[i].outputs[0].text
+            # print("run_evaluation check for results")
+            # import pdb; pdb.set_trace()
+
+            if type(result) == str:
+                item['Output'] = result
+            elif type(result) == tuple or type(result) == list: #for sky-t1
+                try:
+                    item['Output'] = result[0].text
+                except:
+                    raise Exception("Error in result")
+            else:
+                item['Output'] = result[i].outputs[0].text
                 
-                if dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
-                    labeled_answer = item["answer_idx"]
-                    mode = 'choose'
-                else:
-                    raise ValueError(f"Unknown dataset_name: {dataset_name}")
+            if dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
+                labeled_answer = item["answer_idx"]
+                mode = 'choose'
+            else:
+                raise ValueError(f"Unknown dataset_name: {dataset_name}")
 
-                metric, pred_answer = evaluate_predictions(output=item['Output'], labeled_answer=labeled_answer, mode=mode)
-                item['Pred_Answer'] = pred_answer
-                item['Metrics'] = metric
-                item['Question'] = input_prompt
+            metric, pred_answer = evaluate_predictions(output=item['Output'], labeled_answer=labeled_answer, mode=mode)
+            item['Pred_Answer'] = pred_answer
+            item['Metrics'] = metric
+            item['Question'] = input_prompt
 
                 # Determine the validity of the predicted answer
-                my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
+            my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
-                avg_em.append(metric['em'])
-                avg_acc.append(metric['acc'])
-                avg_f1.append(metric['f1'])
+            avg_em.append(metric['em'])
+            avg_acc.append(metric['acc'])
+            avg_f1.append(metric['f1'])
 
-                if my_method_valid:
-                    num_valid_answer += 1
+            if my_method_valid:
+                num_valid_answer += 1
         
         # print("second pdb")
         # import pdb;pdb.set_trace()

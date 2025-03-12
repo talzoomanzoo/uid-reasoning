@@ -63,6 +63,27 @@ def get_code_search_o1_instruction(MAX_SEARCH_LIMIT):
         "- When done searching, continue your reasoning.\n\n"
     )
 
+def get_medical_search_o1_instruction(MAX_SEARCH_LIMIT):
+    return (
+        "You are a reasoning assistant with the ability to perform web searches to help "
+        "you answer the user's question accurately. If feel like you are uncertain of your answer, you are encouraged to perform a web search to help you answer the question. You have special tools:\n\n"
+        "- To perform a search: write <|begin_search_query|> your query here <|end_search_query|>.\n"
+        "Then, the system will search and analyze relevant web pages, then provide you with helpful information in the format <|begin_search_result|> ...search results... <|end_search_result|>.\n\n"
+        f"You can repeat the search process multiple times if necessary. The maximum number of search attempts is limited to {MAX_SEARCH_LIMIT}.\n\n"
+        "Once you have all the information you need, continue your reasoning.\n\n"
+        "Example:\n"
+        "Question: \"Find the most effective treatments for drug-resistant tuberculosis.\"\n"
+        "Assistant thinking steps:\n"
+        "- I need to understand what drug-resistant tuberculosis (TB) is and what treatments are effective for it.\n\n"
+        "- I should find the latest guidelines or studies on drug-resistant TB management.\n\n"
+        "Assistant:\n"
+        "<|begin_search_query|>Latest treatment guidelines for drug-resistant tuberculosis<|end_search_query|>\n\n"
+        "(System returns processed information from relevant medical sources,ssuch as WHO guidelines or recent research articles)\n\n"
+        "Assistant continues reasoning with the new information...\n\n"
+        "Remember:\n"
+        "- Use <|begin_search_query|> to request a web search and end with <|end_search_query|>.\n"
+        "- When done searching, continue your reasoning.\n\n"
+    )
 
 def get_webpage_to_reasonchain_instruction(prev_reasoning, search_query, document):
     return f"""**Task Instruction:**
@@ -352,20 +373,41 @@ def get_naive_rag_instruction(question, documents):
 
 
 def get_task_instruction_medical(question, options, model_name=None): ##should change the prompt 
-    if model_name == 'qwq': #qwq is the alias for LRM right now
-        user_prompt = (
+    # if model_name == 'qwq': #qwq is the alias for LRM right now
+    user_prompt = (
             'Analyze the medical case based on the question and options provided.'
             f'Question:\n{question}\nOptions:\nA:{options[0]}\nB:{options[1]}\nC:{options[2]}\nD:{options[3]}\n\n'
             'Which option is the correct answer to the question? Along with the option index, provide your reasoning for the answer. ALWAYS provide the option index of the final answer AT THE END in boxed format EXACTLY like this: \\boxed{OPTION_INDEX}.\n\n'
             'DO NOT add any other text or any other variations.'
         )
-    else:
-        user_prompt = (
-            'Please answer the following question. You should think step by step to solve it.\n\n'
-            'Provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
-            f'Question:\n{question}\n\n'
-        )
+    # else:
+    #     user_prompt = (
+    #         'Please answer the following question. You should think step by step to solve it.\n\n'
+    #         'Provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
+    #         f'Question:\n{question}\n\n'
+    #     )
     return user_prompt
+
+def get_task_instruction_medical_tuned(question, options, model_name=None):
+    # if model_name == 'qwq':
+    user_prompt = (
+        'Analyze the medical case based on the question and options provided.'
+        f'Question:\n{question}\nOptions:\nA:{options[0]}\nB:{options[1]}\nC:{options[2]}\nD:{options[3]}\n\n'
+        'INSTRUCTIONS:\n'
+            '1.Select the option that is the correct answer to the question.\n'
+            '2.Plan your reasoning process based on the 4-STEP GUIDELINE FOR EXPERT MEDICAL REASONING.\n'
+            '3.Then, generate your reasoning response before </think>, always starting each reasoning step with triple hashtags(###), EXACTLY like this: ###Step1. [Cue Acquisition]...\n\t###Step2. [Hypothesis Generation]...\n\t###Step3. [Cue Interpretation with Analogical Reasoning]...\n\t###Step4. [Hypothesis Evaluation]...\n</think>\n Any response that does not follow the above process should be regenerated. \n'
+            '4.ALWAYS provide the option index of the final answer AT THE END with TRIPLE BACKTICKS among A, B, C, D, EXACTLY like this: The answer is ```X```. DO NOT add any other text or variations.\n'
+            '4-STEP GUIDELINE FOR EXPERT MEDICAL REASONING:\n\n###Step1. [Cue Acquisition]: Identify key information or evidence from the given context.\n###Step2. [Hypothesis Generation]: Based on the cues, propose possible explanations or solutions.\n###Step3. [Cue Interpretation with Analogical Reasoning]:\n\t###Step3.1. [Find Analagous Case] Identify a familiar case that shares structural similarities with the current problem.\n\t###Step3.2. [Compare Structural Patterns] Compare key features of the familiar case and the current problem to assess relevant patterns.\n\t###Step3.3. [Apply Insights]: Apply lessons from the familiar case to interpret the gathered information and refine potential explanations.\n\t###Step4. [Hypothesis Evaluation] Compare hypotheses against the interpreted cues to determine the most valid conclusion.\n'
+        )
+    # else:
+    #     user_prompt = (
+    #         'Please answer the following question. You should think step by step to solve it.\n\n   '
+    #         'Provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
+    #         f'Question:\n{question}\n\n'
+    #     )
+    return user_prompt
+    
 
 def get_task_instruction_openqa(question, model_name=None):
     if model_name == 'qwq':

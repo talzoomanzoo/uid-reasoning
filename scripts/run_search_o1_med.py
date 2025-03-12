@@ -47,6 +47,8 @@ from prompts import (
     get_task_instruction_code, 
     get_medical_search_o1_instruction,
     get_task_instruction_medical,
+    get_medical_search_o1_isntruction,
+    get_task_insturction_medical_tuned
 )
 
 # Define special tokens
@@ -490,7 +492,7 @@ async def main_async():
     MAX_TURN = args.max_turn
     top_k = args.top_k
     max_doc_len = args.max_doc_len
-    model_path = args.model_path.lower()
+    model_path = args.model_path
     temperature = args.temperature
     top_p = args.top_p
     top_k_sampling = args.top_k_sampling
@@ -498,7 +500,7 @@ async def main_async():
     max_tokens = args.max_tokens
     batch_size = args.batch_size
     data_limit = args.data_limit 
-    use_ducksearch = args.use_ducksearch
+    fuse_ducksearch = args.use_ducksearch
     port = args.port
     # bing_subscription_key = args.bing_subscription_key
     # bing_endpoint = args.bing_endpoint

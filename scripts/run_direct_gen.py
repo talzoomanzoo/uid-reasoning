@@ -123,7 +123,7 @@ def main(args):
     top_k = args.top_k
     repetition_penalty = args.repetition_penalty
     max_tokens = args.max_tokens
-    batch_size = args.batch_size 
+    batch_size = args.batch_size
     data_limit = args.data_limit
 
     # Set default repetition_penalty if not provided

@@ -2,8 +2,7 @@ from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.tools.duckduckgo import DuckDuckGoTools
 
-def duck_search(query: str, model_name: str = "gpt-4o"):
-    
+def duck_web_search(query: str, model_name: str = "gpt-4o-mini"):
 
     agent = Agent(
         model=OpenAIChat(id=model_name),
