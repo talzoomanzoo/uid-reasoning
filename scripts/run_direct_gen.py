@@ -113,7 +113,7 @@ def parse_args():
 
     return parser.parse_args()
 
-def main(args):
+async def main(args):
     dataset_name = args.dataset_name
     split = args.split
     subset_num = args.subset_num
@@ -132,7 +132,7 @@ def main(args):
     
     # Paths to datasets
     if dataset_name == 'math500':
-        data_path = f'./data/MATH500/{split}.json'
+        data_path = f'../data/MATH500/{split}.json'
     elif dataset_name == 'gpqa':
         data_path = f'./data/GPQA/{split}.json'
     elif dataset_name == 'aime':
@@ -149,10 +149,13 @@ def main(args):
         raise ValueError(f"Unsupported dataset_name: {dataset_name}")
     
     # Load the model
-    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    tokenizer.padding_side = 'left'
+    if "free" in model_path.lower():
+        pass
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = 'left'
     
     if 'qwq' in model_path.lower():
         model_short_name = 'qwq'
@@ -177,7 +180,18 @@ def main(args):
         output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
     os.makedirs(output_dir, exist_ok=True)
 
-    llm = ChatOpenAI(
+    if "free" in model_path.lower():
+        llm = ChatOpenAI(
+            model=model_path,
+            base_url=f"https://openrouter.ai/api/v1",
+            temperature=temperature,
+            api_key=os.getenv("OPEN_ROUTER_API_KEY"),
+            max_retries=100,
+            max_tokens=max_tokens,
+        )
+
+    else: 
+        llm = ChatOpenAI(
                 model=model_path,
                 base_url=f"http://localhost:{args.port}/v1",
                 temperature=temperature,
@@ -196,7 +210,7 @@ def main(args):
     input_list = []
     for item in filtered_data:
         question = item['Question']
-        options = [item['opa'], item['opb'], item['opc'], item['opd']]
+        # options = [item['opa'], item['opb'], item['opc'], item['opd']] only for medical
         if dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_medical(question, options, model_name='qwq')
@@ -233,8 +247,12 @@ def main(args):
                 user_prompt = get_task_instruction_code(question)
         else:
             user_prompt = ""  # Default to empty if dataset not matched
-        prompt = [{"role": "user", "content": user_prompt}]
-        prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+
+        if "free" in model_path.lower():
+            prompt = [{"role": "user", "content": user_prompt}]
+        else:
+            prompt = [{"role": "user", "content": user_prompt}]
+            prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
         input_list.append(prompt)
     
     if subset_num != -1:
@@ -305,8 +323,7 @@ def main(args):
         # )
     total_time = time.time() - t_start
     
-    output_list = asyncio.run(generate_outputs(llm, input_list, model_path, max_tokens, temperature, top_p, batch_size))
-
+    output_list = await generate_outputs(llm, input_list, model_path, max_tokens, temperature, top_p, batch_size)
     # Run evaluation
     run_evaluation(
         filtered_data, 
