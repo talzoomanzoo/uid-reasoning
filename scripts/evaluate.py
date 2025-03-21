@@ -89,8 +89,15 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
                 final_metric[k] = max(eval(k), final_metric[k])
 
     else:
-        normalized_pred_answer = normalize_answer(pred_answer)
-        normalized_ground_truth = normalize_answer(labeled_answer)
+        try:
+            normalized_pred_answer = normalize_answer(pred_answer)
+        except:
+            normalized_pred_answer = "none"
+
+        try:
+            normalized_ground_truth = normalize_answer(labeled_answer)
+        except:
+            normalized_ground_truth = "none"
 
         em = int(normalized_pred_answer == normalized_ground_truth)
         acc = int(normalized_ground_truth in normalized_pred_answer)
@@ -120,7 +127,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, model_path, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -132,12 +139,15 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
 
         #added code for medbullets, qwq-llama-distill
         output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
+        num_valid_answer = 0
         
         for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list)):
             num_valid_answer = 0
             for i in range(len(result)):
                 if type(result[i]) == str:
                     item['Output'] = result[i]
+                elif type(result[i]) == tuple or type(result[i]) == list:
+                    item['Output'] = result[1][i][0].text
                 else:
                     item['Output'] = result[i].outputs[0].text
                 difficulty = item.get("difficulty", "Unknown")
@@ -628,11 +638,7 @@ if __name__ == "__main__":
 
         # Prepare input_list and output_list for run_evaluation
         input_list = [item['Question'] for item in data]
-        output_list = [item['Output'] for item in data]\
-        
-        # import pdb; pdb.set_trace()
-        #added code for medbullets, qwq-llama-distill
-        output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
+        output_list = [item['Output'] for item in data]
 
         # Estimate total_time (if available). Here, set to 0 as a placeholder.
         total_time = 0  # Modify if timing information is available

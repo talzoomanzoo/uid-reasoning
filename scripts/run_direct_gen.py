@@ -324,6 +324,7 @@ async def main(args):
     total_time = time.time() - t_start
     
     output_list = await generate_outputs(llm, input_list, model_path, max_tokens, temperature, top_p, batch_size)
+
     # Run evaluation
     run_evaluation(
         filtered_data, 
@@ -333,8 +334,9 @@ async def main(args):
         output_dir, 
         total_time, 
         split,
+        args.data_limit
     )
 
 if __name__ == "__main__":
     args = parse_args()
-    asyncio.run(main(args))
+    main(args)

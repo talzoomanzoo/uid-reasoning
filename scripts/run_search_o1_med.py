@@ -25,12 +25,11 @@ from concurrent.futures import ThreadPoolExecutor
 # )
 
 from duck_search import (
-    duck_web_search_with_agent,
-    extract_relevant_info,
-    fetch_page_content,
-    extract_snippet_with_context
+    duck_web_search,
+    # extract_relevant_info,
+    # fetch_page_content
+    # extract_snippet_with_context
 )
-
 from evaluate import (
     run_evaluation, 
     extract_answer
@@ -48,6 +47,8 @@ from prompts import (
     get_task_instruction_code, 
     get_medical_search_o1_instruction,
     get_task_instruction_medical,
+    get_medical_search_o1_isntruction,
+    get_task_insturction_medical_tuned
 )
 
 # Define special tokens
@@ -55,9 +56,6 @@ BEGIN_SEARCH_QUERY = "<|begin_search_query|>"
 END_SEARCH_QUERY = "<|end_search_query|>"
 BEGIN_SEARCH_RESULT = "<|begin_search_result|>"
 END_SEARCH_RESULT = "<|end_search_result|>"
-
-MAX_SEARCH_LIMIT = 0
-MAX_TURN = 0
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Search O1 for various datasets and models.")
@@ -200,13 +198,6 @@ def parse_args():
         default=8100,
         help="Port for the OpenAI API."
     )
-
-    parser.add_argument(
-        '--duck_endpoint',
-        type=str,
-        default='https://api.duckduckgo.com/',
-        help="DuckDuckGo API endpoint."
-    )
     # # Bing API Configuration
     # parser.add_argument(
     #     '--bing_subscription_key',
@@ -290,7 +281,7 @@ async def generate_webpage_to_reasonchain_batch(
         return extracted_infos
 
 
-async def process_sequences(active_sequences, batch_output_records, turn, start_time, max_tokens, batch_size, data_limit, temperature, top_p, top_k_sampling, repetition_penalty, tokenizer, llm, dataset_name, sampling_params, search_cache, url_cache, replace_recent_steps, save_caches, search_cache_path, url_cache_path):
+async def process_sequences(active_sequences, batch_output_records, turn, start_time, max_tokens, batch_size, data_limit, temperature, top_p, top_k_sampling, repetition_penalty, tokenizer, llm, dataset_name, sampling_params):
     # Main loop until all sequences are finished or maximum turns reached
         while True:
             # Identify sequences that need generation
@@ -338,9 +329,7 @@ async def process_sequences(active_sequences, batch_output_records, turn, start_
                             else:
                                 try:
                                 #results = bing_web_search(search_query, bing_subscription_key, bing_endpoint, market='en-US', language='en')
-                                    # results = duck_web_search(search_query,
-                                    # duck_endpoint, market='en-US', language='en')
-                                    results = duck_web_search_with_agent(search_query)
+                                    results = duck_web_search(search_query)
                                     search_cache[search_query] = results
                                     print(f"Executed and cached search for query: \"{search_query}\"")
                                 except Exception as e:
@@ -349,11 +338,7 @@ async def process_sequences(active_sequences, batch_output_records, turn, start_
                                     results = {}
 
                         # Extract relevant information from Bing search results
-                            # relevant_info = extract_relevant_info(search_query, results)[:top_k]
-                            
-                            import pdb; pdb.set_trace()
-                            
-                            relevant_info = results
+                            relevant_info = extract_relevant_info(results)[:top_k]
                             seq['relevant_info'] = relevant_info
 
                         # Extract URLs and snippets
@@ -485,27 +470,6 @@ async def process_sequences(active_sequences, batch_output_records, turn, start_
                             seq['prompt'] += append_text
                             seq['output'] += append_text
                             seq['history'].append(append_text)
-                
-                # ---------------------- Update Search and URL Cache ----------------------
-                print('Updating Search and URL Cache...')
-                # Load existing caches or initialize empty dictionaries
-                if os.path.exists(search_cache_path):
-                    with open(search_cache_path, 'r', encoding='utf-8') as f:
-                        search_cache_new = json.load(f)
-                else:
-                    search_cache_new = {}
-
-                if os.path.exists(url_cache_path):
-                    with open(url_cache_path, 'r', encoding='utf-8') as f:
-                        url_cache_new = json.load(f)
-                else:
-                    url_cache_new = {}
-
-                search_cache.update(search_cache_new)
-                url_cache.update(url_cache_new)
-
-                save_caches()
-
         # Check if all sequences are finished
             unfinished = [seq for seq in active_sequences if not seq['finished']]
             if not unfinished:
@@ -524,13 +488,11 @@ async def main_async():
     dataset_name = args.dataset_name
     split = args.split
     subset_num = args.subset_num
-    global MAX_SEARCH_LIMIT
     MAX_SEARCH_LIMIT = args.max_search_limit
-    global MAX_TURN
     MAX_TURN = args.max_turn
     top_k = args.top_k
     max_doc_len = args.max_doc_len
-    model_path = args.model_path.lower()
+    model_path = args.model_path
     temperature = args.temperature
     top_p = args.top_p
     top_k_sampling = args.top_k_sampling
@@ -538,7 +500,7 @@ async def main_async():
     max_tokens = args.max_tokens
     batch_size = args.batch_size
     data_limit = args.data_limit 
-    use_ducksearch = args.use_ducksearch
+    fuse_ducksearch = args.use_ducksearch
     port = args.port
     # bing_subscription_key = args.bing_subscription_key
     # bing_endpoint = args.bing_endpoint
@@ -576,6 +538,35 @@ async def main_async():
     print(f'Using {dataset_name} {split} set.')
     print('-----------------------')
 
+    # ---------------------- Caching Mechanism ----------------------
+    # Define cache directories and file paths
+    cache_dir = './cache'
+    search_cache_path = os.path.join(cache_dir, 'search_cache.json')
+    url_cache_path = os.path.join(cache_dir, 'url_cache.json')
+
+    # Ensure cache directory exists
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # Load existing caches or initialize empty dictionaries
+    if os.path.exists(search_cache_path):
+        with open(search_cache_path, 'r', encoding='utf-8') as f:
+            search_cache = json.load(f)
+    else:
+        search_cache = {}
+
+    if os.path.exists(url_cache_path):
+        with open(url_cache_path, 'r', encoding='utf-8') as f:
+            url_cache = json.load(f)
+    else:
+        url_cache = {}
+
+    # Function to save caches
+    def save_caches():
+        with open(search_cache_path, 'w', encoding='utf-8') as f:
+            json.dump(search_cache, f, ensure_ascii=False, indent=2)
+        with open(url_cache_path, 'w', encoding='utf-8') as f:
+            json.dump(url_cache, f, ensure_ascii=False, indent=2)
+
     # ---------------------- Model Loading ----------------------
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
@@ -584,7 +575,7 @@ async def main_async():
 
     # Define output directory based on model and dataset
     if 'qwq' in model_path.lower():
-        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode', 'medbullets', 'pubhealth', 'medqa', 'jama_full', 'medxpertqa']:
+        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
             output_dir = f'./outputs/{dataset_name}.qwq.search_o1'
             if dataset_name == 'gpqa' and (MAX_SEARCH_LIMIT != 5 or top_k != 10):
                 output_dir = f'./outputs/runs.analysis/{dataset_name}.qwq.search_o1.{MAX_SEARCH_LIMIT}.{top_k}'
@@ -631,8 +622,8 @@ async def main_async():
     # )
 
     llm = LLM(
-    model="Qwen/QwQ-32B",
-    tokenizer="Qwen/QwQ-32B",
+    model="NovaSky-AI/Sky-T1-mini",
+    tokenizer="NovaSky-AI/Sky-T1-mini",
     dtype=torch.float16, 
     quantization="bitsandbytes",  
     load_format="bitsandbytes",  
@@ -801,42 +792,13 @@ async def main_async():
 
         return new_reasoning_steps
 
-    # ---------------------- Caching Mechanism ----------------------
-    # Define cache directories and file paths
-    cache_dir = './cache'
-    search_cache_path = os.path.join(cache_dir, 'search_cache.json')
-    url_cache_path = os.path.join(cache_dir, 'url_cache.json')
-
-    # Ensure cache directory exists
-    os.makedirs(cache_dir, exist_ok=True)
-
-    # Load existing caches or initialize empty dictionaries
-    if os.path.exists(search_cache_path):
-        with open(search_cache_path, 'r', encoding='utf-8') as f:
-            search_cache = json.load(f)
-    else:
-        search_cache = {}
-
-    if os.path.exists(url_cache_path):
-        with open(url_cache_path, 'r', encoding='utf-8') as f:
-            url_cache = json.load(f)
-    else:
-        url_cache = {}
-
-    # Function to save caches
-    def save_caches():
-        with open(search_cache_path, 'w', encoding='utf-8') as f:
-            json.dump(search_cache, f, ensure_ascii=False, indent=2)
-        with open(url_cache_path, 'w', encoding='utf-8') as f:
-            json.dump(url_cache, f, ensure_ascii=False, indent=2)
-
     # ---------------------- Initialize Collection Structure ----------------------
     # Initialize a list to collect batch outputs
     batch_output_records = []
     start_time = time.time()
     turn = 0
 
-    output_list = await process_sequences(active_sequences, batch_output_records, turn, start_time, max_tokens, batch_size, data_limit, temperature, top_p, top_k_sampling, repetition_penalty, tokenizer, llm, dataset_name, sampling_params, search_cache, url_cache, replace_recent_steps, save_caches, search_cache_path, url_cache_path)
+    output_list = await process_sequences(active_sequences, batch_output_records, turn, start_time, max_tokens, batch_size, data_limit, temperature, top_p, top_k_sampling, repetition_penalty, tokenizer, llm, dataset_name, sampling_params)
 
     total_time = time.time() - start_time
 
@@ -857,6 +819,26 @@ async def main_async():
     output_list = [seq['output'] for seq in active_sequences]
     # Run evaluation
     run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, model_path)
+
+    # ---------------------- Update Search and URL Cache ----------------------
+    print('Updating Search and URL Cache...')
+    # Load existing caches or initialize empty dictionaries
+    if os.path.exists(search_cache_path):
+        with open(search_cache_path, 'r', encoding='utf-8') as f:
+            search_cache_new = json.load(f)
+    else:
+        search_cache_new = {}
+
+    if os.path.exists(url_cache_path):
+        with open(url_cache_path, 'r', encoding='utf-8') as f:
+            url_cache_new = json.load(f)
+    else:
+        url_cache_new = {}
+
+    search_cache.update(search_cache_new)
+    url_cache.update(url_cache_new)
+
+    save_caches()
 
     print("Process completed.")
 
