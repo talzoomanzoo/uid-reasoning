@@ -173,7 +173,6 @@ async def main(args):
         all_evaluation_results = await generate_concurrently(all_model_data, 0, len(all_model_data), args.output_dir, args.batch_size, args.model_name)
 
     ##correlation between average stepwise accuracy and accuracy
-    # import pdb; pdb.set_trace()  # Remove or comment out the debugger line if not needed
     all_stepwise_accuracy = [result["stepwise_evaluation_accuracy"] for result in all_evaluation_results]
     avg_stepwise_accuracy = sum(all_stepwise_accuracy) / len(all_stepwise_accuracy)
     final_accuracy = json.load(open(args.final_accuracy_file, "r"))

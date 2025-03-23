@@ -8,6 +8,7 @@ from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
 from tqdm import tqdm
+from langchain_core.outputs.chat_generation import ChatGeneration
 
 
 def extract_answer(output, mode='gen'):
@@ -88,8 +89,15 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
                 final_metric[k] = max(eval(k), final_metric[k])
 
     else:
-        normalized_pred_answer = normalize_answer(pred_answer)
-        normalized_ground_truth = normalize_answer(labeled_answer)
+        try:
+            normalized_pred_answer = normalize_answer(pred_answer)
+        except:
+            normalized_pred_answer = "none"
+
+        try:
+            normalized_ground_truth = normalize_answer(labeled_answer)
+        except:
+            normalized_ground_truth = "none"
 
         em = int(normalized_pred_answer == normalized_ground_truth)
         acc = int(normalized_ground_truth in normalized_pred_answer)
@@ -119,7 +127,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, model_path, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -128,15 +136,18 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # Collect difficulty levels for per-domain metrics
         difficulties = []
         per_difficulty_count = {}
-        num_valid_answer = 0
 
         #added code for medbullets, qwq-llama-distill
         output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
+        num_valid_answer = 0
         
         for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list)):
+            num_valid_answer = 0
             for i in range(len(result)):
                 if type(result[i]) == str:
                     item['Output'] = result[i]
+                elif type(result[i]) == tuple or type(result[i]) == list:
+                    item['Output'] = result[1][i][0].text
                 else:
                     item['Output'] = result[i].outputs[0].text
                 difficulty = item.get("difficulty", "Unknown")
@@ -224,85 +235,95 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
     else:
         # Existing evaluation for other datasets
         avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
-        num_valid_answer = 0
 
         # If the dataset is GPQA, track metrics per domain
         domain_metrics = {}
 
-        for i, (item, input_prompt, result) in enumerate(tqdm(filtered_data, input_list, output_list)):
+        for item, input_prompt, result in zip(filtered_data, input_list, output_list.generations):
             length_of_filtered_data = len(filtered_data)
+            num_valid_answer = 0
+            total_output_tokens = 0
+            correct_output_tokens = 0
+            incorrect_output_tokens = 0
+            for i in range(length_of_filtered_data):
             # Use length_of_filtered_data wherever you need the length
-            if type(result) == str:
-                item['Output'] = result
-            elif type(result) == tuple:
-                item['Output'] = result[1][i][0].text
-            if dataset_name in ['gpqa', 'medmcqa']:
-                labeled_answer = item["Correct Choice"]
-                # labeled_choice_answer = item["Correct Answer"]
-                mode = 'choose'
-            elif dataset_name in ['math500', 'aime', 'amc']:
-                labeled_answer = item["answer"]
-                mode = 'gen'
-            elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
-                labeled_answer = item["answer"]
-                mode = 'qa'
-            elif dataset_name in ['pubhealth']:
-                labeled_answer = item["answer"]
-                mode = 'choose'
-            elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
-                labeled_answer = item["answer"]
-                mode = 'choose' #prompt should consider to "choose"
-            else:
-                raise ValueError(f"Unknown dataset_name: {dataset_name}")
+                if type(result) == str:
+                    item['Output'] = result
+                elif type(result) == tuple or type(result) == list or type(result) == ChatGeneration:
+                    #item['Output'] = result[1][i][0].text for jama_full
+                    # import pdb; pdb.set_trace()
+                    item['Output'] = result[0].text
+                    item["output_tokens"] = result[0].message.response_metadata["token_usage"]["completion_tokens"]
+                    # result[1][0][0].message.response_metadata["token_usage"]["completion_tokens"] 
+                    # result[1][0][0].text
+                if dataset_name in ['gpqa', 'medmcqa']:
+                    labeled_answer = item["Correct Choice"]
+                    # labeled_choice_answer = item["Correct Answer"]
+                    mode = 'choose'
+                elif dataset_name in ['math500', 'aime', 'amc']:
+                    labeled_answer = item["answer"]
+                    mode = 'gen'
+                elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
+                    labeled_answer = item["answer"]
+                    mode = 'qa'
+                elif dataset_name in ['pubhealth']:
+                    labeled_answer = item["answer"]
+                    mode = 'choose'
+                elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
+                    labeled_answer = item["answer"]
+                    mode = 'choose' #prompt should consider to "choose"
+                else:
+                    raise ValueError(f"Unknown dataset_name: {dataset_name}")
 
-            metric, pred_answer = evaluate_predictions(output=item['Output'], labeled_answer=labeled_answer, mode=mode)
-            item['Pred_Answer'] = pred_answer
-            item['Metrics'] = metric
-            item['Question'] = input_prompt
+                metric, pred_answer = evaluate_predictions(output=item['Output'], labeled_answer=labeled_answer, mode=mode)
+                item['Pred_Answer'] = pred_answer
+                item['Metrics'] = metric
+                item['Question'] = input_prompt
 
             # Determine the validity of the predicted answer
-            my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
+                my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
-            avg_em.append(metric['em'])
-            avg_acc.append(metric['acc'])
-            avg_f1.append(metric['f1'])
-            avg_math.append(metric['math_equal'])
+                avg_em.append(metric['em'])
+                avg_acc.append(metric['acc'])
+                avg_f1.append(metric['f1'])
+                avg_math.append(metric['math_equal'])
 
-            if my_method_valid:
-                num_valid_answer += 1
+                if my_method_valid:
+                    num_valid_answer += 1
 
             # If the dataset is GPQA, attempt to track metrics per domain
-            if dataset_name == 'gpqa':
-                domain = item.get("High-level domain", "Unknown")
-                if domain not in domain_metrics:
-                    domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0}
-                domain_metrics[domain]['total_num'] += 1
-                domain_metrics[domain]['em'].append(metric['em'])
-                domain_metrics[domain]['acc'].append(metric['acc'])
-                domain_metrics[domain]['f1'].append(metric['f1'])
-                domain_metrics[domain]['math_equal'].append(metric['math_equal'])
-                if my_method_valid:
-                    domain_metrics[domain]['num_valid_answer'] += 1
+                if dataset_name == 'gpqa':
+                    domain = item.get("High-level domain", "Unknown")
+                    if domain not in domain_metrics:
+                        domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0}
+                    domain_metrics[domain]['total_num'] += 1
+                    domain_metrics[domain]['em'].append(metric['em'])
+                    domain_metrics[domain]['acc'].append(metric['acc'])
+                    domain_metrics[domain]['f1'].append(metric['f1'])
+                    domain_metrics[domain]['math_equal'].append(metric['math_equal'])
+                    if my_method_valid:
+                        domain_metrics[domain]['num_valid_answer'] += 1
 
-        t = time.localtime()
-        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
-        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
+            t = time.localtime()
+            result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
+            metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
 
         # Compute overall metrics
-        overall_results = {
+            overall_results = {
             'em': np.mean(avg_em) if len(avg_em) > 0 else 0.0,
             'acc': np.mean(avg_acc) if len(avg_acc) > 0 else 0.0,
             'f1': np.mean(avg_f1) if len(avg_f1) > 0 else 0.0,
             'math_equal': np.mean(avg_math) if len(avg_em) > 0 else 0.0,
             'num_valid_answer': f'{num_valid_answer} of {len(input_list)}',
             'query_latency': f'{(total_time / len(input_list) * 1000):.0f} ms',
+            'avg_output_tokens': f'{(total_output_tokens / len(input_list)):.0f} tokens',
         }
 
         # If the dataset is GPQA, output average metrics per domain
-        domain_avg_metrics = {}
-        if dataset_name == 'gpqa':
-            for dm, m in domain_metrics.items():
-                domain_avg_metrics[dm] = {
+            domain_avg_metrics = {}
+            if dataset_name == 'gpqa':
+                for dm, m in domain_metrics.items():
+                    domain_avg_metrics[dm] = {
                     'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
                     'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
                     'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
@@ -311,27 +332,27 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 }
 
         # 保存总体和分domain的指标
-        final_metrics = {'overall': overall_results}
-        if dataset_name == 'gpqa':
-            final_metrics['per_domain'] = domain_avg_metrics
+            final_metrics = {'overall': overall_results}
+            if dataset_name == 'gpqa':
+                final_metrics['per_domain'] = domain_avg_metrics
 
-    t = time.localtime()
-    result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
-    metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
-    if apply_backoff:
-        result_json_name = output_dir
-        metrics_json_name = output_dir.replace('.json', '.metrics.backoff.json')
+        t = time.localtime()
+        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.json'
+        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}.metrics.json'
+        if apply_backoff:
+            result_json_name = output_dir.replace('.json', '.backoff.json')
+            metrics_json_name = output_dir.replace('.json', '.metrics.backoff.json')
 
     # Ensure the output directory exists
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
     # Save prediction results and metrics
-    with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
-        json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
+        with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
+            json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
 
-    with open(os.path.join(output_dir, metrics_json_name), mode='w', encoding='utf-8') as json_file:
-        json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
+        with open(os.path.join(output_dir, metrics_json_name), mode='w', encoding='utf-8') as json_file:
+            json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
 
 
 
@@ -617,11 +638,7 @@ if __name__ == "__main__":
 
         # Prepare input_list and output_list for run_evaluation
         input_list = [item['Question'] for item in data]
-        output_list = [item['Output'] for item in data]\
-        
-        # import pdb; pdb.set_trace()
-        #added code for medbullets, qwq-llama-distill
-        output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
+        output_list = [item['Output'] for item in data]
 
         # Estimate total_time (if available). Here, set to 0 as a placeholder.
         total_time = 0  # Modify if timing information is available
