@@ -226,7 +226,7 @@ async def main(args):
                 user_prompt = get_task_instruction_openqa(question)
 
         elif dataset_name in ['math500', 'aime', 'amc']:
-            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
+            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() or 's1' in model_path.lower():
                 user_prompt = get_task_instruction_math(question, model_name='qwq')
             else:
                 user_prompt = get_task_instruction_math(question)
@@ -334,9 +334,11 @@ async def main(args):
         output_dir, 
         total_time, 
         split,
-        args.data_limit
+        data_limit,
+        model_path,
+        apply_backoff=False
     )
 
 if __name__ == "__main__":
     args = parse_args()
-    main(args)
+    asyncio.run(main(args))
