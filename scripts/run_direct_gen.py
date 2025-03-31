@@ -6,10 +6,9 @@ import re
 import os, time
 import numpy as np
 from vllm import LLM, SamplingParams
-from openai import OpenAI
 from transformers import AutoTokenizer
 from evaluate import run_evaluation
-from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAI
 from prompts import (
     get_task_instruction_openqa, 
     get_task_instruction_math, 
@@ -20,6 +19,8 @@ from prompts import (
 from tqdm import tqdm
 import argparse
 import asyncio
+from openai.resources import AsyncCompletions
+from openai import OpenAI
 
 #configured medical
 def parse_args():
@@ -80,13 +81,13 @@ def parse_args():
         '--repetition_penalty', 
         type=float, 
         default=None, 
-        help="Repetition penalty. If not set, defaults based on the model."
+        help="Repetition penalty. If not set, defaults basplit sed on the model."
     )
     
     parser.add_argument(
         '--max_tokens', 
         type=int, 
-        default=3000, 
+        default=7000, 
         help="Maximum number of tokens to generate. If not set, defaults based on the model and dataset."
     )
 
@@ -110,7 +111,26 @@ def parse_args():
         default=-1,
         help="Number of examples to process. Defaults to all if not specified."
     )
+    parser.add_argument(
+        '--sample_limit',
+        type=int,
+        default=10,
+        help="Number of examples to sample. Defaults to 10 if not specified."
+    )
 
+    parser.add_argument(
+        '--skip_special_tokens',
+        type=bool,
+        default=False,
+        help="Whether to skip special tokens. Defaults to False if not specified."
+    )
+
+    parser.add_argument(
+        '--use_beam_search',
+        type=bool,
+        default=False,
+        help="Whether to use beam search. Defaults to False if not specified."
+    )
     return parser.parse_args()
 
 async def main(args):
@@ -125,7 +145,9 @@ async def main(args):
     max_tokens = args.max_tokens
     batch_size = args.batch_size
     data_limit = args.data_limit
-
+    sample_limit = args.sample_limit
+    skip_special_tokens = args.skip_special_tokens
+    use_beam_search = args.use_beam_search
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
@@ -160,18 +182,18 @@ async def main(args):
     if 'qwq' in model_path.lower():
         model_short_name = 'qwq'
     elif 'deepseek' in model_path.lower():
-        if 'llama-8b' in model_path.lower():
-            model_short_name = 'ds-llama-8b'
+        if 'qwen-14b' in model_path.lower():
+            model_short_name = 'ds-qwen-14b'
         elif 'qwen-7b' in model_path.lower():
             model_short_name = 'ds-qwen-7b'
-        elif 'qwen-32b' in model_path.lower():
-            model_short_name = 'ds-qwen-32b'
+        elif 'qwen-1.5b' in model_path.lower():
+            model_short_name = 'ds-qwen-1.5b'
     elif 'sky-t1' in model_path.lower():
         model_short_name = 'sky-t1'
     else:
         model_short_name = model_path.split('/')[-1].lower().replace('-instruct', '')
 
-    if model_short_name in ['qwq', 'ds-llama-8b', 'ds-qwen-7b', 'ds-qwen-32b', 'sky-t1']:
+    if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
         if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
             output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
         else:
@@ -181,26 +203,49 @@ async def main(args):
     os.makedirs(output_dir, exist_ok=True)
 
     if "free" in model_path.lower():
-        llm = ChatOpenAI(
+        llm = OpenAI(
             model=model_path,
             base_url=f"https://openrouter.ai/api/v1",
             temperature=temperature,
             api_key=os.getenv("OPEN_ROUTER_API_KEY"),
             max_retries=100,
             max_tokens=max_tokens,
+            sampling_params=SamplingParams(
+                top_p=top_p,
+                top_k=top_k,
+                repetition_penalty=repetition_penalty,
+                skip_special_tokens=skip_special_tokens,
+                #use_beam_search=use_beam_search,
+                include_stop_str_in_output=True,
+            )
+            # skip_special_tokens=skip_special_tokens,
+            # use_beam_search=use_beam_search,
         )
 
     else: 
-        llm = ChatOpenAI(
+        llm = LLM(
                 model=model_path,
-                base_url=f"http://localhost:{args.port}/v1",
+                gpu_memory_utilization=0.95,
+                max_model_len=8192,
+                enforce_eager=True,
+                # quantization="bitsandbytes",
+                # load_format="bitsandbytes",
+                #base_url=f"http://localhost:{args.port}/v1",
+                #openai_api_key=os.getenv("OPENAI_API_KEY"),
+        )
+                
+        sampling_params = SamplingParams(
+                top_p=top_p,
+                top_k=top_k,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                openai_api_key=os.getenv("OPENAI_API_KEY"),
-                max_retries=100,
-                top_p=top_p,
-            )
-    
+                repetition_penalty=repetition_penalty,
+                skip_special_tokens=skip_special_tokens,
+                include_stop_str_in_output=True,
+                logprobs=1
+        )
+
+
     # Load data
     with open(data_path, mode='r', encoding='utf-8') as json_file:
         filtered_data = json.load(json_file)
@@ -263,15 +308,13 @@ async def main(args):
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'livecode']:
-                max_tokens = 3000
+                max_tokens = 7000
             else:
-                max_tokens = 3000 
+                max_tokens = 7000 
         else:
-            max_tokens = 3000
+            max_tokens = 7000
     # Adjust max_tokens to fit within the model's context length
-    max_tokens = min(max_tokens, 3000 - 243)  # Ensure total tokens do not exceed 4096
-    
-    t_start = time.time()
+    max_tokens = min(max_tokens, 8192 - 243)  # Ensure total tokens do not exceed 8192
     # Generate model outputs
     # output_list = llm.generate(
     #     input_list, 
@@ -304,15 +347,20 @@ async def main(args):
     #     # repetition_penalty=repetition_penalty,
     # )
 
-    async def generate_outputs(llm, input_batches, model_path, max_tokens, temperature, top_p, batch_size):
+    async def generate_outputs(llm, input_batches, model_path, max_tokens, sample_limit, temperature, top_p, batch_size):
         output_list = []
         if len(input_batches) > batch_size:
             for start_index in tqdm(range(0, len(input_batches), batch_size)):
                 cur_input_list = input_batches[start_index:start_index + batch_size]
-                batch_output = await llm.agenerate(cur_input_list)
-                output_list.extend(batch_output)
+                # Generate sample_limit outputs for each input in the batch
+                for _ in range(sample_limit):  # Generate sample_limit times for each input
+                    batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=sampling_params))
+                    output_list.extend(batch_output)
         else:
-            output_list = await llm.agenerate(input_list)
+            # Generate sample_limit outputs for each input
+            for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
+                batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=sampling_params))
+                output_list.extend(batch_output)
         return output_list
         #     batch_output = await llm.completions.create(
         #         model=model_path,
@@ -321,10 +369,10 @@ async def main(args):
         #         temperature=temperature,
         #         top_p=top_p,
         # )
+    t_start = time.time()
+    output_list = await generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
     total_time = time.time() - t_start
     
-    output_list = await generate_outputs(llm, input_list, model_path, max_tokens, temperature, top_p, batch_size)
-
     # Run evaluation
     run_evaluation(
         filtered_data, 
@@ -335,6 +383,7 @@ async def main(args):
         total_time, 
         split,
         data_limit,
+        sample_limit,
         model_path,
         apply_backoff=False
     )
