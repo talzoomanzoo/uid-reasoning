@@ -225,9 +225,11 @@ async def main(args):
     else: 
         llm = LLM(
                 model=model_path,
-                gpu_memory_utilization=0.95,
+                gpu_memory_utilization=0.90,
                 max_model_len=8192,
                 enforce_eager=True,
+                quantization="AWQ",
+                dtype="float16",
                 # quantization="bitsandbytes",
                 # load_format="bitsandbytes",
                 #base_url=f"http://localhost:{args.port}/v1",
@@ -314,7 +316,7 @@ async def main(args):
         else:
             max_tokens = 7000
     # Adjust max_tokens to fit within the model's context length
-    max_tokens = min(max_tokens, 8192 - 243)  # Ensure total tokens do not exceed 8192
+    max_tokens = min(max_tokens, 8192 - 243)  # Ensure total tokens do not exceed 4096
     # Generate model outputs
     # output_list = llm.generate(
     #     input_list, 
