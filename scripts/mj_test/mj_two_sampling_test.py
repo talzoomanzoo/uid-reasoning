@@ -14,8 +14,8 @@ prompt_prefix = "Convert the point $(0,3)$ in rectangular coordinates to polar c
 prompt = [{"role": "user", "content": prompt_prefix}]
 prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
 stop_token_1 = "</think>"
-stop_token_2 = "</answer>"
-#[first ]stage sampling
+
+#first stage sampling
 llm = LLM(
     model=model_path,
     gpu_memory_utilization=0.90,
@@ -31,7 +31,7 @@ first_stage_sampling_params = SamplingParams(
     temperature=0.6,
     max_tokens=7000,
     skip_special_tokens=False,
-    include_stop_str_in_output=True,
+    include_stop_str_in_output=False,
     stop=stop_token_1
 )
 
@@ -47,21 +47,19 @@ for i, sample in enumerate(first_stage_samples):
 
 
 #second stage sampling
-
 second_stage_sampling_params = SamplingParams(
     top_p=0.95,
     temperature=0.6,
     max_tokens=7000,
     skip_special_tokens=False,
     include_stop_str_in_output=True,
-    stop=stop_token_2
 )
 
 all_final_completions = []
 
 print("\nSampling second-stage (final answer) completions...")
 for i, partial_thought in enumerate(first_stage_samples):
-    full_prompt = prompt + partial_thought + stop_token_2
+    full_prompt = prompt + partial_thought + stop_token_1
     second_stage_outputs = llm.generate(full_prompt, second_stage_sampling_params)
 
     completions = [o.outputs[0].text.strip() for o in second_stage_outputs]
