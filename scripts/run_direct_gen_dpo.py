@@ -23,7 +23,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run direct generation for various datasets and models.")
     
     parser.add_argument(
-        '--dataset_name', 
+        '--dataset_name',
         type=str, 
         required=True, 
         choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa'],
@@ -191,12 +191,11 @@ async def main(args):
     os.makedirs(output_dir, exist_ok=True)
 
     stop_token_1 = "</think>"
-    stop_token_2 = "</answer>"
 
     llm = LLM(
                 model=model_path,
                 gpu_memory_utilization=0.90,
-                max_model_len=8192,
+                max_model_len=9216,
                 enforce_eager=True,
                 dtype="float16",
                 tensor_parallel_size=4,
@@ -208,7 +207,7 @@ async def main(args):
                 max_tokens=max_tokens,
                 repetition_penalty=repetition_penalty,
                 skip_special_tokens=skip_special_tokens,
-                include_stop_str_in_output=True,
+                include_stop_str_in_output=False,
                 stop=stop_token_1
         )
     
@@ -219,7 +218,6 @@ async def main(args):
                 repetition_penalty=repetition_penalty,
                 skip_special_tokens=skip_special_tokens,
                 include_stop_str_in_output=True,
-                stop=stop_token_2
     )
 
     # Load data
@@ -273,9 +271,11 @@ async def main(args):
 
         if "free" in model_path.lower():
             prompt = [{"role": "user", "content": user_prompt}]
+        # else:
+        #     prompt = [{"role": "user", "content": user_prompt}]
+        #     prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
         else:
-            prompt = [{"role": "user", "content": user_prompt}]
-            prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+            prompt = user_prompt
         input_list.append(prompt)
     
     if subset_num != -1:
@@ -285,12 +285,12 @@ async def main(args):
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'livecode']:
-                max_tokens = 7000
+                max_tokens = 8000
             else:
-                max_tokens = 7000 
+                max_tokens = 8000 
         else:
-            max_tokens = 7000
-    max_tokens = min(max_tokens, 8192 - 243)
+            max_tokens = 8000
+    max_tokens = min(max_tokens, 9216 - 243)
 
     async def first_stage_generate_outputs(llm, input_batches, model_path, max_tokens, sample_limit, temperature, top_p, batch_size):
         output_list_1 = []
@@ -329,22 +329,25 @@ async def main(args):
     t_start = time.time()
     output_list_2 = await second_stage_generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
     total_time = time.time() - t_start
+
+    print(output_list_1[0])
+    print(output_list_2[0])
     
-    # Run evaluation
-    run_evaluation(
-        filtered_data, 
-        input_list, 
-        output_list_1, #until </think>
-        output_list_2, #until </answer>
-        dataset_name, 
-        output_dir, 
-        total_time, 
-        split,
-        data_limit,
-        sample_limit,
-        model_path,
-        apply_backoff=False
-    )
+    # # Run evaluation
+    # run_evaluation(
+    #     filtered_data, 
+    #     input_list, 
+    #     output_list_1, #until </think>
+    #     output_list_2, #until </answer>
+    #     dataset_name, 
+    #     output_dir, 
+    #     total_time, 
+    #     split,
+    #     data_limit,
+    #     sample_limit,
+    #     model_path,
+    #     apply_backoff=False
+    # )
 
 if __name__ == "__main__":
     args = parse_args()

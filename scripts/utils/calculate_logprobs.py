@@ -53,6 +53,24 @@ class EntropySpikeAndFall:
             'entropy_diff_fall': float(self.entropy_diff_fall)  # ensure float type
         }
 
+@dataclass
+class EntropyFallAndSpike:
+    middle_positions: List[int]
+    fall_value: float
+    middle_tokens: List[str]
+    entropy_diff_fall: float
+    entropy_diff_spike: float
+
+    def to_dict(self):
+        """Convert EntropyFallAndSpike to a dictionary for JSON serialization"""
+        return {
+            'middle_positions': self.middle_positions,
+            'fall_value': float(self.fall_value),  # ensure float type
+            'middle_tokens': self.middle_tokens,
+            'entropy_diff_fall': float(self.entropy_diff_fall),  # ensure float type
+            'entropy_diff_spike': float(self.entropy_diff_spike)  # ensure float type
+        }
+
 def calculate_entropy(log_probs_list: List[Dict[int, 'Logprob']]) -> float:
     """Calculate entropy from a list of dictionaries containing Logprob objects.
     
@@ -69,7 +87,7 @@ def calculate_entropy(log_probs_list: List[Dict[int, 'Logprob']]) -> float:
     return entropy
 
 def calculate_entropy_spike_and_fall(log_probs_sequence: List[Dict[int, 'Logprob']],
-                                     window_size: int = 142) -> Optional[EntropySpikeAndFall]:
+                                     window_size: int = 10) -> Optional[EntropySpikeAndFall]:
     """
     Calculate entropy spikes and drops and return the 5 tokens in the middle at the point where entropy spikes and then falls.
     
@@ -103,7 +121,7 @@ def calculate_entropy_spike_and_fall(log_probs_sequence: List[Dict[int, 'Logprob
     best_spike_fall_idx = -1
     best_spike_fall_score = 0
     
-    for i in range(1, len(entropies) - 1):
+    for i in range(0, len(entropy_diffs) -1):
         # Check if there's a spike followed by a fall
         if entropy_diffs[i] > spike_threshold and entropy_diffs[i+1] < fall_threshold:
             # Calculate a score based on the magnitude of spike and fall
@@ -115,22 +133,25 @@ def calculate_entropy_spike_and_fall(log_probs_sequence: List[Dict[int, 'Logprob
     # If we found a significant spike and fall
     if best_spike_fall_idx != -1:
         # Get the 5 tokens in the middle of the window
-        middle_start = best_spike_fall_idx + window_size // 2 - 2
-        middle_end = middle_start + 5
+        spike_pos = best_spike_fall_idx
         
-        # Ensure we don't go out of bounds
-        if middle_start < 0:
-            middle_start = 0
-            middle_end = 5
-        elif middle_end > len(log_probs_sequence):
-            middle_end = len(log_probs_sequence)
+        # Calculate the position of the transition point (between spike and fall)
+        transition_pos = spike_pos + window_size // 2
+        
+        # Calculate the start position to get 5 tokens centered around the transition
+        # We want 2 tokens before and 2 tokens after the transition point
+        middle_start = max(0, transition_pos - 2)
+        middle_end = min(len(log_probs_sequence), middle_start + 5)
+        
+        # Adjust middle_start if we're near the end of the sequence
+        if middle_end == len(log_probs_sequence):
             middle_start = max(0, middle_end - 5)
         
         middle_dict = log_probs_sequence[middle_start:middle_end]
         
         spike_fall = EntropySpikeAndFall(
             middle_positions=list(range(middle_start, middle_end)),
-            middle_value=entropies[best_spike_fall_idx],
+            spike_value=entropies[best_spike_fall_idx],
             middle_tokens=[list(d.values())[0].decoded_token for d in middle_dict],
             entropy_diff_spike=entropy_diffs[best_spike_fall_idx],
             entropy_diff_fall=entropy_diffs[best_spike_fall_idx + 1]
@@ -140,8 +161,83 @@ def calculate_entropy_spike_and_fall(log_probs_sequence: List[Dict[int, 'Logprob
     
     return None
 
+def calculate_entropy_fall_and_spike(log_probs_sequence: List[Dict[int, 'Logprob']],
+                                     window_size: int = 10) -> Optional[EntropyFallAndSpike]:
+    """
+    Calculate entropy spikes and drops and return the 5 tokens in the middle at the point where entropy spikes and then falls.
+    
+    Args:
+        log_probs_sequence: List of dictionaries, each containing a single Logprob object
+        window_size: Size of the sliding window for entropy calculation
+    """
+    if len(log_probs_sequence) < window_size:
+        return None
+    
+    # Calculate entropy for each window
+    entropies = []
+    for i in range(len(log_probs_sequence) - window_size + 1):
+        window = log_probs_sequence[i:i + window_size]
+        entropy = calculate_entropy(window)
+        entropies.append(entropy)
+
+    # Find entropy differences between consecutive windows
+    entropy_diffs = []
+    for i in range(1, len(entropies)):
+        entropy_diff = entropies[i] - entropies[i-1]
+        entropy_diffs.append(entropy_diff)
+
+    # Calculate thresholds for spikes and falls
+    mean = np.mean(entropy_diffs)
+    std = np.std(entropy_diffs)
+    spike_threshold = mean + 1.5 * std
+    fall_threshold = mean - 1.5 * std
+
+    # Find windows with both spike and fall
+    best_fall_spike_idx = -1
+    best_fall_spike_score = 0
+    
+    for i in range(0, len(entropy_diffs) -1):
+        # Check if there's a fall followed by a spike
+        if entropy_diffs[i] < fall_threshold and entropy_diffs[i+1] > spike_threshold:
+            # Calculate a score based on the magnitude of fall and spike
+            score = entropy_diffs[i+1] - entropy_diffs[i]
+            if score > best_fall_spike_score:
+                best_fall_spike_score = score
+                best_fall_spike_idx = i
+    
+    # If we found a significant fall and spike
+    if best_fall_spike_idx != -1:
+        # Get the 5 tokens in the middle of the window
+        fall_pos = best_fall_spike_idx
+        
+        # Calculate the position of the transition point (between spike and fall)
+        transition_pos = fall_pos + window_size // 2
+        
+        # Calculate the start position to get 5 tokens centered around the transition
+        # We want 2 tokens before and 2 tokens after the transition point
+        middle_start = max(0, transition_pos - 2)
+        middle_end = min(len(log_probs_sequence), middle_start + 5)
+        
+        # Adjust middle_start if we're near the end of the sequence
+        if middle_end == len(log_probs_sequence):
+            middle_start = max(0, middle_end - 5)
+        
+        middle_dict = log_probs_sequence[middle_start:middle_end]
+        
+        fall_spike = EntropyFallAndSpike(
+            middle_positions=list(range(middle_start, middle_end)),
+            fall_value=entropies[best_fall_spike_idx],
+            middle_tokens=[list(d.values())[0].decoded_token for d in middle_dict],
+            entropy_diff_fall=entropy_diffs[best_fall_spike_idx],
+            entropy_diff_spike=entropy_diffs[best_fall_spike_idx + 1]
+        )
+        
+        return fall_spike.to_dict()
+    
+    return None
+
 def calculate_entropy_spike(log_probs_sequence: List[Dict[int, 'Logprob']],
-                          window_size: int = 19) -> Optional[EntropySpike]:
+                          window_size: int = 10) -> Optional[EntropySpike]:
     """
     Calculate entropy spikes and return the token before significant spikes.
     
@@ -199,7 +295,7 @@ def calculate_entropy_spike(log_probs_sequence: List[Dict[int, 'Logprob']],
 
 
 def calculate_entropy_drop(log_probs_sequence: List[Dict[int, 'Logprob']],
-                           window_size: int = 38) -> Optional[EntropySpike]:
+                           window_size: int = 10) -> Optional[EntropySpike]:
     """
     Calculate entropy drops and return the token before significant drops.
     
