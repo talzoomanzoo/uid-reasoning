@@ -1,4 +1,3 @@
-#evaluate
 import re
 import json
 import numpy as np
@@ -11,6 +10,7 @@ from utils.math_equivalence import is_equiv
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
+from utils.calculate_logprobs import calculate_entropy_spike, calculate_entropy_drop, calculate_entropy_spike_and_fall
 
 def extract_answer(output, mode='gen'):
     extracted_text = ''
@@ -243,10 +243,13 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # Track math_equal accuracy and validity per question
         question_math_equal_scores = defaultdict(list)
         question_validity_scores = defaultdict(list)
+        question_entropy_spike_diff = defaultdict(list)
+        question_entropy_drop_diff = defaultdict(list)
+        question_entropy_spike_and_fall_diff = defaultdict(list)
+        # Process each question and its multiple samples
         for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
             # Get all samples for this question
             question_samples = []
-            # import pdb; pdb.set_trace()
             for i in range(question_idx, len(output_list), len(input_list)):
                 question_samples.append(output_list[i])
                 num_valid_answer = 0
@@ -255,13 +258,18 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 if type(result) == str:
                     item[f'Output_{idx}'] = result
                 elif type(result) == tuple or type(result) == list or type(result) == ChatGeneration or type(result) == RequestOutput:
+                    #print("check logprobs")
+                    #import pdb; pdb.set_trace()
                     item[f'Output_{idx}'] = result.outputs[0].text
                     item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
+                    item[f"output_entropy_spike_{idx}"] = calculate_entropy_spike(result.outputs[0].logprobs) #list of logprobs
+                    item[f"output_entropy_drop_{idx}"] = calculate_entropy_drop(result.outputs[0].logprobs)
+                    item[f"output_entropy_spike_and_fall_{idx}"] = calculate_entropy_spike_and_fall(result.outputs[0].logprobs)
                     
                 if dataset_name in ['gpqa', 'medmcqa']:
                     labeled_answer = item["Correct Choice"]
                     mode = 'choose'
-                elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks']:
+                elif dataset_name in ['math500', 'aime', 'amc']:
                     labeled_answer = item["answer"]
                     mode = 'gen'
                 elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
@@ -282,12 +290,26 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 item[f'Pred_Answer_{idx}'] = pred_answer
                 item[f'Metrics_{idx}'] = metric
                 is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
+                item[f'is_valid_answer_{idx}'] = is_valid
+                item[f'math_equal_{idx}'] = metric['math_equal']
+                item[f'entropy_spike_{idx}'] = item[f"output_entropy_spike_{idx}"]
+                item[f'entropy_drop_{idx}'] = item[f"output_entropy_drop_{idx}"]
+                item[f'entropy_spike_and_fall_{idx}'] = item[f"output_entropy_spike_and_fall_{idx}"]
                 # Track scores for this question
                 question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                 question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
+                question_entropy_spike_diff[question_idx].append(item[f"entropy_spike_{idx}"]["entropy_diff"])
+                question_entropy_drop_diff[question_idx].append(item[f"entropy_drop_{idx}"]["entropy_diff"])
+                question_entropy_spike_and_fall_diff[question_idx].append(item[f"entropy_spike_and_fall_{idx}"]["entropy_diff_spike"])
                 # Store the original metrics for backward compatibility
                 if idx == 0:
+                    item['Pred_Answer'] = pred_answer
+                    item['Metrics'] = metric
                     item['Question'] = input_prompt
+                    item['is_valid_answer'] = item[f'is_valid_answer_{idx}']
+                    item['math_equal'] = item[f'math_equal_{idx}']
+                    item['entropy_spike'] = item[f'entropy_spike_{idx}']
+                    item['entropy_drop'] = item[f'entropy_drop_{idx}']
                 avg_math.append(metric['math_equal'])
 
                 if is_valid:
@@ -303,28 +325,54 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                         domain_metrics[domain]['acc'].append(metric['acc'])
                         domain_metrics[domain]['f1'].append(metric['f1'])
                         domain_metrics[domain]['math_equal'].append(metric['math_equal'])
+                        domain_metrics[domain]['entropy_spike'].append(item[f"output_entropy_spike_{idx}"])
+                        domain_metrics[domain]['entropy_drop'].append(item[f"output_entropy_drop_{idx}"])
+                        domain_metrics[domain]['entropy_spike_and_fall'].append(item[f"output_entropy_spike_and_fall_{idx}"])
                     if is_valid:
                         domain_metrics[domain]['num_valid_answer'] += 1
 
         # Compute mean accuracy and validity per question
         question_mean_accuracies = {}
         question_mean_validities = {}
+        question_mean_entropy_spike_diff = {}
+        question_mean_entropy_drop_diff = {}
+        question_mean_entropy_spike_and_fall_diff = {}
         for question_idx in question_math_equal_scores.keys():
             question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
             question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+            question_mean_entropy_spike_diff[f'question_{question_idx}'] = np.mean(question_entropy_spike_diff[question_idx])
+            question_mean_entropy_drop_diff[f'question_{question_idx}'] = np.mean(question_entropy_drop_diff[question_idx])
+            question_mean_entropy_spike_and_fall_diff[f'question_{question_idx}'] = np.mean(question_entropy_spike_and_fall_diff[question_idx])
         # Add per-question metrics to each item in filtered_data
         for i in range(len(filtered_data)):
             filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
             filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+            filtered_data[i]['per_question_mean_entropy_spike_diff'] = question_mean_entropy_spike_diff[f'question_{i}']
+            filtered_data[i]['per_question_mean_entropy_drop_diff'] = question_mean_entropy_drop_diff[f'question_{i}']
+            filtered_data[i]['per_question_mean_entropy_spike_and_fall_diff'] = question_mean_entropy_spike_and_fall_diff[f'question_{i}']
         # Compute overall mean accuracy and validity across all questions
         overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
         overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
 
+        import pdb; pdb.set_trace()
+        overall_mean_entropy_spike_diff = np.mean([spike for spike in question_mean_entropy_spike_diff.values()])
+        overall_mean_entropy_drop_diff = np.mean([drop for drop in question_mean_entropy_drop_diff.values()])
+        overall_mean_entropy_spike_and_fall_diff = np.mean([spike_and_fall for spike_and_fall in question_mean_entropy_spike_and_fall_diff.values()])
+
         # Compute overall metrics
         overall_results = {
+            # 'em': np.mean(avg_em) if len(avg_em) > 0 else 0.0,
+            # 'acc': np.mean(avg_acc) if len(avg_acc) > 0 else 0.0,
+            # 'f1': np.mean(avg_f1) if len(avg_f1) > 0 else 0.0,
+            # 'math_equal': np.mean(avg_math) if len(avg_em) > 0 else 0.0,
+            # 'num_valid_answer': f'{num_valid_answer} of {len(input_list)*sample_limit}',
+            # 'query_latency': f'{(total_time / (len(input_list) * sample_limit) * 1000):.0f} s',
             'total_time': f'{total_time:.0f} s',
             'overall_mean_accuracy': overall_mean_accuracy,  # Mean of per-question accuracies
             'overall_mean_validity': overall_mean_validity,   # Mean of per-question validities
+            'overall_mean_entropy_spike_diff': overall_mean_entropy_spike_diff,
+            'overall_mean_entropy_drop_diff': overall_mean_entropy_drop_diff,
+            'overall_mean_entropy_spike_and_fall_diff': overall_mean_entropy_spike_and_fall_diff
         }
 
         # If the dataset is GPQA, output average metrics per domain
@@ -339,6 +387,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     'query_latency': f'{(total_time / (len(input_list) * sample_limit) * 1000):.0f} s',
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
                     'total_time': f'{total_time:.0f} s',
+                    'overall_mean_entropy_spike': np.mean(m['entropy_spike']) if len(m['entropy_spike']) > 0 else 0,
+                    'overall_mean_entropy_drop': np.mean(m['entropy_drop']) if len(m['entropy_drop']) > 0 else 0,
+                    'overall_mean_entropy_spike_and_fall': np.mean(m['entropy_spike_and_fall']) if len(m['entropy_spike_and_fall']) > 0 else 0
                 }
 
         final_metrics = {'overall': overall_results}
@@ -396,11 +447,6 @@ if __name__ == "__main__":
         normal_output_path = './outputs/math500.qwq.direct/test.12.13,18:26.json'
         if 'qwq' not in output_path:
             normal_output_path = './outputs/runs.baselines/math500.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
-    elif 'hendrycks' in output_path:
-        dataset_name = 'hendrycks'
-        normal_output_path = './outputs/runs.baselines/hendrycks.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
-        if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/hendrycks.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
     elif 'aime' in output_path:
         dataset_name = 'aime'
         normal_output_path = './outputs/aime.qwq.direct/2024.12.13,19:36.json'
@@ -515,7 +561,7 @@ if __name__ == "__main__":
                 labeled_answer = item["Correct Choice"]
                 domain = item.get("High-level domain", "Unknown")
                 mode = 'choose'
-            elif dataset_name in ['math500', 'hendrycks']:
+            elif dataset_name == 'math500':
                 labeled_answer = item["answer"]
                 domain = item.get("level", "Unknown")
                 mode = 'gen'
@@ -557,7 +603,7 @@ if __name__ == "__main__":
                 if dataset_name in ['gpqa', 'medmcqa']:
                     normal_labeled_answer = normal_item["Correct Choice"]
                     normal_mode = 'choose'
-                elif dataset_name in ['math500', 'hendrycks']:
+                elif dataset_name == 'math500':
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'gen'
                 elif dataset_name in ['aime', 'amc']:
