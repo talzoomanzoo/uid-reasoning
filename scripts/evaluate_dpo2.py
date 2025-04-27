@@ -12,88 +12,116 @@ from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
 from transformers import AutoTokenizer
-from nltk.translate.bleu_score import sentence_bleu
-from rouge import Rouge
-# def extract_answer(output, mode='gen'):
-#     extracted_text = ''
-#     pattern = r'\\boxed\{(.*)\}'
-#     matches = re.findall(pattern, output)
-#     if matches:
-#         extracted_text = matches[-1]  # Take the last match
-#         if mode in ['choose', 'qa']:
-#             # Handle 'choose' mode
-#             inner_pattern = r'\\text\{(.*)\}'
-#             inner_matches = re.findall(inner_pattern, extracted_text)
-#             if inner_matches:
-#                 extracted_text = inner_matches[-1]  # Take the last match
-#             extracted_text = extracted_text.strip("()")
-#     return extracted_text
+from utils.math_equivalence import is_equiv
 
 
-# def normalize_answer(text):
-#     text = text.lower()
-#     text = " ".join(text.strip().split())
-#     return text
+def extract_answer(output, mode='gen'):
+    extracted_text = ''
+    pattern = r'\\boxed\{(.*)\}'
+    matches = re.findall(pattern, output)
+    if matches:
+        extracted_text = matches[-1]  # Take the last match
+        if mode in ['choose', 'qa']:
+            # Handle 'choose' mode
+            inner_pattern = r'\\text\{(.*)\}'
+            inner_matches = re.findall(inner_pattern, extracted_text)
+            if inner_matches:
+                extracted_text = inner_matches[-1]  # Take the last match
+            extracted_text = extracted_text.strip("()")
+    return extracted_text
 
-# def normalize_answer_qa(s):
-#     def remove_articles(text):
-#         return re.sub(r"\b(a|an|the)\b", " ", text)
-#     def white_space_fix(text):
-#         return " ".join(text.strip().split())
-#     def remove_punc(text):
-#         exclude = set(string.punctuation)
-#         return "".join(ch for ch in text if ch not in exclude)
-#     def lower(text):
-#         return text.lower()
-#     return white_space_fix(remove_articles(remove_punc(lower(s))))
 
-def evaluate_predictions(model, tokenizer, output, labeled_answer, mode='gen'):
-    final_metric = {"is_valid_answer": False, 'bleu': 0, "rouge_1_f1": 0, "rouge_2_f1": 0, "rouge_l_f1": 0}
-    # pred_answer = extract_answer(output, mode=mode)
-    # if pred_answer != '':
-    #     final_metric["is_valid_answer"] = True
+def normalize_answer(text):
+    text = text.lower()
+    text = " ".join(text.strip().split())
+    return text
 
-    # if mode == 'gen':
-    #     try:
-    #         normalized_pred_answer = normalize_answer(pred_answer)  #predicted generation, but check the normalization function bc it isn't a single prediction
-    #     except:
-    #         normalized_pred_answer = "none"
+def normalize_answer_qa(s):
+    def remove_articles(text):
+        return re.sub(r"\b(a|an|the)\b", " ", text)
+    def white_space_fix(text):
+        return " ".join(text.strip().split())
+    def remove_punc(text):
+        exclude = set(string.punctuation)
+        return "".join(ch for ch in text if ch not in exclude)
+    def lower(text):
+        return text.lower()
+    return white_space_fix(remove_articles(remove_punc(lower(s))))
 
-    #     try:
-    #         normalized_ground_truth = normalize_answer(labeled_answer) #gt solution
-    #     except:
-    #         normalized_ground_truth = "none"
+def evaluate_predictions(output, labeled_answer, mode='gen'):
+    final_metric = {"is_valid_answer": False, "acc": 0, "em": 0, "f1": 0, 'math_equal': 0}
+    pred_answer = extract_answer(output, mode=mode)
+    if pred_answer != '':
+        final_metric["is_valid_answer"] = True
 
-    #     prediction_tokens = normalized_pred_answer.split()
-    #     ground_truth_tokens = normalized_ground_truth.split() 
-    #     common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
-    #     num_same = sum(common.values())
-    bleu_score = sentence_bleu([labeled_answer.split()], output.split())
-    rouge = Rouge()
-    rouge_score = rouge.get_scores(output, labeled_answer)[0]
-    final_metric["bleu"] = bleu_score
-    final_metric["rouge_1_f1"] = rouge_score["rouge-1"]["f"]
-    final_metric["rouge_2_f1"] = rouge_score["rouge-2"]["f"]
-    final_metric["rouge_l_f1"] = rouge_score["rouge-l"]["f"]
+    if mode == 'qa':
+        normalized_pred_answer = normalize_answer_qa(pred_answer)
+        for answer in labeled_answer:
+            normalized_ground_truth = normalize_answer_qa(answer)
+            em = int(normalized_pred_answer == normalized_ground_truth)
+            acc = int(normalized_ground_truth in normalized_pred_answer)
+
+            prediction_tokens = normalized_pred_answer.split()
+            ground_truth_tokens = normalized_ground_truth.split()
+            common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
+            num_same = sum(common.values())
+            if num_same == 0:
+                continue
+            precision = 1.0 * num_same / len(prediction_tokens)
+            recall = 1.0 * num_same / len(ground_truth_tokens)
+            f1 = (2 * precision * recall) / (precision + recall)
+            for k in ["em", "acc", "f1"]:
+                final_metric[k] = max(eval(k), final_metric[k])
+
+    else:
+        try:
+            normalized_pred_answer = normalize_answer(pred_answer)
+        except:
+            normalized_pred_answer = "none"
+
+        try:
+            normalized_ground_truth = normalize_answer(labeled_answer)
+        except:
+            normalized_ground_truth = "none"
+
+        em = int(normalized_pred_answer == normalized_ground_truth)
+        acc = int(normalized_ground_truth in normalized_pred_answer)
     
-    return final_metric, output
+        prediction_tokens = normalized_pred_answer.split()
+        ground_truth_tokens = normalized_ground_truth.split()
+        common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
+        num_same = sum(common.values())
+        if num_same == 0:
+            f1 = 0
+        else:
+            precision = 1.0 * num_same / len(prediction_tokens) if len(prediction_tokens) > 0 else 0
+            recall = 1.0 * num_same / len(ground_truth_tokens) if len(ground_truth_tokens) > 0 else 0
+            if (precision + recall) == 0:
+                f1 = 0
+            else:
+                f1 = (2 * precision * recall) / (precision + recall)
+
+        final_metric["em"] = em
+        final_metric["acc"] = acc
+        final_metric["f1"] = f1
+
+        final_metric["math_equal"] = is_equiv(normalized_pred_answer, normalized_ground_truth)
+
+    # print(em, acc, f1, normalized_pred_answer, '|', normalized_ground_truth)
+    return final_metric, pred_answer
 
 
 
 def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, apply_backoff=False):
     # Existing evaluation for other datasets
-    avg_bleu = []
-    avg_rouge_1_f1 = []
-    avg_rouge_2_f1 = []
-    avg_rouge_l_f1 = []
     domain_metrics = {}
 
     #track mlm loss scores and validity per question
-    question_bleu_scores = defaultdict(list)
-    question_rouge_1_f1_scores = defaultdict(list)
-    question_rouge_2_f1_scores = defaultdict(list)
-    question_rouge_l_f1_scores = defaultdict(list)
+    question_em_scores = defaultdict(list)
+    question_accuracy_scores = defaultdict(list)
     question_validity_scores = defaultdict(list)
+    question_f1_scores = defaultdict(list)
+    question_math_equal_scores = defaultdict(list)
     for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
         question_samples = []
         for i in range(question_idx, len(output_list), len(input_list)):
@@ -113,71 +141,64 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks']:
                 labeled_answer = item["answer"]
                 mode = 'gen'
-            elif dataset_name == 's1k':
-                labeled_answer = item["solution"]
-                mode = 'gen'
             elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
                 labeled_answer = item["answer"]
                 mode = 'qa'
             else:
                 raise ValueError(f"Unknown dataset_name: {dataset_name}")
 
-            metric, pred_answer = evaluate_predictions(model=model_path, tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True), output=item[f'Output_{idx}'], labeled_answer=labeled_answer, mode=mode)
+            metric, pred_answer = evaluate_predictions(output=item[f'Output_{idx}'], labeled_answer=labeled_answer, mode=mode)
                 
             item[f'Pred_Answer_{idx}'] = pred_answer
             item[f'Metrics_{idx}'] = metric
             is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
-            question_bleu_scores[question_idx].append(metric['bleu'])
-            question_rouge_1_f1_scores[question_idx].append(metric['rouge_1_f1'])
-            question_rouge_2_f1_scores[question_idx].append(metric['rouge_2_f1'])
-            question_rouge_l_f1_scores[question_idx].append(metric['rouge_l_f1'])
+            question_em_scores[question_idx].append(metric['em'])
+            question_accuracy_scores[question_idx].append(metric['acc'])
+            question_f1_scores[question_idx].append(metric['f1'])
+            question_math_equal_scores[question_idx].append(metric['math_equal'])
             question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
 
             if idx == 0:
                 item['Question'] = input_prompt
-            avg_bleu.append(metric['bleu'])
-            avg_rouge_1_f1.append(metric['rouge_1_f1'])
-            avg_rouge_2_f1.append(metric['rouge_2_f1'])
-            avg_rouge_l_f1.append(metric['rouge_l_f1'])
 
             if is_valid:
                 num_valid_answer += 1
 
         # Compute mean accuracy and validity per question
-    question_mean_bleus = {}
-    question_mean_rouge_1_f1s = {}
-    question_mean_rouge_2_f1s = {}
-    question_mean_rouge_l_f1s = {}
-    question_mean_validities = {}
-    for question_idx in question_bleu_scores.keys():
-        question_mean_bleus[f'question_{question_idx}'] = np.mean(question_bleu_scores[question_idx])
-        question_mean_rouge_1_f1s[f'question_{question_idx}'] = np.mean(question_rouge_1_f1_scores[question_idx])
-        question_mean_rouge_2_f1s[f'question_{question_idx}'] = np.mean(question_rouge_2_f1_scores[question_idx])
-        question_mean_rouge_l_f1s[f'question_{question_idx}'] = np.mean(question_rouge_l_f1_scores[question_idx])
-        question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+    question_mean_em = {}
+    question_mean_accuracy = {}
+    question_mean_f1 = {}
+    question_mean_math_equal = {}
+    question_mean_validity = {}
+    for question_idx in question_em_scores.keys():
+        question_mean_em[f'question_{question_idx}'] = np.mean(question_em_scores[question_idx])
+        question_mean_accuracy[f'question_{question_idx}'] = np.mean(question_accuracy_scores[question_idx])
+        question_mean_validity[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+        question_mean_f1[f'question_{question_idx}'] = np.mean(question_f1_scores[question_idx])
+        question_mean_math_equal[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
     # Add per-question metrics to each item in filtered_data
     for i in range(len(filtered_data)):
-        filtered_data[i]['per_question_mean_bleu'] = question_mean_bleus[f'question_{i}']
-        filtered_data[i]['per_question_mean_rouge_1_f1'] = question_mean_rouge_1_f1s[f'question_{i}']
-        filtered_data[i]['per_question_mean_rouge_2_f1'] = question_mean_rouge_2_f1s[f'question_{i}']
-        filtered_data[i]['per_question_mean_rouge_l_f1'] = question_mean_rouge_l_f1s[f'question_{i}']
-        filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+        filtered_data[i]['per_question_mean_em'] = question_mean_em[f'question_{i}']
+        filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracy[f'question_{i}']
+        filtered_data[i]['per_question_mean_validity'] = question_mean_validity[f'question_{i}']
+        filtered_data[i]['per_question_mean_f1'] = question_mean_f1[f'question_{i}']
+        filtered_data[i]['per_question_mean_math_equal'] = question_mean_math_equal[f'question_{i}']
         # Compute overall mean accuracy and validity across all questions
-    overall_mean_bleu = np.mean([bleu for bleu in question_mean_bleus.values()])
-    overall_mean_rouge_1_f1 = np.mean([rouge_1_f1 for rouge_1_f1 in question_mean_rouge_1_f1s.values()])
-    overall_mean_rouge_2_f1 = np.mean([rouge_2_f1 for rouge_2_f1 in question_mean_rouge_2_f1s.values()])
-    overall_mean_rouge_l_f1 = np.mean([rouge_l_f1 for rouge_l_f1 in question_mean_rouge_l_f1s.values()])
-    overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
+    overall_mean_em = np.mean([em for em in question_mean_em.values()])
+    overall_mean_accuracy = np.mean([accuracy for accuracy in question_mean_accuracy.values()])
+    overall_mean_validity = np.mean([val for val in question_mean_validity.values()])
+    overall_mean_f1 = np.mean([f1 for f1 in question_mean_f1.values()])
+    overall_mean_math_equal = np.mean([math_equal for math_equal in question_mean_math_equal.values()])
 
         # Compute overall metrics
     overall_results = {
             'total_time': f'{total_time:.0f} s',
-            'overall_mean_bleu': overall_mean_bleu,
-            'overall_mean_rouge_1_f1': overall_mean_rouge_1_f1,   # Mean of per-question validities
-            'overall_mean_rouge_2_f1': overall_mean_rouge_2_f1,
-            'overall_mean_rouge_l_f1': overall_mean_rouge_l_f1,
+            'overall_mean_em': overall_mean_em,
+            'overall_mean_accuracy': overall_mean_accuracy,   # Mean of per-question validities
             'overall_mean_validity': overall_mean_validity,
+            'overall_mean_f1': overall_mean_f1,
+            'overall_mean_math_equal': overall_mean_math_equal,
         }
 
     final_metrics = {'overall': overall_results}
@@ -310,18 +331,22 @@ if __name__ == "__main__":
 
     if dataset_name != 'livecode':
         # Existing evaluation for non-livecode datasets
-        avg_bleu = []
-        avg_rouge_1_f1 = []
-        avg_rouge_2_f1 = []
-        avg_rouge_l_f1 = []
+        avg_em = []
+        avg_accuracy = []
+        avg_f1 = []
+        avg_math_equal = []
         num_valid_answer = 0
 
         # Initialize per-domain metrics
         domain_metrics = {}
 
         for i, item in enumerate(data):
-            if dataset_name == 's1k':
-                labeled_answer = item["solution"]
+            if dataset_name  == 'math500':
+                labeled_answer = item["answer"]
+                mode = 'gen'
+                domain = item.get("level", "Unknown")
+            elif dataset_name in ['aime', 'amc']:
+                labeled_answer = item["answer"]
                 mode = 'gen'
                 domain = 'Unknown'
             else:
@@ -379,13 +404,14 @@ if __name__ == "__main__":
 
             # Track metrics per domain
             if domain not in domain_metrics:
-                domain_metrics[domain] = {'bleu': [], 'rouge_1_f1': [], 'rouge_2_f1': [], 'rouge_l_f1': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': []}
+                domain_metrics[domain] = {'em': [], 'accuracy': [], 'f1': [], 'math_equal': [], 'validity': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': []}
                 domain_metrics[domain]['total_num'] += 1
                 domain_metrics[domain]['query_latency'].append(item['query_latency'])
-                avg_bleu.append(metric['bleu'])
-                avg_rouge_1_f1.append(metric['rouge_1_f1'])
-                avg_rouge_2_f1.append(metric['rouge_2_f1'])
-                avg_rouge_l_f1.append(metric['rouge_l_f1'])
+                domain_metrics[domain]['em'].append(metric['em'])
+                domain_metrics[domain]['accuracy'].append(metric['acc'])
+                domain_metrics[domain]['f1'].append(metric['f1'])
+                domain_metrics[domain]['math_equal'].append(metric['math_equal'])
+                domain_metrics[domain]['validity'].append(metric['is_valid_answer'])
 
             if my_method_valid:
                 num_valid_answer += 1
@@ -393,10 +419,8 @@ if __name__ == "__main__":
 
         # Compute overall metrics
         overall_metrics = {
-            'bleu': np.mean(avg_bleu) if len(avg_bleu) > 0 else 0, 
-            'rouge_1_f1': np.mean(avg_rouge_1_f1) if len(avg_rouge_1_f1) > 0 else 0,
-            'rouge_2_f1': np.mean(avg_rouge_2_f1) if len(avg_rouge_2_f1) > 0 else 0,
-            'rouge_l_f1': np.mean(avg_rouge_l_f1) if len(avg_rouge_l_f1) > 0 else 0,
+            'em': np.mean(avg_em) if len(avg_em) > 0 else 0, 
+            'accuracy': np.mean(avg_accuracy) if len(avg_accuracy) > 0 else 0,
             'num_valid_answer': f'{num_valid_answer} of {len(data)}',
             'query_latency': query_latency,
         }
@@ -407,10 +431,10 @@ if __name__ == "__main__":
         domain_avg_metrics = {}
         for dm, m in domain_metrics.items():
             domain_avg_metrics[dm] = {
-                'bleu': np.mean(m['bleu']) if len(m['bleu']) > 0 else 0,
-                'rouge_1_f1': np.mean(m['rouge_1_f1']) if len(m['rouge_1_f1']) > 0 else 0,
-                'rouge_2_f1': np.mean(m['rouge_2_f1']) if len(m['rouge_2_f1']) > 0 else 0,
-                'rouge_l_f1': np.mean(m['rouge_l_f1']) if len(m['rouge_l_f1']) > 0 else 0,
+                'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
+                'accuracy': np.mean(m['accuracy']) if len(m['accuracy']) > 0 else 0,
+                'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
+                'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
                 'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
             }
 

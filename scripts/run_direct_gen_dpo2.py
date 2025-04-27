@@ -118,7 +118,7 @@ def parse_args():
     parser.add_argument(
         '--step1_path',
         type=str,
-        default='z_filtered',
+        default='z_initial',
         help="Path to the first stage output."
     )
     return parser.parse_args()
@@ -195,7 +195,7 @@ async def main(args):
     llm = LLM(
                 model=model_path,
                 gpu_memory_utilization=0.90,
-                max_model_len=9216,
+                max_model_len=32768,
                 enforce_eager=True,
                 dtype="float16",
                 tensor_parallel_size=4,
@@ -245,28 +245,39 @@ async def main(args):
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'livecode']:
-                max_tokens = 8000
+                max_tokens = 31000
             else:
-                max_tokens = 8000 
+                max_tokens = 31000 
         else:
-            max_tokens = 8000
-    max_tokens = min(max_tokens, 9216 - 243)
+            max_tokens = 31000
+    max_tokens = min(max_tokens, 32768 - 243)
 
-    async def second_stage_generate_outputs(llm, input_batches, model_path, max_tokens, sample_limit, temperature, top_p, batch_size):
-        output_list_2 = []
+    async def second_stage_generate_outputs(llm, input_batches, sample_limit, batch_size):
         if len(input_batches) > batch_size:
+            # Initialize a list to store responses for each input
+            responses_by_input = [[] for _ in range(len(input_batches))]
+            
             for start_index in tqdm(range(0, len(input_batches), batch_size)):
                 cur_input_list = input_batches[start_index:start_index + batch_size]
-                # Generate sample_limit outputs for each input in the batch
-                for _ in range(sample_limit):  # Generate sample_limit times for each input
+                # Generate all samples for current batch
+                for _ in tqdm(range(sample_limit)):
                     batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=second_stage_sampling_params))
-                    output_list_2.extend(batch_output)
+                    # Store responses for each input in the current batch
+                    for i, response in enumerate(batch_output):
+                        responses_by_input[start_index + i].append(response)
+            
+            # Interleave the responses: (response 1-1, response 2-1, ...), (response 1-2, response 2-2, ...)
+            output_list = []
+            for sample_idx in range(sample_limit):
+                for input_responses in responses_by_input:
+                    output_list.append(input_responses[sample_idx])
         else:
+            output_list = []
             # Generate sample_limit outputs for each input
             for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
                 batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=second_stage_sampling_params))
-                output_list_2.extend(batch_output)
-        return output_list_2
+                output_list.extend(batch_output)
+        return output_list
 
     t_start = time.time()
     import pdb; pdb.set_trace() #check len(input_batches), batch_size
