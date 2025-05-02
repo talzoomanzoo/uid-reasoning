@@ -2,32 +2,45 @@
 import re
 import json
 import numpy as np
-from collections import Counter
 import string
 import os, time
 from collections import defaultdict
-from lcb_runner.evaluation import codegen_metrics
-from utils.dpo_loss import score_response
-from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
-from transformers import AutoTokenizer
 from utils.math_equivalence import is_equiv
 
 
 def extract_answer(output, mode='gen'):
     extracted_text = ''
-    pattern = r'\\boxed\{(.*)\}'
-    matches = re.findall(pattern, output)
-    if matches:
-        extracted_text = matches[-1]  # Take the last match
-        if mode in ['choose', 'qa']:
-            # Handle 'choose' mode
-            inner_pattern = r'\\text\{(.*)\}'
-            inner_matches = re.findall(inner_pattern, extracted_text)
-            if inner_matches:
-                extracted_text = inner_matches[-1]  # Take the last match
-            extracted_text = extracted_text.strip("()")
+    if mode == 'codegen':
+        # Extract the code between ```python and ```
+        pattern = r'```python\s*(.*?)\s*```'
+        matches = re.findall(pattern, output, re.DOTALL | re.IGNORECASE)
+        if matches:
+            extracted_text = matches[-1].strip()  # Take the last match
+    elif mode == 'infogen':
+        # Extract content after **Final Information** or **Modified Reasoning Steps**
+        pattern_info = "\n**Final Information**"
+        pattern_step = "\n**Modified Reasoning Steps**"
+        if pattern_info in output:
+            extracted_text = output.split(pattern_info)[-1].replace("\n","").strip("```").strip()
+        elif pattern_step in output:
+            extracted_text = output.split(pattern_step)[-1].strip("```").strip()
+        else:
+            extracted_text = "No helpful information found."
+    else:
+        # Existing extraction logic for 'gen' and 'choose' modes
+        pattern = r'\\boxed\{(.*)\}'
+        matches = re.findall(pattern, output)
+        if matches:
+            extracted_text = matches[-1]  # Take the last match
+            if mode in ['choose', 'qa']:
+                # Handle 'choose' mode
+                inner_pattern = r'\\text\{(.*)\}'
+                inner_matches = re.findall(inner_pattern, extracted_text)
+                if inner_matches:
+                    extracted_text = inner_matches[-1]  # Take the last match
+                extracted_text = extracted_text.strip("()")
     return extracted_text
 
 
@@ -49,92 +62,57 @@ def normalize_answer_qa(s):
     return white_space_fix(remove_articles(remove_punc(lower(s))))
 
 def evaluate_predictions(output, labeled_answer, mode='gen'):
-    final_metric = {"is_valid_answer": False, "acc": 0, "em": 0, "f1": 0, 'math_equal': 0}
+    final_metric = {"is_valid_answer": False, 'math_equal': 0}
     pred_answer = extract_answer(output, mode=mode)
     if pred_answer != '':
         final_metric["is_valid_answer"] = True
 
-    if mode == 'qa':
-        normalized_pred_answer = normalize_answer_qa(pred_answer)
-        for answer in labeled_answer:
-            normalized_ground_truth = normalize_answer_qa(answer)
-            em = int(normalized_pred_answer == normalized_ground_truth)
-            acc = int(normalized_ground_truth in normalized_pred_answer)
+    try:
+        normalized_pred_answer = normalize_answer(pred_answer)
+    except:
+        normalized_pred_answer = "none"
 
-            prediction_tokens = normalized_pred_answer.split()
-            ground_truth_tokens = normalized_ground_truth.split()
-            common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
-            num_same = sum(common.values())
-            if num_same == 0:
-                continue
-            precision = 1.0 * num_same / len(prediction_tokens)
-            recall = 1.0 * num_same / len(ground_truth_tokens)
-            f1 = (2 * precision * recall) / (precision + recall)
-            for k in ["em", "acc", "f1"]:
-                final_metric[k] = max(eval(k), final_metric[k])
+    try:
+        normalized_ground_truth = normalize_answer(labeled_answer)
+    except:
+        normalized_ground_truth = "none"
 
-    else:
-        try:
-            normalized_pred_answer = normalize_answer(pred_answer)
-        except:
-            normalized_pred_answer = "none"
+    final_metric["math_equal"] = is_equiv(normalized_pred_answer, normalized_ground_truth)
 
-        try:
-            normalized_ground_truth = normalize_answer(labeled_answer)
-        except:
-            normalized_ground_truth = "none"
-
-        em = int(normalized_pred_answer == normalized_ground_truth)
-        acc = int(normalized_ground_truth in normalized_pred_answer)
-    
-        prediction_tokens = normalized_pred_answer.split()
-        ground_truth_tokens = normalized_ground_truth.split()
-        common = Counter(prediction_tokens) & Counter(ground_truth_tokens)
-        num_same = sum(common.values())
-        if num_same == 0:
-            f1 = 0
-        else:
-            precision = 1.0 * num_same / len(prediction_tokens) if len(prediction_tokens) > 0 else 0
-            recall = 1.0 * num_same / len(ground_truth_tokens) if len(ground_truth_tokens) > 0 else 0
-            if (precision + recall) == 0:
-                f1 = 0
-            else:
-                f1 = (2 * precision * recall) / (precision + recall)
-
-        final_metric["em"] = em
-        final_metric["acc"] = acc
-        final_metric["f1"] = f1
-
-        final_metric["math_equal"] = is_equiv(normalized_pred_answer, normalized_ground_truth)
-
-    # print(em, acc, f1, normalized_pred_answer, '|', normalized_ground_truth)
     return final_metric, pred_answer
 
 
 
 def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, apply_backoff=False):
     # Existing evaluation for other datasets
-    domain_metrics = {}
-
-    #track mlm loss scores and validity per question
-    question_em_scores = defaultdict(list)
-    question_accuracy_scores = defaultdict(list)
     question_validity_scores = defaultdict(list)
-    question_f1_scores = defaultdict(list)
     question_math_equal_scores = defaultdict(list)
+    new_filtered_data = []
+
     for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
-        question_samples = []
-        for i in range(question_idx, len(output_list), len(input_list)):
-            question_samples.append(output_list[i])
-            num_valid_answer = 0
-        for idx in range(len(question_samples)):
-            result = question_samples[idx]
+        # question_samples = []
+        # for i in range(question_idx, len(output_list)):
+            # question_samples.append(output_list[i]) #a single row into list
+        num_valid_answer = 0
+        for idx in range(0, len(output_list)):
+            result = output_list[idx]
+            item_id = item["id"] + f"_{idx}"
+            question_key = f'Question_{idx}'
+            answer_key = f'Answer_{idx}'
+            output_key = f'Output_{idx}'
+            tokens_key = f"output_tokens_{idx}"
+            metric_key = f"Metrics_{idx}"
+            pred_answer_key = f"Pred_Answer_{idx}"
+            item["new_id"] = item_id
+            item[question_key] = input_prompt
+            item[answer_key] = item["answer"]
             if type(result) == str:
-                item[f'Output_{idx}'] = result
+                item[output_key] = result
+                item[tokens_key] = None
             elif type(result) == tuple or type(result) == list or type(result) == ChatGeneration or type(result) == RequestOutput:
-                item[f'Output_{idx}'] = result.outputs[0].text
-                item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
-                    
+                item[output_key] = result.outputs[0].text
+                item[tokens_key] = len(result.outputs[0].token_ids)
+
             if dataset_name in ['gpqa']:
                 labeled_answer = item["Correct Choice"]
                 mode = 'choose'
@@ -147,18 +125,27 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             else:
                 raise ValueError(f"Unknown dataset_name: {dataset_name}")
 
-            metric, pred_answer = evaluate_predictions(output=item[f'Output_{idx}'], labeled_answer=labeled_answer, mode=mode)
-                
-            item[f'Pred_Answer_{idx}'] = pred_answer
-            item[f'Metrics_{idx}'] = metric
+            # Build the new filtered data entry
+            metric, pred_answer = evaluate_predictions(output=item[output_key], labeled_answer=item[answer_key], mode=mode)
+            item[pred_answer_key] = pred_answer
+            item[metric_key] = metric
+            
+            new_item = {
+                "new_id": item_id,
+                question_key: item[question_key],
+                answer_key: item[answer_key],
+                output_key: item[output_key],
+                tokens_key: item[tokens_key],
+                pred_answer_key: item[pred_answer_key],
+                metric_key: item[metric_key],
+            }
+            new_filtered_data.append(new_item)
+
+            
             is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
-            question_em_scores[question_idx].append(metric['em'])
-            question_accuracy_scores[question_idx].append(metric['acc'])
-            question_f1_scores[question_idx].append(metric['f1'])
-            question_math_equal_scores[question_idx].append(metric['math_equal'])
             question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
-
+            question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
             if idx == 0:
                 item['Question'] = input_prompt
 
@@ -166,39 +153,15 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 num_valid_answer += 1
 
         # Compute mean accuracy and validity per question
-    question_mean_em = {}
-    question_mean_accuracy = {}
-    question_mean_f1 = {}
-    question_mean_math_equal = {}
     question_mean_validity = {}
-    for question_idx in question_em_scores.keys():
-        question_mean_em[f'question_{question_idx}'] = np.mean(question_em_scores[question_idx])
-        question_mean_accuracy[f'question_{question_idx}'] = np.mean(question_accuracy_scores[question_idx])
+    question_mean_math_equal = {}
+    for question_idx in question_validity_scores.keys():
         question_mean_validity[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
-        question_mean_f1[f'question_{question_idx}'] = np.mean(question_f1_scores[question_idx])
         question_mean_math_equal[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
-    # Add per-question metrics to each item in filtered_data
-    for i in range(len(filtered_data)):
-        filtered_data[i]['per_question_mean_em'] = question_mean_em[f'question_{i}']
-        filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracy[f'question_{i}']
-        filtered_data[i]['per_question_mean_validity'] = question_mean_validity[f'question_{i}']
-        filtered_data[i]['per_question_mean_f1'] = question_mean_f1[f'question_{i}']
-        filtered_data[i]['per_question_mean_math_equal'] = question_mean_math_equal[f'question_{i}']
-        # Compute overall mean accuracy and validity across all questions
-    overall_mean_em = np.mean([em for em in question_mean_em.values()])
-    overall_mean_accuracy = np.mean([accuracy for accuracy in question_mean_accuracy.values()])
-    overall_mean_validity = np.mean([val for val in question_mean_validity.values()])
-    overall_mean_f1 = np.mean([f1 for f1 in question_mean_f1.values()])
-    overall_mean_math_equal = np.mean([math_equal for math_equal in question_mean_math_equal.values()])
 
         # Compute overall metrics
     overall_results = {
             'total_time': f'{total_time:.0f} s',
-            'overall_mean_em': overall_mean_em,
-            'overall_mean_accuracy': overall_mean_accuracy,   # Mean of per-question validities
-            'overall_mean_validity': overall_mean_validity,
-            'overall_mean_f1': overall_mean_f1,
-            'overall_mean_math_equal': overall_mean_math_equal,
         }
 
     final_metrics = {'overall': overall_results}
@@ -216,7 +179,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
 
     # Save prediction results and metrics
     with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
-        json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
+        json.dump(new_filtered_data, json_file, indent=4, ensure_ascii=False)
 
     with open(os.path.join(output_dir, metrics_json_name), mode='w', encoding='utf-8') as json_file:
         json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
@@ -404,13 +367,9 @@ if __name__ == "__main__":
 
             # Track metrics per domain
             if domain not in domain_metrics:
-                domain_metrics[domain] = {'em': [], 'accuracy': [], 'f1': [], 'math_equal': [], 'validity': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': []}
+                domain_metrics[domain] = {'validity': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': []}
                 domain_metrics[domain]['total_num'] += 1
                 domain_metrics[domain]['query_latency'].append(item['query_latency'])
-                domain_metrics[domain]['em'].append(metric['em'])
-                domain_metrics[domain]['accuracy'].append(metric['acc'])
-                domain_metrics[domain]['f1'].append(metric['f1'])
-                domain_metrics[domain]['math_equal'].append(metric['math_equal'])
                 domain_metrics[domain]['validity'].append(metric['is_valid_answer'])
 
             if my_method_valid:
@@ -419,8 +378,6 @@ if __name__ == "__main__":
 
         # Compute overall metrics
         overall_metrics = {
-            'em': np.mean(avg_em) if len(avg_em) > 0 else 0, 
-            'accuracy': np.mean(avg_accuracy) if len(avg_accuracy) > 0 else 0,
             'num_valid_answer': f'{num_valid_answer} of {len(data)}',
             'query_latency': query_latency,
         }
@@ -431,12 +388,11 @@ if __name__ == "__main__":
         domain_avg_metrics = {}
         for dm, m in domain_metrics.items():
             domain_avg_metrics[dm] = {
-                'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
-                'accuracy': np.mean(m['accuracy']) if len(m['accuracy']) > 0 else 0,
-                'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
-                'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
                 'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
+                'validity': np.mean(m['validity']),
+                'math_equal': np.mean(m['math_equal']),
             }
+
 
         # Prepare final metrics
         final_metrics = {'overall': overall_metrics}

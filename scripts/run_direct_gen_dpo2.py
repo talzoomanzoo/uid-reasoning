@@ -1,21 +1,10 @@
 #dpo2
-import csv
 import json
-import random
-import torch
 import re
 import os, time
-import numpy as np
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
-from evaluate import run_evaluation
-from prompts import (
-    get_task_instruction_openqa, 
-    get_task_instruction_math, 
-    get_task_instruction_multi_choice, 
-    get_task_instruction_code, 
-    get_task_instruction_medical,
-)
+from evaluate_dpo2 import run_evaluation
 from tqdm import tqdm
 import argparse
 import asyncio
@@ -56,15 +45,22 @@ def parse_args():
     parser.add_argument(
         '--temperature', 
         type=float, 
-        default=0.7,
+        default=0.9,
         help="Sampling temperature."
     )
     
     parser.add_argument(
         '--top_p', 
         type=float, 
-        default=0.95, 
+        default=0.8, 
         help="Top-p sampling parameter."
+    )
+
+    parser.add_argument(
+        '--top_k', 
+        type=int, 
+        default=50, 
+        help="Top-k sampling parameter."
     )
     
     parser.add_argument(
@@ -77,7 +73,7 @@ def parse_args():
     parser.add_argument(
         '--max_tokens', 
         type=int, 
-        default=7000, 
+        default=31000, 
         help="Maximum number of tokens to generate. If not set, defaults based on the model and dataset."
     )
 
@@ -118,8 +114,16 @@ def parse_args():
     parser.add_argument(
         '--step1_path',
         type=str,
-        default='z_initial',
+        default='z_filtered',
         help="Path to the first stage output."
+    )
+
+    parser.add_argument(
+        '--run_type',
+        type=str,
+        default='test',
+        choices=['test', 'full'],
+        help="Whether to run test or full. Defaults to test if not specified."
     )
     return parser.parse_args()
 
@@ -130,6 +134,7 @@ async def main(args):
     model_path = args.model_path
     temperature = args.temperature
     top_p = args.top_p
+    top_k = args.top_k
     repetition_penalty = args.repetition_penalty
     max_tokens = args.max_tokens
     batch_size = args.batch_size
@@ -138,27 +143,10 @@ async def main(args):
     use_beam_search = args.use_beam_search
     data_limit = 10
     step1_path = args.step1_path
+    run_type = args.run_type
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
-    
-    # Paths to datasets
-    if dataset_name == 'math500':
-        data_path = f'../data/MATH500/{split}.json'
-    elif dataset_name == 'gpqa':
-        data_path = f'./data/GPQA/{split}.json'
-    elif dataset_name == 'aime':
-        data_path = f'./data/AIME/{split}.json'
-    elif dataset_name == 'amc':
-        data_path = f'./data/AMC/{split}.json'
-    elif dataset_name == 'livecode':
-        data_path = f'./data/LiveCodeBench/{split}.json'
-    elif dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
-        data_path = f"../data/medical/{dataset_name}_{split}.json"
-    elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
-        data_path = f'./data/QA_Datasets/{dataset_name}.json'
-    else:
-        raise ValueError(f"Unsupported dataset_name: {dataset_name}")
     
     # Load the model
     if "free" in model_path.lower():
@@ -185,11 +173,11 @@ async def main(args):
 
     if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
         if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
-            output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
+            output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct.step-2.{run_type}'
         else:
-            output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct'
+            output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct.step-2.{run_type}'
     else:
-        output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
+        output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct.step-2.{run_type}'
     os.makedirs(output_dir, exist_ok=True)
 
     llm = LLM(
@@ -203,6 +191,7 @@ async def main(args):
                 
     second_stage_sampling_params = SamplingParams(
                 top_p=top_p,
+                top_k=top_k,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 repetition_penalty=repetition_penalty,
@@ -210,34 +199,32 @@ async def main(args):
                 include_stop_str_in_output=True,
         )
 
-    # Load data
-    # with open(data_path, mode='r', encoding='utf-8') as json_file:
-    #     filtered_data = json.load(json_file)
     
-    with open(f'./outputs/{dataset_name}.{model_short_name}.direct/{step1_path}.json', mode='r', encoding='utf-8') as json_file:
+    with open(f'./outputs/{dataset_name}.{model_short_name}.direct.step-1.{run_type}/{step1_path}.json', mode='r', encoding='utf-8') as json_file: #fix here
         first_stage_output_list = json.load(json_file)
         first_stage_output_list = first_stage_output_list[:]
-        # first_stage_output_list = first_stage_output_list[:len(filtered_data)]
+        
     def clean_text(text):
         text = re.sub(r'<｜begin▁of▁sentence｜><｜User｜>', '', text, count=1)
         return text.strip()
-    # prepare input
+ 
     input_list = []
-    output_list_1 = []
-    output_list_2 = []
-    for item in first_stage_output_list:
-        question = item['Question']
+    for _, item in enumerate(first_stage_output_list):
+        question = item[f'Question']
         for j in range(0, 10):
             current_first_stage_output = item[f"Output_{j}"]
             user_prompt = question + "\n\n" + current_first_stage_output
+            item[f'Question_{j}'] = user_prompt
+
             if "free" in model_path.lower():
                 prompt = [{"role": "user", "content": user_prompt}]
             else:
                 prompt = [{"role": "user", "content": user_prompt}]
                 prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=False)
+
             prompt = clean_text(prompt)
             input_list.append(prompt)
-    
+            
     if subset_num != -1:
         input_list = input_list[:subset_num]
         first_stage_output_list = first_stage_output_list[:subset_num]
@@ -280,14 +267,14 @@ async def main(args):
         return output_list
 
     t_start = time.time()
-    import pdb; pdb.set_trace() #check len(input_batches), batch_size
-    output_list_2 = await second_stage_generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
+    output_list = await second_stage_generate_outputs(llm, input_list, sample_limit, batch_size)
+    import pdb; pdb.set_trace()
     total_time = time.time() - t_start
 
     run_evaluation(
         first_stage_output_list, 
         input_list,
-        output_list_2,
+        output_list,
         dataset_name, 
         output_dir, 
         total_time, 

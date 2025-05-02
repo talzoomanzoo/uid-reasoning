@@ -56,15 +56,22 @@ def parse_args():
     parser.add_argument(
         '--temperature', 
         type=float, 
-        default=0.6,
+        default=0.9,
         help="Sampling temperature."
     )
     
     parser.add_argument(
         '--top_p', 
         type=float, 
-        default=0.95, 
+        default=0.8, 
         help="Top-p sampling parameter."
+    )
+
+    parser.add_argument(
+        '--top_k', 
+        type=int, 
+        default=20, 
+        help="Top-k sampling parameter. If not set, defaults to the model's default."
     )
     
     parser.add_argument(
@@ -77,7 +84,7 @@ def parse_args():
     parser.add_argument(
         '--max_tokens', 
         type=int, 
-        default=7000, 
+        default=31000, 
         help="Maximum number of tokens to generate. If not set, defaults based on the model and dataset."
     )
 
@@ -122,6 +129,14 @@ def parse_args():
         help="Whether to use beam search. Defaults to False if not specified."
     )
 
+    parser.add_argument(
+        '--run_type',
+        type=str,
+        default='test',
+        choices=['test', 'full'],
+        help="Whether to run test or full. Defaults to test if not specified."
+    )
+
     return parser.parse_args()
 
 async def main(args):
@@ -131,6 +146,7 @@ async def main(args):
     model_path = args.model_path
     temperature = args.temperature
     top_p = args.top_p
+    top_k = args.top_k
     repetition_penalty = args.repetition_penalty
     max_tokens = args.max_tokens
     batch_size = args.batch_size
@@ -138,6 +154,7 @@ async def main(args):
     sample_limit = args.sample_limit
     skip_special_tokens = args.skip_special_tokens
     use_beam_search = args.use_beam_search
+    run_type = args.run_type
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
@@ -189,11 +206,11 @@ async def main(args):
 
     if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
         if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode', 'hendrycks', 's1k']:
-            output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
+            output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct.step-1.{run_type}'
         else:
-            output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct'
+            output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct.step-1.{run_type}'
     else:
-        output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
+        output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct.step-1.{run_type}'
     os.makedirs(output_dir, exist_ok=True)
 
     stop_token_1 = "</think>"
@@ -209,6 +226,7 @@ async def main(args):
                 
     first_stage_sampling_params = SamplingParams(
                 top_p=top_p,
+                top_k=top_k,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 repetition_penalty=repetition_penalty,
@@ -257,34 +275,28 @@ async def main(args):
     max_tokens = min(max_tokens, 32768 - 243)
 
     async def first_stage_generate_outputs(llm, input_batches, sample_limit, batch_size):
+        output_list = []
         if len(input_batches) > batch_size:
-            # Initialize a list to store responses for each input
-            responses_by_input = [[] for _ in range(len(input_batches))]
-            
             for start_index in tqdm(range(0, len(input_batches), batch_size)):
                 cur_input_list = input_batches[start_index:start_index + batch_size]
-                # Generate all samples for current batch
-                for _ in tqdm(range(sample_limit)):
-                    batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=first_stage_sampling_params))
-                    # Store responses for each input in the current batch
-                    for i, response in enumerate(batch_output):
-                        responses_by_input[start_index + i].append(response)
-            
-            # Interleave the responses: (response 1-1, response 2-1, ...), (response 1-2, response 2-2, ...)
-            output_list = []
-            for sample_idx in range(sample_limit):
-                for input_responses in responses_by_input:
-                    output_list.append(input_responses[sample_idx])
+                for cur_input in cur_input_list:
+                    for _ in range(sample_limit):
+                        batch_output = await asyncio.to_thread(
+                            llm.generate, [cur_input], sampling_params=first_stage_sampling_params
+                    )
+                        output_list.extend(batch_output)
         else:
-            output_list = []
-            # Generate sample_limit outputs for each input
-            for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
-                batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=first_stage_sampling_params))
+            for _ in tqdm(range(sample_limit)):
+                batch_output = await asyncio.to_thread(
+                    llm.generate, input_batches, sampling_params=first_stage_sampling_params
+            )
                 output_list.extend(batch_output)
         return output_list
 
+
     t_start = time.time()
     output_list = await first_stage_generate_outputs(llm, input_list, sample_limit, batch_size)
+    import pdb; pdb.set_trace()
     total_time = time.time() - t_start
 
     run_evaluation(
