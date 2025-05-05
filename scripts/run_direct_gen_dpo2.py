@@ -83,6 +83,7 @@ def parse_args():
         default=8100,
         help="Port to use for the OpenAI API."
     )
+
     
     parser.add_argument(
         '--batch_size',
@@ -268,7 +269,6 @@ async def main(args):
 
     t_start = time.time()
     output_list = await second_stage_generate_outputs(llm, input_list, sample_limit, batch_size)
-    import pdb; pdb.set_trace()
     total_time = time.time() - t_start
 
     run_evaluation(

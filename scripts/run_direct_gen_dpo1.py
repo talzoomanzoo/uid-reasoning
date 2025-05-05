@@ -56,14 +56,14 @@ def parse_args():
     parser.add_argument(
         '--temperature', 
         type=float, 
-        default=0.9,
+        default=0.6,
         help="Sampling temperature."
     )
     
     parser.add_argument(
         '--top_p', 
         type=float, 
-        default=0.8, 
+        default=0.95, 
         help="Top-p sampling parameter."
     )
 

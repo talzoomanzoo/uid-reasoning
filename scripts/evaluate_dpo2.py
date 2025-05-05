@@ -93,12 +93,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # question_samples = []
         # for i in range(question_idx, len(output_list)):
             # question_samples.append(output_list[i]) #a single row into list
-        num_valid_answer = 0
-        for idx in range(0, len(output_list)):
-            result = output_list[idx]
-            item_id = item["id"] + f"_{idx}"
-            question_key = f'Question_{idx}'
-            answer_key = f'Answer_{idx}'
+        for idx in range(0, 10):
+            result = output_list[question_idx]
+            item_id = item["id"] + f"_{question_idx}_{idx}"
+            question_key = f'Question_{question_idx}'
+            answer_key = f'Answer_{question_idx}'
             output_key = f'Output_{idx}'
             tokens_key = f"output_tokens_{idx}"
             metric_key = f"Metrics_{idx}"
@@ -142,29 +141,32 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             new_filtered_data.append(new_item)
 
             
-            is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
+            # is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
             question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
             question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
             if idx == 0:
                 item['Question'] = input_prompt
 
-            if is_valid:
-                num_valid_answer += 1
-
         # Compute mean accuracy and validity per question
-    question_mean_validity = {}
-    question_mean_math_equal = {}
-    for question_idx in question_validity_scores.keys():
-        question_mean_validity[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
-        question_mean_math_equal[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
+        question_mean_validity = {}
+        question_mean_math_equal = {}
+        for question_idx in question_validity_scores.keys():
+            question_mean_validity[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+            question_mean_math_equal[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
 
         # Compute overall metrics
-    overall_results = {
+        overall_results = {
             'total_time': f'{total_time:.0f} s',
+            'num_valid_answer': question_mean_validity,
+            'overall_validity': np.mean(list(question_validity_scores.values())),
+            'num_math_equal': question_mean_math_equal,
+            'overall_math_equal': np.mean(list(question_math_equal_scores.values())),
         }
 
-    final_metrics = {'overall': overall_results}
+        final_metrics = {
+            'overall': overall_results
+        }
 
     t = time.localtime()
     result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}.json'
@@ -280,10 +282,11 @@ if __name__ == "__main__":
     if 'overall' in metrics:
         query_latency = metrics['overall']['query_latency']
         original_num_valid_answer = metrics['overall']['num_valid_answer']
+        math_equal = metrics['overall']['math_equal']
     else:
         query_latency = metrics.get('query_latency', 'N/A')
         original_num_valid_answer = metrics.get('num_valid_answer', 'N/A')
-
+        math_equal = metrics.get('math_equal', 'N/A')
     # Load normal output data if backoff is enabled
     normal_data = None
     if args.apply_backoff:
@@ -291,112 +294,6 @@ if __name__ == "__main__":
             raise FileNotFoundError(f"Normal output file not found at: {normal_output_path}")
         with open(normal_output_path, mode='r', encoding='utf-8') as file:
             normal_data = json.load(file)
-
-    if dataset_name != 'livecode':
-        # Existing evaluation for non-livecode datasets
-        avg_em = []
-        avg_accuracy = []
-        avg_f1 = []
-        avg_math_equal = []
-        num_valid_answer = 0
-
-        # Initialize per-domain metrics
-        domain_metrics = {}
-
-        for i, item in enumerate(data):
-            if dataset_name  == 'math500':
-                labeled_answer = item["answer"]
-                mode = 'gen'
-                domain = item.get("level", "Unknown")
-            elif dataset_name in ['aime', 'amc']:
-                labeled_answer = item["answer"]
-                mode = 'gen'
-                domain = 'Unknown'
-            else:
-                raise ValueError(f"Unsupported dataset: {dataset_name}")
-
-            output = item['Output']
-
-
-
-            metric, pred_answer = evaluate_predictions(
-                output=output, 
-                labeled_answer=labeled_answer,
-                mode=mode,
-            )
-
-            # Determine if the main method's answer is valid
-            my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
-
-            # If invalid and backoff is enabled, use normal method's output
-            if args.apply_backoff and not my_method_valid and normal_data is not None:
-                normal_item = normal_data[i]
-                if dataset_name in ['gpqa']:
-                    normal_labeled_answer = normal_item["Correct Choice"]
-                    normal_mode = 'choose'
-                elif dataset_name in ['math500', 'hendrycks']:
-                    normal_labeled_answer = normal_item["answer"]
-                    normal_mode = 'gen'
-                elif dataset_name in ['aime', 'amc']:
-                    normal_labeled_answer = normal_item["answer"]
-                    normal_mode = 'gen'
-                elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
-                    normal_labeled_answer = normal_item["answer"]
-                    normal_mode = 'qa'
-                elif dataset_name == 's1k':
-                    normal_labeled_answer = normal_item["solution"]
-                    normal_mode = 'gen'
-                else:
-                    raise ValueError(f"Unsupported dataset for backoff: {dataset_name}")
-
-                normal_output = normal_item['Output']
-
-                normal_metric, normal_pred_answer = evaluate_predictions(
-                    output=normal_output, 
-                    labeled_answer=normal_labeled_answer,
-                    mode=normal_mode,
-                )
-
-                normal_valid = (normal_pred_answer != '' and not (normal_mode == 'choose' and dataset_name == 'gpqa' and len(normal_pred_answer) > 1))
-
-                # Use normal method's result if valid
-                if normal_valid:
-                    metric = normal_metric
-                    pred_answer = normal_pred_answer
-                    my_method_valid = True
-
-            # Track metrics per domain
-            if domain not in domain_metrics:
-                domain_metrics[domain] = {'validity': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': []}
-                domain_metrics[domain]['total_num'] += 1
-                domain_metrics[domain]['query_latency'].append(item['query_latency'])
-                domain_metrics[domain]['validity'].append(metric['is_valid_answer'])
-
-            if my_method_valid:
-                num_valid_answer += 1
-                domain_metrics[domain]['num_valid_answer'] += 1
-
-        # Compute overall metrics
-        overall_metrics = {
-            'num_valid_answer': f'{num_valid_answer} of {len(data)}',
-            'query_latency': query_latency,
-        }
-        if args.apply_backoff:
-            overall_metrics['original_num_valid_answer'] = original_num_valid_answer
-
-        # Compute per-domain metrics
-        domain_avg_metrics = {}
-        for dm, m in domain_metrics.items():
-            domain_avg_metrics[dm] = {
-                'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
-                'validity': np.mean(m['validity']),
-                'math_equal': np.mean(m['math_equal']),
-            }
-
-
-        # Prepare final metrics
-        final_metrics = {'overall': overall_metrics}
-
 
     # Save metrics for non-livecode datasets
     if dataset_name != 'livecode' or not args.apply_backoff:
