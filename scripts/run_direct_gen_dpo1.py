@@ -296,7 +296,6 @@ async def main(args):
 
     t_start = time.time()
     output_list = await first_stage_generate_outputs(llm, input_list, sample_limit, batch_size)
-    import pdb; pdb.set_trace()
     total_time = time.time() - t_start
 
     run_evaluation(

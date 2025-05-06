@@ -210,9 +210,10 @@ async def main(args):
         return text.strip()
  
     input_list = []
+    new_first_stage_output_list = []
     for _, item in enumerate(first_stage_output_list):
         question = item[f'Question']
-        for j in range(0, 10):
+        for j in range(0, 5):
             current_first_stage_output = item[f"Output_{j}"]
             user_prompt = question + "\n\n" + current_first_stage_output
             item[f'Question_{j}'] = user_prompt
@@ -225,10 +226,11 @@ async def main(args):
 
             prompt = clean_text(prompt)
             input_list.append(prompt)
-            
+            new_first_stage_output_list.append(item)
+
     if subset_num != -1:
         input_list = input_list[:subset_num]
-        first_stage_output_list = first_stage_output_list[:subset_num]
+        new_first_stage_output_list = new_first_stage_output_list[:subset_num]
 
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
@@ -269,10 +271,11 @@ async def main(args):
 
     t_start = time.time()
     output_list = await second_stage_generate_outputs(llm, input_list, sample_limit, batch_size)
+    # import pdb; pdb.set_trace()
     total_time = time.time() - t_start
 
     run_evaluation(
-        first_stage_output_list, 
+        new_first_stage_output_list, 
         input_list,
         output_list,
         dataset_name, 

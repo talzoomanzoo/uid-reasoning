@@ -90,14 +90,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
     new_filtered_data = []
 
     for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
-        # question_samples = []
-        # for i in range(question_idx, len(output_list)):
-            # question_samples.append(output_list[i]) #a single row into list
-        for idx in range(0, 10):
-            result = output_list[question_idx]
+        for idx in range(0, 5):
+            result = output_list[question_idx + idx]
             item_id = item["id"] + f"_{question_idx}_{idx}"
-            question_key = f'Question_{question_idx}'
-            answer_key = f'Answer_{question_idx}'
+            question_key = f'Question_{idx}'
+            answer_key = f'Answer_{idx}'
             output_key = f'Output_{idx}'
             tokens_key = f"output_tokens_{idx}"
             metric_key = f"Metrics_{idx}"
