@@ -158,7 +158,7 @@ async def main(args):
     elif dataset_name == 'gpqa':
         data_path = f'./data/GPQA/{split}.json'
     elif dataset_name == 'aime':
-        data_path = f'./data/AIME/{split}.json'
+        data_path = f'../data/AIME/{split}.json'
     elif dataset_name == 'amc':
         data_path = f'./data/AMC/{split}.json'
     elif dataset_name == 'livecode':
