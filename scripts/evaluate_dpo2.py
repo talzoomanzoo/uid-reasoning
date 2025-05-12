@@ -292,12 +292,12 @@ if __name__ == "__main__":
         with open(normal_output_path, mode='r', encoding='utf-8') as file:
             normal_data = json.load(file)
 
-    # Save metrics for non-livecode datasets
-    if dataset_name != 'livecode' or not args.apply_backoff:
-        # If dataset is livecode and backoff was applied, metrics are already saved by run_evaluation
-        if args.apply_backoff:
-            output_metrics_path = output_metrics_path.replace('.json', '.backoff.json')
-        with open(output_metrics_path, mode='w', encoding='utf-8') as json_file:
-            json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
+    # # Save metrics for non-livecode datasets
+    # if dataset_name != 'livecode' or not args.apply_backoff:
+    #     # If dataset is livecode and backoff was applied, metrics are already saved by run_evaluation
+    #     if args.apply_backoff:
+    #         output_metrics_path = output_metrics_path.replace('.json', '.backoff.json')
+    #     with open(output_metrics_path, mode='w', encoding='utf-8') as json_file:
+    #         json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
 
     print(f"Evaluation completed. Metrics saved to {output_metrics_path}")
