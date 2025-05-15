@@ -1,33 +1,32 @@
-#dpo1
-import csv
+#dpo2
 import json
-import random
-import torch
 import re
 import os, time
-import numpy as np
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
-from prompts import (
-    get_task_instruction_openqa, 
-    get_task_instruction_math, 
-    get_task_instruction_multi_choice, 
-    get_task_instruction_code, 
-    get_task_instruction_medical,
-)
+from evaluate_dpo2 import run_evaluation
 from tqdm import tqdm
 import argparse
 import asyncio
-from evaluate_dpo1 import run_evaluation
+import random
+import numpy as np
+import torch
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run direct generation for various datasets and models.")
     
     parser.add_argument(
+        '--seed',
+        type=int,
+        default=42,
+        help="Random seed for reproducibility."
+    )
+
+    parser.add_argument(
         '--dataset_name',
         type=str, 
         required=True, 
-        choices=['gpqa', 'math500', 'hendrycks', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 's1k'],
+        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa'],
         help="Name of the dataset to use."
     )
     
@@ -71,7 +70,7 @@ def parse_args():
         '--top_k', 
         type=int, 
         default=20, 
-        help="Top-k sampling parameter. If not set, defaults to the model's default."
+        help="Top-k sampling parameter."
     )
     
     parser.add_argument(
@@ -94,6 +93,7 @@ def parse_args():
         default=8100,
         help="Port to use for the OpenAI API."
     )
+
     
     parser.add_argument(
         '--batch_size',
@@ -102,12 +102,6 @@ def parse_args():
         help="Batch size for the OpenAI API."
     )
 
-    parser.add_argument(
-        '--data_limit',
-        type=int,
-        default=-1,
-        help="Number of examples to process. Defaults to all if not specified."
-    )
     parser.add_argument(
         '--sample_limit',
         type=int,
@@ -118,7 +112,7 @@ def parse_args():
     parser.add_argument(
         '--skip_special_tokens',
         type=bool,
-        default=False,
+        default=True,
         help="Whether to skip special tokens. Defaults to False if not specified."
     )
 
@@ -128,6 +122,12 @@ def parse_args():
         default=False,
         help="Whether to use beam search. Defaults to False if not specified."
     )
+    parser.add_argument(
+        '--step1_path',
+        type=str,
+        default='z_filtered',
+        help="Path to the first stage output."
+    )
 
     parser.add_argument(
         '--run_type',
@@ -136,10 +136,16 @@ def parse_args():
         choices=['test', 'full'],
         help="Whether to run test or full. Defaults to test if not specified."
     )
-
     return parser.parse_args()
 
 async def main(args):
+    # Set random seeds for reproducibility
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     dataset_name = args.dataset_name
     split = args.split
     subset_num = args.subset_num
@@ -150,36 +156,15 @@ async def main(args):
     repetition_penalty = args.repetition_penalty
     max_tokens = args.max_tokens
     batch_size = args.batch_size
-    data_limit = args.data_limit
     sample_limit = args.sample_limit
     skip_special_tokens = args.skip_special_tokens
     use_beam_search = args.use_beam_search
+    data_limit = 10
+    step1_path = args.step1_path
     run_type = args.run_type
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
-    
-    # Paths to datasets
-    if dataset_name == 'math500':
-        data_path = f'../data/MATH500/{split}.json'
-    elif dataset_name == 'hendrycks':
-        data_path = f'../data/math/{split}.json'
-    elif dataset_name == 's1k':
-        data_path = f'../data/simplescaling/{split}.json'
-    elif dataset_name == 'gpqa':
-        data_path = f'./data/GPQA/{split}.json'
-    elif dataset_name == 'aime':
-        data_path = f'../data/AIME/{split}.json'
-    elif dataset_name == 'amc':
-        data_path = f'./data/AMC/{split}.json'
-    elif dataset_name == 'livecode':
-        data_path = f'./data/LiveCodeBench/{split}.json'
-    elif dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
-        data_path = f"../data/medical/{dataset_name}_{split}.json"
-    elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
-        data_path = f'./data/QA_Datasets/{dataset_name}.json'
-    else:
-        raise ValueError(f"Unsupported dataset_name: {dataset_name}")
     
     # Load the model
     if "free" in model_path.lower():
@@ -205,15 +190,13 @@ async def main(args):
         model_short_name = model_path.split('/')[-1].lower().replace('-instruct', '')
 
     if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
-        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode', 'hendrycks', 's1k']:
-            output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct.step-1.{run_type}'
+        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
+            output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct.step-2.{run_type}'
         else:
-            output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct.step-1.{run_type}'
+            output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct.step-2.{run_type}'
     else:
-        output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct.step-1.{run_type}'
+        output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct.step-2.{run_type}'
     os.makedirs(output_dir, exist_ok=True)
-
-    stop_token_1 = "</think>"
 
     llm = LLM(
                 model=model_path,
@@ -224,7 +207,7 @@ async def main(args):
                 tensor_parallel_size=4,
         )
                 
-    first_stage_sampling_params = SamplingParams(
+    second_stage_sampling_params = SamplingParams(
                 top_p=top_p,
                 top_k=top_k,
                 temperature=temperature,
@@ -232,37 +215,39 @@ async def main(args):
                 repetition_penalty=repetition_penalty,
                 skip_special_tokens=skip_special_tokens,
                 include_stop_str_in_output=True,
-                stop=stop_token_1,
         )
 
-    # Load data
-    with open(data_path, mode='r', encoding='utf-8') as json_file:
-        filtered_data = json.load(json_file)
-        filtered_data = filtered_data[:data_limit]
     
-    # prepare input
+    with open(f'./outputs/{dataset_name}.{model_short_name}.direct.step-1.{run_type}/{step1_path}.json', mode='r', encoding='utf-8') as json_file: #fix here
+        first_stage_output_list = json.load(json_file)
+        first_stage_output_list = first_stage_output_list[:]
+        
+    def clean_text(text):
+        text = re.sub(r'<｜begin▁of▁sentence｜><｜User｜>', '', text, count=1)
+        return text.strip()
+ 
     input_list = []
-    output_list = []
-    for item in filtered_data:
-        question = item['Question']
-        if dataset_name in ['math500', 'aime', 'amc', 'hendrycks', 's1k']:
-            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() or 's1' in model_path.lower():
-                user_prompt = get_task_instruction_math(question, model_name='qwq')
-            else:
-                user_prompt = get_task_instruction_math(question)
-        else:
-            user_prompt = ""  # Default to empty if dataset not matched
+    new_first_stage_output_list = []
+    for _, item in enumerate(first_stage_output_list):
+        question = item[f'Question']
+        for j in range(0, 5):
+            current_first_stage_output = item[f"Output_{j}"]
+            user_prompt = question + "\n\n" + current_first_stage_output
+            item[f'Question_{j}'] = user_prompt
 
-        if "free" in model_path.lower():
-            prompt = [{"role": "user", "content": user_prompt}]
-        else:
-            prompt = [{"role": "user", "content": user_prompt}]
-            prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
-        input_list.append(prompt)
-    
+            if "free" in model_path.lower():
+                prompt = [{"role": "user", "content": user_prompt}]
+            else:
+                prompt = [{"role": "user", "content": user_prompt}]
+                prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=False)
+
+            prompt = clean_text(prompt)
+            input_list.append(prompt)
+            new_first_stage_output_list.append(item)
+
     if subset_num != -1:
         input_list = input_list[:subset_num]
-        filtered_data = filtered_data[:subset_num]
+        new_first_stage_output_list = new_first_stage_output_list[:subset_num]
 
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
@@ -274,34 +259,42 @@ async def main(args):
             max_tokens = 31000
     max_tokens = min(max_tokens, 32768 - 243)
 
-    async def first_stage_generate_outputs(llm, input_batches, sample_limit, batch_size):
-        output_list = []
+    async def second_stage_generate_outputs(llm, input_batches, sample_limit, batch_size):
         if len(input_batches) > batch_size:
+            # Initialize a list to store responses for each input
+            responses_by_input = [[] for _ in range(len(input_batches))]
+            
             for start_index in tqdm(range(0, len(input_batches), batch_size)):
                 cur_input_list = input_batches[start_index:start_index + batch_size]
-                for cur_input in cur_input_list:
-                    for _ in range(sample_limit):
-                        batch_output = await asyncio.to_thread(
-                            llm.generate, [cur_input], sampling_params=first_stage_sampling_params
-                    )
-                        output_list.extend(batch_output)
+                # Generate all samples for current batch
+                for _ in tqdm(range(sample_limit)):
+                    batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=second_stage_sampling_params))
+                    # Store responses for each input in the current batch
+                    for i, response in enumerate(batch_output):
+                        responses_by_input[start_index + i].append(response)
+            
+            # Interleave the responses: (response 1-1, response 2-1, ...), (response 1-2, response 2-2, ...)
+            output_list = []
+            for sample_idx in range(sample_limit):
+                for input_responses in responses_by_input:
+                    output_list.append(input_responses[sample_idx])
         else:
-            for _ in tqdm(range(sample_limit)):
-                batch_output = await asyncio.to_thread(
-                    llm.generate, input_batches, sampling_params=first_stage_sampling_params
-            )
+            output_list = []
+            # Generate sample_limit outputs for each input
+            for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
+                batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=second_stage_sampling_params))
                 output_list.extend(batch_output)
         return output_list
 
-
     t_start = time.time()
-    output_list = await first_stage_generate_outputs(llm, input_list, sample_limit, batch_size)
+    output_list = await second_stage_generate_outputs(llm, input_list, sample_limit, batch_size)
+    # import pdb; pdb.set_trace()
     total_time = time.time() - t_start
 
     run_evaluation(
-        filtered_data, 
-        input_list, 
-        output_list, 
+        new_first_stage_output_list, 
+        input_list,
+        output_list,
         dataset_name, 
         output_dir, 
         total_time, 

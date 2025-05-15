@@ -4,14 +4,25 @@ import re
 import os, time
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
+from collections import defaultdict
 from evaluate_dpo2 import run_evaluation
 from tqdm import tqdm
 import argparse
 import asyncio
+import random
+import numpy as np
+import torch
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run direct generation for various datasets and models.")
     
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=42,
+        help="Random seed for reproducibility."
+    )
+
     parser.add_argument(
         '--dataset_name',
         type=str, 
@@ -45,21 +56,21 @@ def parse_args():
     parser.add_argument(
         '--temperature', 
         type=float, 
-        default=0.9,
+        default=0.6,
         help="Sampling temperature."
     )
     
     parser.add_argument(
         '--top_p', 
         type=float, 
-        default=0.8, 
+        default=0.95, 
         help="Top-p sampling parameter."
     )
 
     parser.add_argument(
         '--top_k', 
         type=int, 
-        default=50, 
+        default=20, 
         help="Top-k sampling parameter."
     )
     
@@ -129,6 +140,13 @@ def parse_args():
     return parser.parse_args()
 
 async def main(args):
+    # Set random seeds for reproducibility
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     dataset_name = args.dataset_name
     split = args.split
     subset_num = args.subset_num
@@ -242,36 +260,59 @@ async def main(args):
             max_tokens = 31000
     max_tokens = min(max_tokens, 32768 - 243)
 
-    async def second_stage_generate_outputs(llm, input_batches, sample_limit, batch_size):
-        if len(input_batches) > batch_size:
-            # Initialize a list to store responses for each input
-            responses_by_input = [[] for _ in range(len(input_batches))]
+    # async def second_stage_generate_outputs_prev(llm, input_batches, sample_limit, batch_size):
+    #     if len(input_batches) > batch_size:
+    #         # Initialize a list to store responses for each input
+    #         responses_by_input = [[] for _ in range(len(input_batches))]
             
-            for start_index in tqdm(range(0, len(input_batches), batch_size)):
-                cur_input_list = input_batches[start_index:start_index + batch_size]
-                # Generate all samples for current batch
-                for _ in tqdm(range(sample_limit)):
-                    batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=second_stage_sampling_params))
-                    # Store responses for each input in the current batch
-                    for i, response in enumerate(batch_output):
-                        responses_by_input[start_index + i].append(response)
+    #         for start_index in tqdm(range(0, len(input_batches), batch_size)):
+    #             cur_input_list = input_batches[start_index:start_index + batch_size]
+    #             # Generate all samples for current batch
+    #             for _ in tqdm(range(sample_limit)):
+    #                 batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=second_stage_sampling_params))
+    #                 # Store responses for each input in the current batch
+    #                 for i, response in enumerate(batch_output):
+    #                     responses_by_input[start_index + i].append(response)
             
-            # Interleave the responses: (response 1-1, response 2-1, ...), (response 1-2, response 2-2, ...)
-            output_list = []
-            for sample_idx in range(sample_limit):
-                for input_responses in responses_by_input:
-                    output_list.append(input_responses[sample_idx])
-        else:
-            output_list = []
-            # Generate sample_limit outputs for each input
-            for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
-                batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=second_stage_sampling_params))
-                output_list.extend(batch_output)
-        return output_list
+    #         # Interleave the responses: (response 1-1, response 2-1, ...), (response 1-2, response 2-2, ...)
+    #         output_list = []
+    #         for sample_idx in range(sample_limit):
+    #             for input_responses in responses_by_input:
+    #                 output_list.append(input_responses[sample_idx])
+    #     else:
+    #         output_list = []
+    #         # Generate sample_limit outputs for each input
+    #         for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
+    #             batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=second_stage_sampling_params))
+    #             output_list.extend(batch_output)
+    #     return output_list
 
+    async def second_stage_generate_outputs(llm, input_batches, sample_limit):
+        # Step 1: Attach indices to each prompt
+        indexed_prompts = []
+        index_to_prompt = []
+
+        for idx, prompt in enumerate(tqdm(input_batches)):
+            for _ in range(sample_limit):
+                indexed_prompts.append(prompt)
+                index_to_prompt.append(idx)
+
+        output_list = await asyncio.to_thread(
+            llm.generate,
+            indexed_prompts,
+            sampling_params=second_stage_sampling_params
+        )
+
+        grouped_outputs = defaultdict(list)
+        for i, output in enumerate(tqdm(output_list)):
+            orig_idx = index_to_prompt[i]
+            grouped_outputs[orig_idx].append(output)
+
+        return [grouped_outputs[i] for i in range(len(input_batches))]
+            
+        
     t_start = time.time()
-    output_list = await second_stage_generate_outputs(llm, input_list, sample_limit, batch_size)
-    # import pdb; pdb.set_trace()
+    output_list = await second_stage_generate_outputs(llm, input_list, sample_limit)
     total_time = time.time() - t_start
 
     run_evaluation(

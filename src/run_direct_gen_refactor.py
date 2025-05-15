@@ -1,14 +1,12 @@
-import csv
 import json
 import random
 import torch
-import re
 import os, time
 import numpy as np
+from collections import defaultdict
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
-from evaluate import run_evaluation
-from langchain_openai import OpenAI
+from evaluate_refactor import run_evaluation
 from prompts import (
     get_task_instruction_openqa, 
     get_task_instruction_math, 
@@ -19,12 +17,16 @@ from prompts import (
 from tqdm import tqdm
 import argparse
 import asyncio
-from openai.resources import AsyncCompletions
-from openai import OpenAI
 
-#configured medical
 def parse_args():
     parser = argparse.ArgumentParser(description="Run direct generation for various datasets and models.")
+
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=42,
+        help="Random seed for reproducibility."
+    )
     
     parser.add_argument(
         '--dataset_name', 
@@ -66,7 +68,7 @@ def parse_args():
     parser.add_argument(
         '--top_p', 
         type=float, 
-        default=0.8, 
+        default=0.95, 
         help="Top-p sampling parameter."
     )
     
@@ -87,7 +89,7 @@ def parse_args():
     parser.add_argument(
         '--max_tokens', 
         type=int, 
-        default=7000, 
+        default=31000, 
         help="Maximum number of tokens to generate. If not set, defaults based on the model and dataset."
     )
 
@@ -96,13 +98,6 @@ def parse_args():
         type=int,
         default=8100,
         help="Port to use for the OpenAI API."
-    )
-    
-    parser.add_argument(
-        '--batch_size',
-        type=int,
-        default=100,
-        help="Batch size for the OpenAI API."
     )
 
     parser.add_argument(
@@ -131,9 +126,25 @@ def parse_args():
         default=False,
         help="Whether to use beam search. Defaults to False if not specified."
     )
+
+    # parser.add_argument(
+    #     '--batch_size',
+    #     type=int,
+    #     default=1,
+    #     help="Batch size. Defaults to 1 if not specified."
+    # )
+
     return parser.parse_args()
 
 async def main(args):
+    #set random seeds for reproducibility
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     dataset_name = args.dataset_name
     split = args.split
     subset_num = args.subset_num
@@ -143,11 +154,10 @@ async def main(args):
     top_k = args.top_k
     repetition_penalty = args.repetition_penalty
     max_tokens = args.max_tokens
-    batch_size = args.batch_size
     data_limit = args.data_limit
     sample_limit = args.sample_limit
     skip_special_tokens = args.skip_special_tokens
-    use_beam_search = args.use_beam_search
+    # batch_size = args.batch_size
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
@@ -156,29 +166,25 @@ async def main(args):
     if dataset_name == 'math500':
         data_path = f'../data/MATH500/{split}.json'
     elif dataset_name == 'gpqa':
-        data_path = f'./data/GPQA/{split}.json'
+        data_path = f'../data/GPQA/{split}.json'
     elif dataset_name == 'aime':
         data_path = f'../data/AIME/{split}.json'
 
     elif dataset_name == 'amc':
-        data_path = f'./data/AMC/{split}.json'
+        data_path = f'../data/AMC/{split}.json'
     elif dataset_name == 'livecode':
-        data_path = f'./data/LiveCodeBench/{split}.json'
+        data_path = f'../data/LiveCodeBench/{split}.json'
     elif dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
         data_path = f"../data/medical/{dataset_name}_{split}.json"
     elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
-        data_path = f'./data/QA_Datasets/{dataset_name}.json'
+        data_path = f'../data/QA_Datasets/{dataset_name}.json'
     else:
         raise ValueError(f"Unsupported dataset_name: {dataset_name}")
     
-    # Load the model
-    if "free" in model_path.lower():
-        pass
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.padding_side = 'left'
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = 'left'
     
     if 'qwq' in model_path.lower():
         model_short_name = 'qwq'
@@ -203,41 +209,16 @@ async def main(args):
         output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
     os.makedirs(output_dir, exist_ok=True)
 
-    if "free" in model_path.lower():
-        llm = OpenAI(
-            model=model_path,
-            base_url=f"https://openrouter.ai/api/v1",
-            temperature=temperature,
-            api_key=os.getenv("OPEN_ROUTER_API_KEY"),
-            max_retries=100,
-            max_tokens=max_tokens,
-            sampling_params=SamplingParams(
-                top_p=top_p,
-                top_k=top_k,
-                repetition_penalty=repetition_penalty,
-                skip_special_tokens=skip_special_tokens,
-                #use_beam_search=use_beam_search,
-                include_stop_str_in_output=True,
-            )
-            # skip_special_tokens=skip_special_tokens,
-            # use_beam_search=use_beam_search,
-        )
-
-    else: 
-        llm = LLM(
+    llm = LLM(
                 model=model_path,
                 gpu_memory_utilization=0.90,
-                max_model_len=8192,
+                max_model_len=32768,
                 enforce_eager=True,
                 dtype="float16",
-                # quantization="AWQ",
-                # quantization="bitsandbytes",
-                # load_format="bitsandbytes",
-                #base_url=f"http://localhost:{args.port}/v1",
-                #openai_api_key=os.getenv("OPENAI_API_KEY"),
+                tensor_parallel_size=4,
         )
                 
-        sampling_params = SamplingParams(
+    sampling_params = SamplingParams(
                 top_p=top_p,
                 top_k=top_k,
                 temperature=temperature,
@@ -245,7 +226,6 @@ async def main(args):
                 repetition_penalty=repetition_penalty,
                 skip_special_tokens=skip_special_tokens,
                 include_stop_str_in_output=True,
-                logprobs=1
         )
 
 
@@ -258,8 +238,8 @@ async def main(args):
     input_list = []
     for item in filtered_data:
         question = item['Question']
-        # options = [item['opa'], item['opb'], item['opc'], item['opd']] only for medical
         if dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
+            options = [item['opa'], item['opb'], item['opc'], item['opd']]
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_medical(question, options, model_name='qwq')
             elif 'llama' in model_path.lower():
@@ -311,69 +291,71 @@ async def main(args):
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'livecode']:
-                max_tokens = 7000
+                max_tokens = 31000
             else:
-                max_tokens = 7000 
+                max_tokens = 31000 
         else:
-            max_tokens = 7000
+            max_tokens = 31000
+
     # Adjust max_tokens to fit within the model's context length
-    max_tokens = min(max_tokens, 8192 - 243)  # Ensure total tokens do not exceed 4096
-    # Generate model outputs
-    # output_list = llm.generate(
-    #     input_list, 
-    #     sampling_params=SamplingParams(
-    #         max_tokens=max_tokens, 
-    #         temperature=temperature, 
-    #         top_p=top_p, 
-    #         top_k=top_k, 
-    #         repetition_penalty=repetition_penalty,
+    max_tokens = min(max_tokens, 32768 - 243)  # Ensure total tokens do not exceed 4096
+
+    # async def generate_outputs_prev(llm, input_batches, sample_limit, batch_size):
+    #     output_list = []
+    #     if len(input_batches) > batch_size:
+    #         for start_index in tqdm(range(0, len(input_batches), batch_size)):
+    #             cur_input_list = input_batches[start_index:start_index + batch_size]
+    #             # Generate sample_limit outputs for each input in the batch
+    #             for _ in range(sample_limit):  # Generate sample_limit times for each input
+    #                 batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=sampling_params))
+    #                 output_list.extend(batch_output)
+    #     else:
+    #         # Generate sample_limit outputs for each input
+    #         for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
+    #             batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=sampling_params))
+    #             output_list.extend(batch_output)
+    #     return output_list
+
+    # async def generate_outputs_wo_order(llm, input_batches, sample_limit):
+    #     all_prompts = []
+    #     for prompt in input_batches:
+    #         all_prompts.extend([prompt] * sample_limit)
+
+    #     output_list = await asyncio.to_thread(
+    #         llm.generate,
+    #         all_prompts,
+    #         sampling_params=sampling_params
     #     )
-    # )
+    #     return output_list
 
-    # output_list = llm.chat.completions.create(
-    #     model=model_path,
-    #     messages=input_list,
-    #     max_tokens=max_tokens,
-    #     temperature=temperature,
-    #     top_p=top_p,
-    #     # top_k=top_k,
-    #     # repetition_penalty=repetition_penalty,
-    # )
+    async def generate_outputs(llm, input_batches, sample_limit):
+    # Step 1: Attach indices to each prompt
+        indexed_prompts = []
+        index_to_prompt = []
 
-    # output_list = llm.completions.create(
-    #     model=model_path,
-    #     prompt=input_list,
-    #     max_tokens=max_tokens,
-    #     temperature=temperature,
-    #     top_p=top_p,
-    #     # top_k=top_k,
-    #     # repetition_penalty=repetition_penalty,
-    # )
+        for idx, prompt in enumerate(tqdm(input_batches)):
+            for _ in range(sample_limit):
+                indexed_prompts.append(prompt)
+                index_to_prompt.append(idx)  # Track which input this belongs to
 
-    async def generate_outputs(llm, input_batches, model_path, max_tokens, sample_limit, temperature, top_p, batch_size):
-        output_list = []
-        if len(input_batches) > batch_size:
-            for start_index in tqdm(range(0, len(input_batches), batch_size)):
-                cur_input_list = input_batches[start_index:start_index + batch_size]
-                # Generate sample_limit outputs for each input in the batch
-                for _ in range(sample_limit):  # Generate sample_limit times for each input
-                    batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=sampling_params))
-                    output_list.extend(batch_output)
-        else:
-            # Generate sample_limit outputs for each input
-            for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
-                batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=sampling_params))
-                output_list.extend(batch_output)
-        return output_list
-        #     batch_output = await llm.completions.create(
-        #         model=model_path,
-        #         prompt=input_list,
-        #         max_tokens=max_tokens,
-        #         temperature=temperature,
-        #         top_p=top_p,
-        # )
+        # Step 2: Generate outputs in bulk
+        output_list = await asyncio.to_thread(
+            llm.generate,
+            indexed_prompts,
+            sampling_params=sampling_params
+        )
+
+        # Step 3: Re-group outputs by original input index
+        grouped_outputs = defaultdict(list)
+        for i, output in enumerate(tqdm(output_list)):
+            orig_idx = index_to_prompt[i]
+            grouped_outputs[orig_idx].append(output)
+
+        # Step 4: Return outputs grouped by input_batches order
+        return [grouped_outputs[i] for i in range(len(input_batches))]
+
     t_start = time.time()
-    output_list = await generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
+    output_list = await generate_outputs(llm, input_list, sample_limit)
     total_time = time.time() - t_start
     
     # Run evaluation
