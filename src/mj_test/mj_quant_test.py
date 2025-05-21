@@ -11,7 +11,7 @@ prompts = [
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95)
 
 # Create an LLM.
-llm = LLM(model="talzoomanzoo/DeepSeek-R1-Distill-Qwen-14B-awq", quantization="AWQ", dtype="float16")
+llm = LLM(model="talzoomanzoo/DeepSeek-R1-Distill-Qwen-7B-awq", quantization="AWQ", dtype="float16")
 # Generate texts from the prompts. The output is a list of RequestOutput objects
 # that contain the prompt, generated text, and other information.
 outputs = llm.generate(prompts, sampling_params)

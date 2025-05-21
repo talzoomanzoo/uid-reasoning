@@ -165,7 +165,7 @@ async def main(args):
         data_path = f'../data/AIME/{split}.json'
 
     elif dataset_name == 'amc':
-        data_path = f'./data/AMC/{split}.json'
+        data_path = f'../data/AMC/{split}.json'
     elif dataset_name == 'livecode':
         data_path = f'./data/LiveCodeBench/{split}.json'
     elif dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
@@ -184,21 +184,33 @@ async def main(args):
             tokenizer.pad_token = tokenizer.eos_token
         tokenizer.padding_side = 'left'
     
-    if 'qwq' in model_path.lower():
-        model_short_name = 'qwq'
-    elif 'deepseek' in model_path.lower():
-        if 'qwen-14b' in model_path.lower():
-            model_short_name = 'ds-qwen-14b'
-        elif 'qwen-7b' in model_path.lower():
-            model_short_name = 'ds-qwen-7b'
-        elif 'qwen-1.5b' in model_path.lower():
-            model_short_name = 'ds-qwen-1.5b'
+    if 'qwen-14b' in model_path.lower():
+        model_short_name = 'ds-qwen-14b'
+    elif model_path.lower() == 'deepseek-r1-distill-qwen-7b-awq':
+        model_short_name = 'ds-qwen-7b-awq'
+    elif 'qwen-1.5b' in model_path.lower():
+        model_short_name = 'ds-qwen-1.5b'
+    elif 'sft-gt' in model_path.lower():
+        model_short_name = 'ds-qwen-7b-sft-gt'
+    elif 'rft-y-lora-y-true' in model_path.lower():
+        model_short_name = 'ds-qwen-7b-rft-y-lora-y-true'
+    elif 'rft-z-lora-y-true' in model_path.lower():
+        model_short_name = 'ds-qwen-7b-rft-z-lora-y-true'
+    elif 'rft-z-lora-z-threshold' in model_path.lower():
+        model_short_name = 'ds-qwen-7b-rft-z-lora-z-threshold'
+    elif 'dpo-y-lora-y-true' in model_path.lower():
+        model_short_name = 'ds-qwen-7b-dpo-y-lora-y-true'
+    elif 'dpo-zy-lora-y-true' in model_path.lower():
+        model_short_name = 'ds-qwen-7b-dpo-zy-lora-y-true'
+    elif 'dpo-zy-lora-z-threshold' in model_path.lower():
+        model_short_name = 'ds-qwen-7b-dpo-zy-lora-z-threshold'
     elif 'sky-t1' in model_path.lower():
         model_short_name = 'sky-t1'
     else:
         model_short_name = model_path.split('/')[-1].lower().replace('-instruct', '')
 
-    if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
+    # if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
+    if model_short_name in ['emdr2-lora-merged-quant']:
         if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
             output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
         else:
@@ -207,41 +219,18 @@ async def main(args):
         output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
     os.makedirs(output_dir, exist_ok=True)
 
-    if "free" in model_path.lower():
-        llm = OpenAI(
-            model=model_path,
-            base_url=f"https://openrouter.ai/api/v1",
-            temperature=temperature,
-            api_key=os.getenv("OPEN_ROUTER_API_KEY"),
-            max_retries=100,
-            max_tokens=max_tokens,
-            sampling_params=SamplingParams(
-                top_p=top_p,
-                top_k=top_k,
-                repetition_penalty=repetition_penalty,
-                skip_special_tokens=skip_special_tokens,
-                #use_beam_search=use_beam_search,
-                include_stop_str_in_output=True,
-            )
-            # skip_special_tokens=skip_special_tokens,
-            # use_beam_search=use_beam_search,
-        )
-
-    else: 
-        llm = LLM(
+    llm = LLM(
                 model=model_path,
                 gpu_memory_utilization=0.90,
-                max_model_len=8192,
-                enforce_eager=True,
+                max_model_len=16384,
+                max_num_seqs=4,
+                enforce_eager=False,
                 dtype="float16",
-                # quantization="AWQ",
-                # quantization="bitsandbytes",
-                # load_format="bitsandbytes",
-                #base_url=f"http://localhost:{args.port}/v1",
-                #openai_api_key=os.getenv("OPENAI_API_KEY"),
+                tensor_parallel_size=4,
+                swap_space=32,
         )
                 
-        sampling_params = SamplingParams(
+    sampling_params = SamplingParams(
                 top_p=top_p,
                 top_k=top_k,
                 temperature=temperature,
@@ -249,7 +238,6 @@ async def main(args):
                 repetition_penalty=repetition_penalty,
                 skip_special_tokens=skip_special_tokens,
                 include_stop_str_in_output=True,
-                logprobs=1
         )
 
 
@@ -315,13 +303,13 @@ async def main(args):
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'livecode']:
-                max_tokens = 7000
+                max_tokens = 15000
             else:
-                max_tokens = 7000 
+                max_tokens = 15000 
         else:
-            max_tokens = 7000
+            max_tokens = 15000
     # Adjust max_tokens to fit within the model's context length
-    max_tokens = min(max_tokens, 8192 - 243)  # Ensure total tokens do not exceed 4096
+    max_tokens = min(max_tokens, 16384 - 243)  # Ensure total tokens do not exceed 4096
     # Generate model outputs
     # output_list = llm.generate(
     #     input_list, 

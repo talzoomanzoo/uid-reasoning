@@ -181,7 +181,7 @@ async def main(args):
     else:
         raise ValueError(f"Unsupported dataset_name: {dataset_name}")
     
-    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Qwen-7B", trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = 'left'
@@ -191,8 +191,10 @@ async def main(args):
     elif 'deepseek' in model_path.lower():
         if 'qwen-14b' in model_path.lower():
             model_short_name = 'ds-qwen-14b'
-        elif 'qwen-7b' in model_path.lower():
+        elif 'distill-qwen-7b' in model_path.lower():
             model_short_name = 'ds-qwen-7b'
+        elif 'sft-gt' in model_path.lower():
+            model_short_name = 'ds-qwen-7b-sft-gt'
         elif 'qwen-1.5b' in model_path.lower():
             model_short_name = 'ds-qwen-1.5b'
     elif 'sky-t1' in model_path.lower():
@@ -212,10 +214,12 @@ async def main(args):
     llm = LLM(
                 model=model_path,
                 gpu_memory_utilization=0.90,
-                max_model_len=32768,
-                enforce_eager=True,
+                max_model_len=16384,
+                max_num_seqs=4,
+                enforce_eager=False,
                 dtype="float16",
                 tensor_parallel_size=4,
+                swap_space=32,
         )
                 
     sampling_params = SamplingParams(
@@ -291,14 +295,14 @@ async def main(args):
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'livecode']:
-                max_tokens = 31000
+                max_tokens = 15000
             else:
-                max_tokens = 31000 
+                max_tokens = 15000 
         else:
-            max_tokens = 31000
+            max_tokens = 15000
 
     # Adjust max_tokens to fit within the model's context length
-    max_tokens = min(max_tokens, 32768 - 243)  # Ensure total tokens do not exceed 4096
+    max_tokens = min(max_tokens, 16384 - 243)  # Ensure total tokens do not exceed 16384
 
     # async def generate_outputs_prev(llm, input_batches, sample_limit, batch_size):
     #     output_list = []
