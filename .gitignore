@@ -3,3 +3,4 @@ data/medical/*
 **/__pycache__/*
 OpenRLHF/checkpoint/*
 **/__pycache__/*
+data/outputs/*
