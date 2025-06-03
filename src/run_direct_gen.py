@@ -160,7 +160,7 @@ async def main(args):
     if dataset_name == 'math500':
         data_path = f'../data/MATH500/{split}.json'
     elif dataset_name == 'gpqa':
-        data_path = f'./data/GPQA/{split}.json'
+        data_path = f'../data/GPQA_DIAMOND/{split}.json'
     elif dataset_name == 'aime':
         data_path = f'../data/AIME/{split}.json'
 

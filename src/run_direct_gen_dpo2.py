@@ -122,12 +122,12 @@ def parse_args():
         default=False,
         help="Whether to use beam search. Defaults to False if not specified."
     )
-    parser.add_argument(
-        '--step1_path',
-        type=str,
-        default='z_filtered',
-        help="Path to the first stage output."
-    )
+    # parser.add_argument(
+    #     '--step1_path',
+    #     type=str,
+    #     default='z_filtered',
+    #     help="Path to the first stage output."
+    # )
 
     parser.add_argument(
         '--run_type',
@@ -160,7 +160,7 @@ async def main(args):
     skip_special_tokens = args.skip_special_tokens
     use_beam_search = args.use_beam_search
     data_limit = 10
-    step1_path = args.step1_path
+    # step1_path = args.step1_path
     run_type = args.run_type
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
@@ -218,7 +218,10 @@ async def main(args):
         )
 
     
-    with open(f'./outputs/{dataset_name}.{model_short_name}.direct.step-1.{run_type}/{step1_path}.json', mode='r', encoding='utf-8') as json_file: #fix here
+    # with open(f'./outputs/{dataset_name}.{model_short_name}.direct.step-1.{run_type}/{step1_path}.json', mode='r', encoding='utf-8') as json_file: #fix here
+    #     first_stage_output_list = json.load(json_file)
+    #     first_stage_output_list = first_stage_output_list[:]
+    with open('./notebooks/filtered_data/step1_data.json', mode='r', encoding='utf-8') as json_file:
         first_stage_output_list = json.load(json_file)
         first_stage_output_list = first_stage_output_list[:]
         
