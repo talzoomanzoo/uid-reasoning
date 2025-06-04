@@ -443,19 +443,22 @@ def get_task_instruction_multi_choice(question, model_name=None):
     if model_name == 'qwq':
         user_prompt = (
             'Please answer the following multiple-choice question. '
+            'Your final choice should be one of the letters A, B, C, or D, DO NOT include any answer content.\n\n'
             'You should provide your final choice in the format \\boxed{YOUR_CHOICE}.\n\n'
             f'Question:\n{question}\n\n'
         )
     elif model_name == 'llama':
         user_prompt = (
             'Please answer the following multiple-choice question. You should think step by step to solve it.\n\n'
-            'Provide your final choice in the format \\boxed{YOUR_CHOICE}. Your final choice should be one of the letters A, B, C, or D, DO NOT include any answer content.\n\n'
+            'Your final choice should be one of the letters A, B, C, or D, DO NOT include any answer content.\n\n'
+            'Provide your final choice in the format \\boxed{YOUR_CHOICE}.\n\n'
             f'Question:\n{question}\n\n'
         )
     else:
         user_prompt = (
-            'Please answer the following multiple-choice question. You should think step by step to solve it.\n\n'
-            'Provide your final choice in the format \\boxed{YOUR_CHOICE}.\n\n'
+            'Please answer the following multiple-choice question.\n\n'
+            'Your final choice should be one of the letters A, B, C, or D, DO NOT include any answer content.\n\n'
+            'Always provide your final choice in the format \\boxed{YOUR_CHOICE}.\n\n'
             f'Question:\n{question}\n\n'
         )
     return user_prompt

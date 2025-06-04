@@ -246,10 +246,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
             # Get all samples for this question
             question_samples = []
-            # import pdb; pdb.set_trace()
             for i in range(question_idx, len(output_list), len(input_list)):
                 question_samples.append(output_list[i])
                 num_valid_answer = 0
+
+            # Process each output and its metrics
             for idx in range(len(question_samples)):
                 result = question_samples[idx]
                 if type(result) == str:
@@ -282,43 +283,65 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 item[f'Pred_Answer_{idx}'] = pred_answer
                 item[f'Metrics_{idx}'] = metric
                 is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
+
                 # Track scores for this question
-                question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
-                question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
-                # Store the original metrics for backward compatibility
-                if idx == 0:
-                    item['Question'] = input_prompt
-                avg_math.append(metric['math_equal'])
+                if dataset_name != 'gpqa':
+                    question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
+                    question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
+                    # Store the original metrics for backward compatibility
+                    if idx == 0:
+                        item['Question'] = input_prompt
+                    avg_math.append(metric['math_equal'])
 
-                if is_valid:
-                    num_valid_answer += 1
+                    if is_valid:
+                        num_valid_answer += 1
 
-                # If the dataset is GPQA, attempt to track metrics per domain
+                # If the dataset is GPQA, track metrics per domain
                 if dataset_name == 'gpqa':
                     domain = item.get("High-level domain", "Unknown")
                     if domain not in domain_metrics:
                         domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0}
-                        domain_metrics[domain]['total_num'] += 1
-                        domain_metrics[domain]['em'].append(metric['em'])
-                        domain_metrics[domain]['acc'].append(metric['acc'])
-                        domain_metrics[domain]['f1'].append(metric['f1'])
-                        domain_metrics[domain]['math_equal'].append(metric['math_equal'])
+                    
+                    # Add metrics for this output to the domain
+                    domain_metrics[domain]['em'].append(metric['em'])
+                    domain_metrics[domain]['acc'].append(metric['acc'])
+                    domain_metrics[domain]['f1'].append(metric['f1'])
+                    domain_metrics[domain]['math_equal'].append(metric['math_equal'])
+                    domain_metrics[domain]['total_num'] += 1
+                    
                     if is_valid:
                         domain_metrics[domain]['num_valid_answer'] += 1
 
+                    question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
+                    question_validity_scores[question_idx].append(1 if is_valid else 0)
+
         # Compute mean accuracy and validity per question
-        question_mean_accuracies = {}
-        question_mean_validities = {}
-        for question_idx in question_math_equal_scores.keys():
-            question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
-            question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
-        # Add per-question metrics to each item in filtered_data
-        for i in range(len(filtered_data)):
-            filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
-            filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
-        # Compute overall mean accuracy and validity across all questions
-        overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
-        overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
+        if dataset_name != 'gpqa':
+            question_mean_accuracies = {}
+            question_mean_validities = {}
+            for question_idx in question_math_equal_scores.keys():
+                question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
+                question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+            # Add per-question metrics to each item in filtered_data
+            for i in range(len(filtered_data)):
+                filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
+                filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+            # Compute overall mean accuracy and validity across all questions
+            overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
+            overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
+        else:
+            question_mean_accuracies = {}
+            question_mean_validities = {}
+            for question_idx in question_math_equal_scores.keys():
+                question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
+                question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+            # Add per-question metrics to each item in filtered_data
+            for i in range(len(filtered_data)):
+                filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
+                filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+                
+            overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
+            overall_mean_validity = np.mean([val for val in question_math_equal_scores.values()])
 
         # Compute overall metrics
         overall_results = {
@@ -336,7 +359,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
                     'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
                     'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
-                    'query_latency': f'{(total_time / (len(input_list) * sample_limit) * 1000):.0f} s',
+                    # 'query_latency': f'{(total_time / (len(input_list) * sample_limit) * 1000):.0f} s',
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
                     'total_time': f'{total_time:.0f} s',
                 }
@@ -551,6 +574,14 @@ if __name__ == "__main__":
             # Determine if the main method's answer is valid
             my_method_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
+            avg_em.append(metric['em'])
+            avg_acc.append(metric['acc'])
+            avg_f1.append(metric['f1'])
+            avg_math.append(metric['math_equal'])
+
+            if my_method_valid:
+                num_valid_answer += 1
+
             # If invalid and backoff is enabled, use normal method's output
             if args.apply_backoff and not my_method_valid and normal_data is not None:
                 normal_item = normal_data[i]
@@ -583,6 +614,11 @@ if __name__ == "__main__":
                     mode=normal_mode,
                 )
                 normal_valid = (normal_pred_answer != '' and not (normal_mode == 'choose' and dataset_name == 'gpqa' and len(normal_pred_answer) > 1))
+
+                avg_em.append(normal_metric['em'])
+                avg_acc.append(normal_metric['acc'])
+                avg_f1.append(normal_metric['f1'])
+                avg_math.append(normal_metric['math_equal'])
 
                 # Use normal method's result if valid
                 if normal_valid:

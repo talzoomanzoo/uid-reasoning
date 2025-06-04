@@ -154,7 +154,8 @@ async def main(args):
     use_beam_search = args.use_beam_search
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
-        repetition_penalty = 1.05 if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
+        repetition_penalty = 1.05 
+        #if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
     
     # Paths to datasets
     if dataset_name == 'math500':
@@ -222,7 +223,7 @@ async def main(args):
     llm = LLM(
                 model=model_path,
                 gpu_memory_utilization=0.90,
-                max_model_len=16384,
+                max_model_len=32768,
                 max_num_seqs=4,
                 enforce_eager=False,
                 dtype="float16",
@@ -292,7 +293,8 @@ async def main(args):
             prompt = [{"role": "user", "content": user_prompt}]
         else:
             prompt = [{"role": "user", "content": user_prompt}]
-            prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+
+        prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
         input_list.append(prompt)
     
     if subset_num != -1:
@@ -302,14 +304,14 @@ async def main(args):
     # Set default max_tokens if not provided
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-            if dataset_name in ['aime', 'amc', 'livecode']:
-                max_tokens = 15000
+            if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'livecode']:
+                max_tokens = 31000  
             else:
-                max_tokens = 15000 
+                max_tokens = 31000 
         else:
-            max_tokens = 15000
+            max_tokens = 31000
     # Adjust max_tokens to fit within the model's context length
-    max_tokens = min(max_tokens, 16384 - 243)  # Ensure total tokens do not exceed 4096
+    max_tokens = min(max_tokens, 31000 - 243)  # Ensure total tokens do not exceed 4096
     # Generate model outputs
     # output_list = llm.generate(
     #     input_list, 
@@ -368,6 +370,8 @@ async def main(args):
     output_list = await generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
     total_time = time.time() - t_start
     
+
+    import pdb; pdb.set_trace()
     # Run evaluation
     run_evaluation(
         filtered_data, 
