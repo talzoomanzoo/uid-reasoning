@@ -91,7 +91,7 @@ def parse_args():
     parser.add_argument(
         '--max_tokens', 
         type=int, 
-        default=31000, 
+        default=32768, 
         help="Maximum number of tokens to generate. If not set, defaults based on the model and dataset."
     )
 
@@ -304,14 +304,14 @@ async def main(args):
     # Set default max_tokens if not provided
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-            if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'livecode']:
-                max_tokens = 31000  
+            if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'mmlu', 'livecode']:
+                max_tokens = 32768  
             else:
-                max_tokens = 31000 
+                max_tokens = 32768 
         else:
-            max_tokens = 31000
+            max_tokens = 32768
     # Adjust max_tokens to fit within the model's context length
-    max_tokens = min(max_tokens, 31000 - 243)  # Ensure total tokens do not exceed 4096
+    max_tokens = min(max_tokens, 32768 - 243)  # Ensure total tokens do not exceed 32768
     # Generate model outputs
     # output_list = llm.generate(
     #     input_list, 
@@ -369,9 +369,6 @@ async def main(args):
     t_start = time.time()
     output_list = await generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
     total_time = time.time() - t_start
-    
-
-    import pdb; pdb.set_trace()
     # Run evaluation
     run_evaluation(
         filtered_data, 

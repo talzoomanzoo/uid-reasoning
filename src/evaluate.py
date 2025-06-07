@@ -308,6 +308,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[domain]['f1'].append(metric['f1'])
                     domain_metrics[domain]['math_equal'].append(metric['math_equal'])
                     domain_metrics[domain]['total_num'] += 1
+
+                    if idx == 0:
+                        item['Question'] = input_prompt
                     
                     if is_valid:
                         domain_metrics[domain]['num_valid_answer'] += 1
