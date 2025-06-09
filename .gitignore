@@ -1,6 +1,8 @@
 data/medical/*
 **/outputs/*
-**/__pycache__/*
+**/checkpoint/*
+**/ckpt/*
 OpenRLHF/checkpoint/*
 **/__pycache__/*
 data/outputs/*
+**/wandb/*

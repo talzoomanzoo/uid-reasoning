@@ -83,7 +83,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, sample_limit, apply_backoff=False):
     # Existing evaluation for other datasets
     question_validity_scores = defaultdict(list)
     question_math_equal_scores = defaultdict(list)

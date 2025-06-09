@@ -189,8 +189,6 @@ async def main(args):
         model_short_name = 'ds-qwen-14b'
     elif model_path.lower() == 'deepseek-r1-distill-qwen-7b-awq':
         model_short_name = 'ds-qwen-7b-awq'
-    elif 'qwen-1.5b' in model_path.lower():
-        model_short_name = 'ds-qwen-1.5b'
     elif 'sft-gt' in model_path.lower():
         model_short_name = 'ds-qwen-7b-sft-gt'
     elif 'rft-y-lora-y-true' in model_path.lower():
@@ -211,7 +209,7 @@ async def main(args):
         model_short_name = model_path.split('/')[-1].lower().replace('-instruct', '')
 
     # if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
-    if model_short_name in ['emdr2-lora-merged-quant']:
+    if model_short_name in ['emdr2']:
         if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode']:
             output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
         else:
