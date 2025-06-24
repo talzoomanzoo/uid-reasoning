@@ -425,16 +425,21 @@ def get_task_instruction_openqa(question, model_name=None):
     return user_prompt
 
 def get_task_instruction_math(question, model_name=None):
-    if model_name == 'qwq':
-        user_prompt = (
+    # if model_name == 'qwq':
+    #     user_prompt = (
+    #         'Please answer the following math question. '
+    #         'You should provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
+    #         f'Question:\n{question}\n\n'
+    #     )
+    # else:
+    #     user_prompt = (
+    #         'Please answer the following math question. You should think step by step to solve it.\n\n'
+    #         'Provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
+    #         f'Question:\n{question}\n\n'
+    #     )
+    user_prompt = (
             'Please answer the following math question. '
             'You should provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
-            f'Question:\n{question}\n\n'
-        )
-    else:
-        user_prompt = (
-            'Please answer the following math question. You should think step by step to solve it.\n\n'
-            'Provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n'
             f'Question:\n{question}\n\n'
         )
     return user_prompt
