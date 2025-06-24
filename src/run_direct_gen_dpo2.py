@@ -202,7 +202,7 @@ async def main(args):
                 gpu_memory_utilization=0.90,
                 max_model_len=32768,
                 enforce_eager=True,
-                dtype="float16",
+                dtype="bfloat16",
                 tensor_parallel_size=4,
         )
                 

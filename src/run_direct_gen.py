@@ -224,7 +224,7 @@ async def main(args):
                 max_model_len=32768,
                 max_num_seqs=4,
                 enforce_eager=False,
-                dtype="float16",
+                dtype="bfloat16",
                 tensor_parallel_size=4,
                 swap_space=32,
         )
