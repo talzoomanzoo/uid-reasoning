@@ -232,7 +232,7 @@ async def main(args):
     new_first_stage_output_list = []
     for _, item in enumerate(first_stage_output_list):
         question = item[f'Question']
-        for j in range(0, 5):
+        for j in range(0, 10):
             current_first_stage_output = item[f"Output_{j}"]
             user_prompt = question + "\n\n" + current_first_stage_output
             item[f'Question_{j}'] = user_prompt
