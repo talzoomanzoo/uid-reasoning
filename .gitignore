@@ -6,3 +6,5 @@ OpenRLHF/checkpoint/*
 **/__pycache__/*
 data/outputs/*
 **/wandb/*
+**/post-filtered/*
+**/pre-filtered/*
