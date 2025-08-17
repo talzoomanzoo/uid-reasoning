@@ -187,6 +187,10 @@ async def main(args):
     
     if 'qwen-14b' in model_path.lower():
         model_short_name = 'ds-qwen-14b'
+    elif 'qwen3-4b' in model_path.lower():
+        model_short_name = 'qwen3-4b'
+    elif 'qwen3-1.7b' in model_path.lower():
+        model_short_name = 'qwen3-1.7b'
     elif model_path.lower() == 'deepseek-r1-distill-qwen-7b-awq':
         model_short_name = 'ds-qwen-7b-awq'
     elif 'sft-gt' in model_path.lower():
@@ -236,7 +240,7 @@ async def main(args):
                 max_tokens=max_tokens,
                 repetition_penalty=repetition_penalty,
                 skip_special_tokens=skip_special_tokens,
-                include_stop_str_in_output=True,
+                include_stop_str_in_output=True
         )
 
 
@@ -292,7 +296,7 @@ async def main(args):
         else:
             prompt = [{"role": "user", "content": user_prompt}]
 
-        prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+        prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True, enable_thinking=True)
         input_list.append(prompt)
     
     if subset_num != -1:
