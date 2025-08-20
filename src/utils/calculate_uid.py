@@ -8,18 +8,71 @@ def uid_variance(output, model_path):
     
     # Filter out empty segments and calculate id_logprob for each
     logprob_values = []
+    entropy_values = []
+    confidence_gap_values = []
+    uid_vector = []
+    id_score = 0
+    id_logprob_score = 0
+    id_entropy_score = 0
+    id_confidence_gap_score = 0
     for segment in segments:
         segment = segment.strip()
         if segment:  # Only process non-empty segments
             logprob = id_logprob(segment, model_path)
             logprob_values.append(logprob)
+            entropy = id_entropy(segment, model_path)
+            entropy_values.append(entropy)
+            prev_logprob = logprob_values[-2] if len(logprob_values) >= 2 else 0.0
+            confidence_gap = id_confidence_gap(logprob, prev_logprob)
+            confidence_gap_values.append(confidence_gap)
+            
+    if len(logprob_values) >= 1:
+        mean = float(np.mean(logprob_values))
+        std = float(np.std(logprob_values))
+        if std > 0:
+            logprob_values = [(x - mean) / std for x in logprob_values]
+        else:
+            logprob_values = [0.0] * len(logprob_values)
     
-    # Calculate variance of the logprob values
+    if len(entropy_values) >= 1:
+        mean = float(np.mean(entropy_values))
+        std = float(np.std(entropy_values))
+        if std > 0:
+            entropy_values = [(x - mean) / std for x in entropy_values]
+        else:
+            entropy_values = [0.0] * len(entropy_values)
+        
+    if len(confidence_gap_values) >= 1:
+        mean = float(np.mean(confidence_gap_values))
+        std = float(np.std(confidence_gap_values))
+        if std > 0:
+            confidence_gap_values = [(x - mean) / std for x in confidence_gap_values]
+        else:
+            confidence_gap_values = [0.0] * len(confidence_gap_values)
+    
+    #calculate variance of the logprob values
     if len(logprob_values) > 1:
-        return np.var(logprob_values)
+        id_logprob_score = np.var(logprob_values)
     else:
-        return 0.0
-
+        id_logprob_score = 0.0
+    
+    #calculate entropy
+    if len(entropy_values) > 1:
+        id_entropy_score = np.var(entropy_values)
+    else:
+        id_entropy_score = 0.0
+    
+    #calculate variance of confidence gap
+    if len(confidence_gap_values) > 1:
+        id_confidence_gap_score = np.var(confidence_gap_values)
+    else:
+        id_confidence_gap_score = 0.0
+        
+    #calculate weighted logprob, entropy, confidence gap
+    id_score = id_logprob_score *0.3 + id_entropy_score *0.3 + id_confidence_gap_score *0.3
+    uid_vector.append(id_score)
+    return uid_vector
+    
 def uid_gini(output):
     return 0
 
@@ -65,8 +118,35 @@ def id_logprob(step, model_path):
         print(f"Error in id_logprob: {e}")
     return 0
 
-def id_entropy(step):
+def id_entropy(step, model_path):
+    """
+    Calculate the entropy of the input step.
+    This requires a pre-trained LM to compute token probabilities.
+    """
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_path)
+        model = AutoModelForCausalLM.from_pretrained(model_path)
+        
+        inputs = tokenizer(step, return_tensors="pt", padding=True, truncation=True)
+        
+        with torch.no_grad():
+            outputs = model(**inputs)
+            logits = outputs.logits
+            
+        #calculate logprobs
+        log_probs = torch.log_softmax(logits, dim = -1)
+        
+        #calculate entropy
+        entropy = -np.sum(log_probs * log_probs)
+        return entropy
+    
+    except Exception as e:  
+        print(f"Error in id_entropy: {e}")
     return 0
 
-def norm_and_comp(step):
-    return 0
+def id_confidence_gap(curr_logprob, prev_logprob):
+    """
+    Confidence gap between current segment and previous segment.
+    For the first segment, prev_logprob should be 0.0
+    """
+    return float(curr_logprob - prev_logprob)
