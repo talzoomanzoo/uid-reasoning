@@ -8,7 +8,7 @@ import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
-from utils.calculate_uid_dev import calculate_uid_metrics
+from utils.calculate_uid_rev import calculate_uid_metrics
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput

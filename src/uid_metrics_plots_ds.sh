@@ -1,0 +1,1 @@
+python uid_metrics_plots.py --input /scratch/hojinkim/uid-reasoning/src/outputs/runs.baselines/aime.deepseek-r1-distill-qwen-1.5b.direct/train.8.21,4:43-5.json --outdir plots_out --savefigs --savefigs --no-show --separate-analysis
