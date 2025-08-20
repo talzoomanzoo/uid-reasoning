@@ -8,3 +8,4 @@ data/outputs/*
 **/wandb/*
 **/post-filtered/*
 **/pre-filtered/*
+**/plots_out/*
