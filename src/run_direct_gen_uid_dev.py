@@ -7,7 +7,7 @@ import os, time
 import numpy as np
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
-from evaluate_uid import run_evaluation
+from evaluate_uid_dev import run_evaluation
 from prompts import (
     get_task_instruction_openqa, 
     get_task_instruction_math, 
