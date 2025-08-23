@@ -1,0 +1,1 @@
+python uid_metrics_plots.py --input /scratch/hojinkim/uid-reasoning/src/outputs/runs.baselines/aime.qwen3-1.7b.direct/train.8.21,10:0-5.json --outdir plots_out_aime-qwen3-1.7b --savefigs --savefigs --no-show --separate-analysis

@@ -1,0 +1,1 @@
+python uid_metrics_plots.py --input /scratch/hojinkim/uid-reasoning/src/outputs/runs.baselines/math500.deepseek-r1-distill-qwen-1.5b.direct/test.8.21,19:15-5.json --outdir plots_out_math500-ds-1.5b --savefigs --savefigs --no-show --separate-analysis
