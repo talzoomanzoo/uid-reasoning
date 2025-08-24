@@ -26,20 +26,17 @@ def calculate_uid_metrics(logprobs_list: List[Dict[int, "Logprob"]]) -> Dict[str
     Parameters
     ----------
     logprobs_list : list of dicts
-        Each element corresponds to one generated step (token position).
-        It should be a mapping {token_id -> Logprob} for *that* position.
-        The mapping is ideally the full distribution; if only top-k are present,
-        we renormalize the provided subset to approximate H (entropy).
+        Each element corresponds to one generated token position.
 
     Returns
     -------
     Dict[str, float]
-        Variance / Gini / Shannon-evenness for:
+        Variance / Gini-Coefficient / Shannon-evenness for:
           - composite UID (equal weights)
           - LP-only (avg logprob per segment)
           - H-only (avg entropy per segment; full distribution when available)
           - D-only (confidence gap: Δ LP_i across segments)
-    """
+    """ 
     uid_eq, uid_lp, uid_h, uid_d = create_uid_vectors(logprobs_list)
 
     return {
@@ -66,15 +63,15 @@ def calculate_uid_metrics(logprobs_list: List[Dict[int, "Logprob"]]) -> Dict[str
 
 
 # ------------------------------
-# Vector construction
+# UID(z) vector construction
 # ------------------------------
 
 def create_uid_vectors(logprobs_list: List[Dict[int, "Logprob"]]) -> Tuple[List[float], List[float], List[float], List[float]]:
     """
     Build UID vectors per segment.
 
-    Segmentation rule: split when the *chosen* token's decoded text contains "\\n\\n".
-    Since we don't have the explicit chosen token, we assume it is the token with the
+    Segmentation rule: split when the chosen token's decoded text contains "\n\n".
+    Since we don't have the explicitly chosen token, we assume it is the token with the
     highest log-probability within that step's dictionary (a common case).
 
     Returns
@@ -87,23 +84,23 @@ def create_uid_vectors(logprobs_list: List[Dict[int, "Logprob"]]) -> Tuple[List[
     current_lp: List[float] = []
     current_h: List[float] = []
 
-    for step in logprobs_list:
-        if not step:
-            # empty step; treat as neutral
+    for token in logprobs_list:
+        if not token:
+            # empty token; treat as neutral
             chosen = None
-            step_logprobs = []
+            token_logprobs = []
         else:
             # choose the argmax logprob as the generated token (heuristic)
-            chosen = max(step.values(), key=lambda o: float(o.logprob))
-            step_logprobs = [float(o.logprob) for o in step.values()]
+            chosen = max(token.values(), key=lambda o: float(o.logprob))
+            token_logprobs = [float(o.logprob) for o in token.values()] #extracts the logprobs from the token
 
         # avg logprob uses the chosen token
-        lp_chosen = float(chosen.logprob) if chosen is not None else 0.0
+        lp_chosen = float(chosen.logprob) if chosen is not None else 0.0 #[-inf, 0]
         current_lp.append(lp_chosen)
 
         # step entropy uses full (or top-k) distribution, renormalized
-        h_step = entropy_from_logprobs(step_logprobs)
-        current_h.append(h_step)
+        h_token = entropy_from_logprobs(token_logprobs) # (-inf, 0]
+        current_h.append(h_token)
 
         # segment boundary if the chosen token visually equals a paragraph break
         if chosen is not None and ("\n\n" in (chosen.decoded_token or "")):
@@ -131,16 +128,16 @@ def create_uid_vectors(logprobs_list: List[Dict[int, "Logprob"]]) -> Tuple[List[
     for i in range(1, len(lp_values)):
         d_values.append(lp_values[i] - lp_values[i - 1])
 
-    # 4) Within-trace z-normalization of each component
-    lp_norm = _zscore(lp_values)
-    h_norm = _zscore(h_values)
-    d_norm = _zscore(d_values)
+    # # 4) Within-trace z-normalization of each component
+    # lp_norm = _zscore(lp_values)
+    # h_norm = _zscore(h_values)
+    # d_norm = _zscore(d_values)
 
     # 5) Composite ID_i with EXACT equal weights 1/3
-    uid_equal = [(lp_norm[i] + h_norm[i] + d_norm[i]) / 3.0 for i in range(len(lp_norm))]
+    uid_equal = [(lp_values[i] - h_values[i] + d_values[i]) / 3.0 for i in range(len(lp_values))]
 
     # Return all four aligned vectors
-    return uid_equal, lp_norm, h_norm, d_norm
+    return uid_equal, lp_values, h_values, d_values
 
 
 # ------------------------------
@@ -171,17 +168,32 @@ def entropy_from_logprobs(logprobs: List[float]) -> float:
     return float(h)
 
 
-def _zscore(values: List[float]) -> List[float]:
-    if not values:
+
+def _minmax(values: List[float]) -> List[float]:
+    if len(values) == 0:
         return []
     arr = np.asarray(values, dtype=float)
-    mu = float(np.mean(arr))
-    sigma = float(np.std(arr))
-    if sigma > 0.0 and np.isfinite(sigma):
-        z = (arr - mu) / sigma
+    min_val = float(np.min(arr))
+    max_val = float(np.max(arr))
+    denom = max_val - min_val
+    if denom > 0.0 and np.isfinite(denom):
+        scaled = (arr - min_val) / denom
     else:
-        z = np.zeros_like(arr)
-    return [float(v) for v in z]
+        scaled = np.zeros_like(arr)  # all values identical → map to 0
+    return [float(v) for v in scaled]
+
+def _nonnegative_mass(vec: List[float], eps: float = 1e-12) -> np.ndarray:
+    """
+    Consistently produce a nonnegative vector from arbitrary real-valued IDs.
+    We use min-shift + epsilon (no clamping), so that:
+        r_i = ID_i - min(ID) + eps  >= eps
+    This is the same transform used for variance, Shannon-evenness, and Gini.
+    """
+    if not vec:
+        return np.zeros(0, dtype=float)
+    arr = np.asarray(vec, dtype=float)
+    m = float(np.min(arr))
+    return (arr - m) + eps
 
 
 # ------------------------------
@@ -189,24 +201,11 @@ def _zscore(values: List[float]) -> List[float]:
 # ------------------------------
 
 def uid_variance(vec: List[float]) -> float:
-    """Population variance of ID_i across segments (translation-invariant)."""
     if not vec:
         return 0.0
-    return float(np.var(np.asarray(vec, dtype=float)))
-
-
-def _nonnegative_mass(vec: List[float], eps: float = 1e-12) -> np.ndarray:
-    """
-    Consistently produce a nonnegative vector from arbitrary real-valued IDs.
-    We use min-shift + epsilon (no clamping), so that:
-        r_i = ID_i - min(ID) + eps  >= eps
-    This is the same transform used for both Shannon-evenness and Gini.
-    """
-    if not vec:
-        return np.zeros(0, dtype=float)
-    arr = np.asarray(vec, dtype=float)
-    m = float(np.min(arr))
-    return (arr - m) + eps
+    r = _nonnegative_mass(vec)
+    s = np.asarray(_minmax(r), dtype=float)
+    return float(np.var(s, ddof=0))
 
 
 def uid_shannon(vec: List[float]) -> float:
@@ -252,42 +251,3 @@ def uid_gini(vec: List[float]) -> float:
     cum = float(np.sum((np.arange(1, n + 1) * sorted_r)))
     g = (2.0 * cum) / (n * s) - (n + 1.0) / n
     return float(g)
-
-
-# ------------------------------
-# Optional: Evaluation utilities
-# ------------------------------
-
-def roc_auc(scores: List[float], labels: List[int]) -> float:
-    """
-    Compute ROC AUC from scores and binary labels without external deps.
-    Larger scores are assumed to indicate the positive class.
-    """
-    if not scores or len(scores) != len(labels):
-        return float("nan")
-
-    # Rank-based (Mann–Whitney U) implementation
-    order = np.argsort(scores)
-    ranks = np.empty_like(order, dtype=float)
-    ranks[order] = np.arange(1, len(scores) + 1, dtype=float)
-
-    pos = np.array(labels, dtype=int) == 1
-    n_pos = int(np.sum(pos))
-    n_neg = len(scores) - n_pos
-    if n_pos == 0 or n_neg == 0:
-        return float("nan")
-    rank_sum_pos = float(np.sum(ranks[pos]))
-    auc = (rank_sum_pos - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg)
-    return float(auc)
-
-
-def log_loss(probs: List[float], labels: List[int], eps: float = 1e-12) -> float:
-    """
-    Compute logistic log-loss given predicted probabilities for the positive class.
-    """
-    if not probs or len(probs) != len(labels):
-        return float("nan")
-    p = np.clip(np.asarray(probs, dtype=float), eps, 1.0 - eps)
-    y = np.asarray(labels, dtype=int)
-    loss = -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))
-    return float(loss)

@@ -9,3 +9,4 @@ data/outputs/*
 **/post-filtered/*
 **/pre-filtered/*
 **/plots_out/*
+**/analysis_out/*
