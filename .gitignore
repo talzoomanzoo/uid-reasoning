@@ -10,3 +10,4 @@ data/outputs/*
 **/pre-filtered/*
 **/plots_out/*
 **/analysis_out/*
+**/sft_data/*
