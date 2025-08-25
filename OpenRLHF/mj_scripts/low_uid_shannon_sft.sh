@@ -8,15 +8,15 @@ export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128,expandable_segments:True
 
 deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --ring_attn_size=4 \
-   --ring_head_stride=4 \
+   --ring_head_stride=1 \
    --max_len=32768 \
-   --dataset=talzoomanzoo/highest_uid_variance_sft \
-   --input_key=input_x_z \
-   --output_key=chosen_y \
+   --dataset=talzoomanzoo/lowest_uid_shannon_sft_ds-1.5b \
+   --input_key=Question \
+   --output_key=text \
    --train_batch_size=16 \
    --micro_train_batch_size=4 \
    --pretrain=deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
-   --save_path=./checkpoint/deepseek-1.5b-highest-uid-variance \
+   --save_path=./checkpoint/deepseek-1.5b-lowest-uid-shannon-ds-1.5b \
    --packing_samples \
    --logging_steps=1 \
    --eval_steps=-1 \
@@ -38,5 +38,5 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --target_modules gate_proj \
    --target_modules up_proj \
    --target_modules down_proj \
-   --wandb_project=aime-rft-y-ytrue \
-   --wandb_run_name=deepseek-1.5b-highest-uid-variance-$(date +%m%d%H%M)
+   --wandb_project=uid_shannon_sft\
+   --wandb_run_name=deepseek-1.5b-lowest-uid-shannon-ds-1.5b-$(date +%m%d%H%M)
