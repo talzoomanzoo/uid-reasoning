@@ -10,18 +10,19 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --ring_attn_size=4 \
    --ring_head_stride=1 \
    --max_len=32768 \
-   --dataset=talzoomanzoo/lowest_uid_gini_sft_ds-1.5b \
+   --dataset=talzoomanzoo/highest_uid_gini_sft_qwen \
    --input_key=Question \
    --output_key=text \
-   --train_batch_size=16 \
-   --micro_train_batch_size=4 \
-   --pretrain=deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
-   --save_path=./checkpoint/deepseek-1.5b-lowest-uid-gini-ds-1.5b \
+   --train_batch_size=8 \
+   --micro_train_batch_size=2 \
+   --pretrain=Qwen/Qwen3-1.7B \
+   --save_path=./checkpoint/deepseek-1.5b-highest-uid-gini-qwen-1.7b \
    --packing_samples \
+   --flash_attn \
    --logging_steps=1 \
    --eval_steps=-1 \
    --zero_stage=2 \
-   --max_epochs=3 \
+   --max_epochs=10 \
    --learning_rate=1e-5 \
    --gradient_checkpointing \
    --lora_rank=8 \
@@ -39,4 +40,4 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --target_modules up_proj \
    --target_modules down_proj \
    --wandb_project=uid_gini_sft\
-   --wandb_run_name=deepseek-1.5b-lowest-uid-gini-ds-1.5b-$(date +%m%d%H%M)
+   --wandb_run_name=deepseek-1.5b-highest-uid-gini-qwen-1.7b-$(date +%m%d%H%M)

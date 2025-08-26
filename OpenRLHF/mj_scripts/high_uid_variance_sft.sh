@@ -3,7 +3,7 @@ set -x
 
 export PYTHONPATH=$PYTHONPATH:$(pwd)/../
 export WORLD_SIZE=4
-export TRITON_CACHE_DIR="/tmp/triton-cache"  # Avoid NFS warning
+export TRITON_CACHE_DIR="~/triton-cache"  # Avoid NFS warning
 export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128,expandable_segments:True
 
 deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
