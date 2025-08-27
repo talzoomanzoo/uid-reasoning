@@ -1,0 +1,1 @@
+python ../src/analysis_by_uid.py --input /scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/aime.qwen3-1.7b.direct/test.8.26,20:0-5.json  --outdir ../src/analysis_outscrat

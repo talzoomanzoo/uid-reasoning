@@ -1,1 +1,0 @@
-python ../src/analysis_by_uid.py --input /scratch/hojinkim/uid-reasoning/src/outputs/runs.baselines/aime.qwen3-1.7b.direct/train.8.24,19:14-10.json --outdir ../src/analysis_out
