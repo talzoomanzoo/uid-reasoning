@@ -222,15 +222,18 @@ async def main(args):
         output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
     os.makedirs(output_dir, exist_ok=True)
 
-    llm = LLM(
-                model=model_path,
-                gpu_memory_utilization=0.90,
-                max_model_len=32768,
-                max_num_seqs=4,
-                enforce_eager=False,
-                dtype="bfloat16",
-                tensor_parallel_size=4,
-                swap_space=32,
+    llm = llm = LLM(
+            model=model_path,
+            dtype="bfloat16",
+            tensor_parallel_size=1,
+            data_parallel_size=4,
+            gpu_memory_utilization=0.92,
+            max_model_len=32768,
+            max_num_seqs=512,
+            max_num_batched_tokens=4096,
+            swap_space=64,
+            kv_cache_dtype="fp8",
+            enforce_eager=False,
         )
                 
     sampling_params = SamplingParams(
