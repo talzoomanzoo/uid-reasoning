@@ -229,10 +229,9 @@ async def main(args):
             data_parallel_size=4,
             gpu_memory_utilization=0.92,
             max_model_len=32768,
-            max_num_seqs=512,
-            max_num_batched_tokens=4096,
+            max_num_seqs=4096,
+            max_num_batched_tokens=32768,
             swap_space=64,
-            kv_cache_dtype="fp8",
             enforce_eager=False,
         )
                 

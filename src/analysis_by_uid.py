@@ -4,7 +4,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 from collections import defaultdict
+from scipy.stats import pearsonr
 
 
 def analyze_uid_accuracy(data):
@@ -211,6 +213,189 @@ def create_boxplots(summary, results, outdir, filename_prefix, input_filename=No
     return plot_file
 
 
+def create_correlation_plot(data, outdir, filename_prefix, input_filename=None):
+    """Create correlation plots between UID metrics and answer correctness."""
+    
+    # Define UID metrics to analyze (focusing on _equal metrics as requested)
+    uid_metrics = [
+        "uid_variance_equal", "uid_gini_equal", "uid_shannon_equal"
+    ]
+    
+    # Collect all data points
+    all_data = []
+    
+    for problem in data:
+        problem_id = problem.get('id', 'unknown')
+        
+        # Find all outputs for this problem
+        i = 0
+        while f'Output_{i}' in problem:
+            output_key = f'Output_{i}'
+            metrics_key = f'Metrics_{i}'
+            uid_metrics_key = f'uid_metrics_{i}'
+            
+            if uid_metrics_key in problem and metrics_key in problem:
+                uid_data = problem[uid_metrics_key]
+                metrics_data = problem[metrics_key]
+                
+                data_point = {
+                    'problem_id': problem_id,
+                    'output_index': i,
+                    'accuracy': metrics_data.get('acc', 0),
+                    'exact_match': metrics_data.get('em', 0),
+                    'f1': metrics_data.get('f1', 0)
+                }
+                
+                # Add UID metrics
+                for metric in uid_metrics:
+                    data_point[metric] = uid_data.get(metric, 0)
+                
+                all_data.append(data_point)
+            i += 1
+    
+    if not all_data:
+        print("No data found for correlation analysis")
+        return None
+    
+    # Convert to DataFrame
+    df = pd.DataFrame(all_data)
+    
+    # Create correlation plots
+    fig, axes = plt.subplots(1, 1, figsize=(16, 12))
+    if input_filename:
+        dataset_name = input_filename.split("/")[-2] if "/" in input_filename else input_filename.replace(".json", "")
+        fig.suptitle('UID Metrics vs Answer Correctness Correlation \n ' + dataset_name, fontsize=16, fontweight='bold')
+    else:
+        fig.suptitle('UID Metrics vs Answer Correctness Correlation \n ' + filename_prefix, fontsize=16, fontweight='bold')
+    
+    # Plot 4: Correlation heatmap
+    ax4 = axes
+    correlation_data = []
+    metric_names = []
+    
+    for metric in uid_metrics:
+        acc_corr, _ = pearsonr(df[metric], df['accuracy'])
+        em_corr, _ = pearsonr(df[metric], df['exact_match'])
+        f1_corr, _ = pearsonr(df[metric], df['f1'])
+        
+        correlation_data.append([acc_corr, em_corr, f1_corr])
+        metric_names.append(metric.replace('uid_', '').replace('_equal', '').title())
+    
+    correlation_matrix = np.array(correlation_data)
+    im = ax4.imshow(correlation_matrix, cmap='RdBu_r', vmin=-1, vmax=1)
+    
+    # Add text annotations
+    for i in range(len(metric_names)):
+        for j in range(3):
+            text = ax4.text(j, i, f'{correlation_matrix[i, j]:.3f}',
+                           ha="center", va="center", color="black", fontweight='bold', fontsize=32)
+    
+    ax4.set_xticks([0, 1, 2])
+    ax4.set_xticklabels(['Accuracy', 'Exact Match', 'F1'])
+    ax4.set_yticks(range(len(metric_names)))
+    ax4.set_yticklabels(metric_names)
+    ax4.set_title('Correlation Heatmap')
+    
+    # Add colorbar
+    cbar = plt.colorbar(im, ax=ax4)
+    cbar.set_label('Correlation Coefficient')
+    
+    plt.tight_layout()
+    
+    # Save the plot
+    plot_file = os.path.join(outdir, f"{filename_prefix}_uid_correlation.png")
+    plt.savefig(plot_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Print correlation statistics
+    print("\n" + "="*80)
+    print("UID METRICS CORRELATION WITH ANSWER CORRECTNESS")
+    print("="*80)
+    
+    for metric in uid_metrics:
+        acc_corr, acc_p = pearsonr(df[metric], df['accuracy'])
+        em_corr, em_p = pearsonr(df[metric], df['exact_match'])
+        f1_corr, f1_p = pearsonr(df[metric], df['f1'])
+        
+        print(f"\n{metric}:")
+        print(f"  vs Accuracy:     r = {acc_corr:.4f}, p = {acc_p:.4f}")
+        print(f"  vs Exact Match:  r = {em_corr:.4f}, p = {em_p:.4f}")
+        print(f"  vs F1 Score:     r = {f1_corr:.4f}, p = {f1_p:.4f}")
+    
+    return plot_file
+
+
+def extract_shannon_equal_outputs(data, outdir, filename_prefix):
+    """Extract and save the single highest and lowest outputs for uid_shannon_equal metric across all problems."""
+    
+    all_outputs = []
+    
+    for problem in data:
+        problem_id = problem.get('id', 'unknown')
+        
+        # Find all outputs for this problem
+        i = 0
+        while f'Output_{i}' in problem:
+            output_key = f'Output_{i}'
+            metrics_key = f'Metrics_{i}'
+            uid_metrics_key = f'uid_metrics_{i}'
+            
+            if uid_metrics_key in problem and metrics_key in problem:
+                uid_data = problem[uid_metrics_key]
+                metrics_data = problem[metrics_key]
+                
+                all_outputs.append({
+                    'problem_id': problem_id,
+                    'output_index': i,
+                    'output': problem[output_key],
+                    'uid_shannon_equal': uid_data.get('uid_shannon_equal', 0),
+                    'accuracy': metrics_data.get('acc', 0),
+                    'exact_match': metrics_data.get('em', 0),
+                    'f1': metrics_data.get('f1', 0)
+                })
+            i += 1
+    
+    if not all_outputs:
+        print("No data found for Shannon Equal analysis")
+        return None
+    
+    # Find the single highest and lowest uid_shannon_equal outputs across all problems
+    highest_output = max(all_outputs, key=lambda x: x['uid_shannon_equal'])
+    lowest_output = min(all_outputs, key=lambda x: x['uid_shannon_equal'])
+    
+    shannon_outputs = {
+        'highest_shannon_equal': {
+            'problem_id': highest_output['problem_id'],
+            'output_index': highest_output['output_index'],
+            'uid_shannon_equal_score': highest_output['uid_shannon_equal'],
+            'output_text': highest_output['output'],
+            'accuracy': highest_output['accuracy'],
+            'exact_match': highest_output['exact_match'],
+            'f1': highest_output['f1']
+        },
+        'lowest_shannon_equal': {
+            'problem_id': lowest_output['problem_id'],
+            'output_index': lowest_output['output_index'],
+            'uid_shannon_equal_score': lowest_output['uid_shannon_equal'],
+            'output_text': lowest_output['output'],
+            'accuracy': lowest_output['accuracy'],
+            'exact_match': lowest_output['exact_match'],
+            'f1': lowest_output['f1']
+        }
+    }
+    
+    # Save to JSON file
+    shannon_file = os.path.join(outdir, f"{filename_prefix}_shannon_equal_outputs.json")
+    with open(shannon_file, "w") as f:
+        json.dump(shannon_outputs, f, indent=2)
+    
+    print(f"\nShannon Equal outputs saved to: {shannon_file}")
+    print(f"Highest Shannon Equal: Problem {highest_output['problem_id']}, Output {highest_output['output_index']}, Score: {highest_output['uid_shannon_equal']:.4f}")
+    print(f"Lowest Shannon Equal: Problem {lowest_output['problem_id']}, Output {lowest_output['output_index']}, Score: {lowest_output['uid_shannon_equal']:.4f}")
+    
+    return shannon_file
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=str, required=True)
@@ -260,7 +445,7 @@ def main():
         stats = aggregated[uid_type]
         print(f"Mean Accuracy: {stats['mean_accuracy']:.4f} ± {stats['std_accuracy']:.4f}")
         print(f"Mean Accuracy Std: {stats['mean_accuracy_std']:.4f} ± {stats['std_accuracy_std']:.4f}")
-        print(f"Mean Exact Match: {stats['mean_exact_match']:.4f} ± {stats['std_exact_match']:.4f}")
+        print(f"Mean Exact Match: {stats['mean_exact_match']:.4f} ± {stats['mean_exact_match_std']:.4f}")
         print(f"Mean Exact Match Std: {stats['mean_exact_match_std']:.4f} ± {stats['std_exact_match_std']:.4f}")
         print(f"Mean F1: {stats['mean_f1']:.4f} ± {stats['std_f1']:.4f}")
         print(f"Mean F1 Std: {stats['mean_f1_std']:.4f} ± {stats['std_f1_std']:.4f}")
@@ -270,6 +455,12 @@ def main():
     # Create boxplots
     filename_prefix = args.input.split("/")[-2] if "/" in args.input else args.input.replace(".json", "")
     plot_file = create_boxplots(summary, results, args.outdir, filename_prefix, args.input)
+    
+    # Create correlation plots
+    correlation_plot_file = create_correlation_plot(data, args.outdir, filename_prefix, args.input)
+    
+    # Extract Shannon Equal outputs
+    shannon_file = extract_shannon_equal_outputs(data, args.outdir, filename_prefix)
     
     # Save detailed results
     results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_analysis.json")
@@ -290,6 +481,10 @@ def main():
     print(f"Summary saved to: {summary_file}")
     print(f"Aggregated results saved to: {aggregated_file}")
     print(f"Boxplots saved to: {plot_file}")
+    if correlation_plot_file:
+        print(f"Correlation plots saved to: {correlation_plot_file}")
+    if shannon_file:
+        print(f"Shannon Equal outputs saved to: {shannon_file}")
 
 
 if __name__ == "__main__":

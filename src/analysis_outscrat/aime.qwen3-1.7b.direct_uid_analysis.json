@@ -1,0 +1,5814 @@
+{
+  "highest_uid": {
+    "uid_variance_equal": [
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.03376157823409614,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.016153084286162706,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.016611578540311776,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.030525082084918238,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.015582220003190934,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.030477034518080034,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.01948198165230207,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.016073976255321254,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.013983851316770352,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.02440439386204127,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.02323983340750147,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.021857936293294997,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.04130185037437322,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.018868608224050266,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.00864440196865616,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.03744884327673977,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.05142755227241287,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.020223677528988307,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.024236689907875374,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.021205356194853454,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.022449794888619725,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.02007592204636866,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.01714843506911601,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.017289701179835235,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.02520384942833692,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.02566879700083341,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.018147619176384605,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.023821507457924104,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.016648044196647522,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.019720298114137235,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_gini_equal": [
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.14518568040796587,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.10022600656492564,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.09581655243139386,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.14375310607221303,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.09449988003828569,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.1493232154322126,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.11187780093647781,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.08636688258267222,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.0946134768283009,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.13602595299925002,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.11606812837551006,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.1300631018990317,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.22427408141662086,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.11889999246331451,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.06583095245162296,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.16261558294945555,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.26090701290953056,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.12172895384760918,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.12600793096838592,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.11989182270563559,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.13449794952856542,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.09867867716211998,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.10590377267278694,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.11100969441202291,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.1509411849445781,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.1667512655829,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.11660125488797202,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.1260471028789938,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.10715185030734675,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.12309211133865472,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_shannon_equal": [
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.996185253222192,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9989535498799117,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9978599771612872,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9973571129389779,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9984365728704205,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.993838249347041,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9988177130826672,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9985623502626838,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9993210846206713,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9971871779464335,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9985574809525906,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9988181988422404,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9981667094374133,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9989558546758025,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9992701258921902,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9957919617302318,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9960702175825904,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9992485530746925,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9971774499047833,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9980839116452564,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.998527434192336,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9979942663404305,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9989166681098985,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9981139686843169,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9992851475979931,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.996356102245014,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9987150943811433,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9985205737040824,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9988497110058192,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9987516632089077,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_variance_logprob": [
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.044646687218029724,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.034668103572433495,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.023578853318150503,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.042760006241639545,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.02330118365934657,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.04104026588521288,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.026157622428498777,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.02331626927583765,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.02238862534006801,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.036332125555940856,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.03192511160904076,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.03892698919212506,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.04548892860098647,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.028009758758365665,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.016498179225575223,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.05268424134238617,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.05460742069804001,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.037640862515584114,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.03415985838982833,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.034955963618711984,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.028114564464512656,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.03053784520456156,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.02202715795573245,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.02735520043622251,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.03596162284898768,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.04002115021533393,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.029055364156108935,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.03693235582285764,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.02326348821790048,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.03203451132819095,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_gini_logprob": [
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.14035272977341262,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.1157887507898876,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.09650736148777761,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.14105417105705453,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.09618736806848016,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.13252585836985564,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.12040360732434752,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.08234959657076946,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.08284609085922212,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.1427514639373051,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.11296468086281619,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.1349907853865726,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.18846517921741834,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.10393338529408047,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.07453295996574583,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.14946237260375073,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.17629071390460083,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.13506844163692366,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.10587958114493823,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.13305044797098864,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.1081130914603814,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.10298791719047995,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.10238825925250383,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.11249749273751819,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.13945870120185244,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.18136744736373034,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.11309159373237865,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.12436478834238684,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.09193484366686944,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.13232749602203286,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_shannon_logprob": [
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9942433381752424,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9992128198601952,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9974560955021989,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9962898412927009,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9982898749222902,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9940615952214182,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9986844919468328,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9987837165272511,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9993261556383749,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9976961135178524,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9984090213043169,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9989039153056166,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9984881778339774,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9988190663438307,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.999233645996285,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.995573677968751,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9964092171070206,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9991018804560392,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9974017916246896,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9981608313928723,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9981435843470963,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9976858487399344,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9989371884955771,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9974513671702532,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9990697027655372,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9973936205554779,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9986688622396147,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9985437511309148,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9988252749337213,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.999217671121028,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_variance_entropy": [
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.022325787583069388,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.024393948765960644,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.019804719810474616,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.025654502615819565,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.02096796815751658,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.03374683695302035,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.01565997691042618,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.021496615698090298,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.01664042271812172,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.022419666472281583,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.025470183464967655,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.017525611654092905,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.052949890878183345,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.030463879663610947,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.013840225196912234,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.04095483502298061,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.038592397205199525,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.012400320427384688,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.025627769032788284,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.023902913831817925,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.02478638169460565,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.03022438460521984,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.014286383044215452,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.01737272659868332,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.03367208368531904,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.03174447657278356,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.022362596529788663,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.010977513834839997,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.022773879682697253,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.01303027726348812,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_gini_entropy": [
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.7047502986827991,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.7249066211764204,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.6571374789936861,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.6375803812414875,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.6615256525611473,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.779475286934717,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.5151496959435089,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.7246667614909219,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.7734743491642173,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.5796293149598157,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.6738136161158312,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.6435908305988356,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.5063421586024857,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.701766710563869,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.5489293814972787,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.7466343037376857,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.6783078693400648,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.6883066614050057,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.7243103424396324,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.6475223248650679,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.7557913841699824,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.6768055233872485,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.5719330174070238,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.6513005301491097,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.6893247345790898,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.5915366205647477,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.700571289857363,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.7030940031709705,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.7185829696959001,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.6792673483973917,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_shannon_entropy": [
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.8154571231222106,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.848918944954589,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.8820486378398553,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.8705838787402461,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8894458609325109,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8339547780333311,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9261324401487442,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.8734804303403103,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8681757792154771,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.923688924973669,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8943708156176505,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.896809480999218,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.937932455324448,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.895871075979764,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9153972037148056,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.8592606391098595,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.8468989159294531,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.8811283843395977,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.8659607809216582,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9091549132125153,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9069249035760735,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8800655530540343,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.930588375729527,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.8991886577311605,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9080587577745707,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9415149278242374,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.8970882766478688,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.8713294086983193,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.8604622714008112,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9089469676595068,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_variance_confidence_gap": [
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.03140344750035977,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.014125033349332529,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.015857175488421464,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.02728262823916445,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.01369064284538022,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.026151592989106864,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.017645787212910873,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.01831349513484843,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.009261321670222216,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.023944284907970202,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.015367422360500566,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.017757694373916232,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.04129178209983202,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.012765911141122604,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.00785619940311849,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.03144044496547993,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.0463847628579526,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.016080769459657713,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.02061535240203318,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.017520254567843924,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.01888807205949255,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.017177112003695382,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.013513039778914875,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.013015103214696244,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.02202773157524942,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.02184528275549911,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.015287147264800502,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.020675258824393344,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.013919148259937513,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.01831889767862984,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_gini_confidence_gap": [
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.1806119346782511,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.12641477410911017,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.15309264940716472,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.16609764533561178,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.1234887166060421,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.17094218916258397,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.15533839707866726,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.1311752525824339,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.09644107423719217,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.17265722023868002,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.11538202536567788,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.17573840061315704,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.2550018448949769,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.11346354800439373,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.08884918063167979,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.20128141268610822,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.3006281173372001,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.13780734850414955,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.1523626693289395,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.13551065808049234,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.16236392719694126,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.1311022411976961,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.12808741054171202,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.11952261395672448,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.18197101087167988,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.18291040735526432,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.1318801079504064,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.15277193931718713,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.1428763796350896,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.1423880573717291,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_shannon_confidence_gap": [
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9916601752227556,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9976938231056196,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9965055237757716,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9956837445783095,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9979349010960865,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.991369656981286,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9984128915700057,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9975834460166969,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9990090347546355,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9957339634930341,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9979008040612376,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9976505769792381,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9980858495095659,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.997975444813607,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9988609160016926,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9939009689644681,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9948424136882299,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9989355182053983,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9961148842867887,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9977633879896973,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9974253997061873,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9971810879739428,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.998406671515118,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9963304374968116,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9990059749033019,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9956312977628852,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9981248094136093,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9981017017354299,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9982630350829547,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9983261176227605,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ]
+  },
+  "lowest_uid": {
+    "uid_variance_equal": [
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.015248393653970696,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.004276979291396013,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.008113255593981744,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.011429668388833965,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.007635455465347683,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.020530259506728887,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.0056486171316448,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.0065591944663608605,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.004555483812029455,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.012060632944280355,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.007340229723422656,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.006262323767072696,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.009625887738521896,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.006302457929738466,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.00401366445404496,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.016022419529401578,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.009084894681064656,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.005160237634835175,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.013951005517888429,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.00926342980319812,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.008585208157754928,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.008669215065435656,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.005412976056420396,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.008761561649792096,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.005014870602572923,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.01221961161275937,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.007925880384081103,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.008103661524101505,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.006581008359495019,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.005135475947754358,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_gini_equal": [
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.08482017114946094,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.0482225662866691,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.05809582645368705,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.07724118252167056,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.05062876352220447,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.09888694533228626,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.044524968346069116,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.05509765744362638,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.04457889737535359,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.08947491097237159,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.05524888296416397,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.061098892047978914,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.0746228157890334,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.05906175290252458,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.037511631857151784,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.10285958299652154,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.04648473439161105,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.04453444818829455,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.07258890725646117,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.07681593642968365,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.066805606316372,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.07226071124964428,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.04643297489101772,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.0666617755922756,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.043401892817369614,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.09127171464310235,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.05824251903250177,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.06304295984292141,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.05358190762938331,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.05678267954999172,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_shannon_equal": [
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9889204594636382,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9961412561126437,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9958327602113902,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9912574560823915,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9965173688057277,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9900923768929358,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9953814074270755,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9956950751538002,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9972496351225617,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9939171797988088,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9950326456218759,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9949343425282993,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9770130877997768,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9956888172146823,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9980679803437355,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9885036358176503,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9689309679130554,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9952477577623151,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9930333793052254,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9951969610337591,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9933696764429868,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9947388233094668,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9964534261879023,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9954404178455138,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.988710876481141,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9901807632160726,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9953766132686476,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9946267365336431,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9960829702550075,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9952495323200832,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_variance_logprob": [
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.029762413942794396,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.006602447225681785,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.015095637629773957,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.021807284396785042,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.010886348265523106,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.03161850170003537,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.008645989315586251,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.00914158874527218,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.006894668343064011,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.016029610416890393,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.012134512720547445,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.009802956549309665,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.011612395642422418,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.011707534956895799,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.006137354341248266,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.025068275777932934,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.014250895345690962,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.008245653809135835,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.017501525809211174,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.01512852191474826,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.01705852886067851,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.01622137067866304,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.007805695920997996,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.016557944856283324,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.008576263500899938,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.014680954885880594,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.011680182391348696,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.012685629519428759,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.010217506078411195,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.0066008750848479125,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_gini_logprob": [
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.0924637349704216,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.04120952607405348,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.06718854745028646,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.08853633676754447,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.052813259331369045,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.10532842991896207,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.04673814022286482,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.0501615022301205,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.04326090340593325,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.081915495627634,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.05528030465046685,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.056617520925708265,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.06708828113202836,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.0633578221578619,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.038767917944393604,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.08445551237053217,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.03937180961798026,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.0511045807324062,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.0649447105131975,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.0748241314306386,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.07458217074937967,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.0707770229794844,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.04727346778818964,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.07183139057428045,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.052547280685417475,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.07173096711041849,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.05914506520493967,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.062171642007753825,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.053871198980043555,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.04317917965788154,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_shannon_logprob": [
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9889914497057328,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9949330979937466,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9958972348705111,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9909632141467495,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9964844180962154,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.990695866748596,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9950035698584309,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9957103356167167,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9976160174670564,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9936628884500631,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9953352371410191,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9944869443183736,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9837290169137979,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9966644611089814,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9972766160173406,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9896600603433506,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.984654381748316,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9943324408345756,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9942222837764674,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9945550263196744,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9955129640237727,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9945995166806526,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9968529525388251,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9953893989149276,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9910198672614815,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9885339391168081,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9955187729651246,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9945226182493023,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9972044512857084,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9944490156258387,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_variance_entropy": [
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.012116500735939563,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.009508445700833847,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.009622535611153062,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.011069419299495281,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.010783566562579675,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.01608789703117176,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.0076476142645989734,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.011796800069595216,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.00742011509223271,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.009515940474389367,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.01033145503104577,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.00905490924229428,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.007485742416181253,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.007517229724265016,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.00634205981969072,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.024411872302984455,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.019802053448686466,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.006871195762531386,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.012281646845456745,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.010659968926732715,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.00896532946290867,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.008612274827292135,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.006454106701297606,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.007499512995847665,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.006473300645612507,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.020998779970732406,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.007139334316051634,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.008966783284923457,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.007658655106647712,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.006473126834270459,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_gini_entropy": [
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.6331824223670939,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.6891112377707671,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.5649281914474715,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.5979361750676411,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.5910600110157547,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.6592744499284964,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.48319894259681395,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.6406513179966313,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.6668137533575331,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.48454867167917226,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.5779369693112704,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.6091151145238467,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.4230897453240612,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.6037884345462152,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.5287114189567492,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.6509017053585242,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.5746546970014803,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.6411240342743378,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.6276671564747476,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.5525801825017289,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.5104010094378368,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.5862694664433294,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.47536438275040327,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.5472127187365092,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.4641408484873346,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.4044686969200113,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.5848474189955404,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.6646104288905046,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.6955944786184312,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.5461820878276491,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_shannon_entropy": [
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.7837266314430791,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8195243082078412,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8394034557928657,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.8572766993629851,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.8439680237611689,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.7112354616375142,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9119815003310854,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.7767292364065697,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.8249587682702513,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.8925151668237252,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.8478211282889132,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.8824110996077735,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9169101855149288,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.859956883748963,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8901129340594179,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.7724896338381259,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.7819287650272728,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.8568021061004064,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.7782068183521035,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.8744818228546214,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.8355378534253217,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.8360784084512812,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9018272816401742,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.8332339559780139,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.8458236779272904,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8823179110177508,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.8595766769655487,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.845676576708763,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.8365259441381865,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.8545010692867947,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_variance_confidence_gap": [
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.015812042941923184,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.004200418583926678,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.00755312898404675,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.01174978190365667,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.005539139601690434,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.018850630885361503,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.004152523410058967,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.0056319589925351654,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.0036382334918445437,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.011158594438859607,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.006629388052492297,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.005669425874690112,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.00579699612593053,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.0059228691012786746,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.003396246497829282,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.013136179798613604,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.007919560072281668,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.004045520747966774,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.012458023086706398,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.007446644500181559,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.008549682300405745,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.007283819122697616,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.0044856411142270595,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.0091701669423362,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.003922314507913885,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.009082227863486293,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.0069887153432647954,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.0059590107978432,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.005517261505203754,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.0038588781668380924,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_gini_confidence_gap": [
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.13231623592136232,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.07498912744508601,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.08370798579642158,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.10576343228594975,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.06144271311614835,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.14283789867601415,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.058893879436174634,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.07897188574939107,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.057797757901144386,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.11356081196427747,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.07275425342017794,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.08976043341794848,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.07737911451440538,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.08498593121141607,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.05054937794354708,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.120964427974666,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.06021967069705125,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.056940402831998416,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.09625480364535144,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.08180048828982578,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.09435428880742469,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.08907768177939657,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.061329464391887134,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.09118104599557264,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.05420932965347869,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.10007708099135759,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.07446547588919583,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.07533681577391937,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.07103763375022631,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.0682916412089527,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ],
+    "uid_shannon_confidence_gap": [
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9851272932836257,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9944899202338144,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9907513608131927,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9905812169310181,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9946610181426979,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9876901027943664,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9922925564995225,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.992387582290496,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9973149838638095,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9891634328637039,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9957833225737522,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9915718971637737,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9716443602773104,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9961966826695517,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9970949622019772,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.9846521092363166,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9611497545591726,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.994302880868517,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9913325752110292,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9942886395160369,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9916390584224899,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 2,
+        "uid_score": 0.9931353467429612,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 3,
+        "uid_score": 0.995110705102774,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.995079086760237,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9850173699462877,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9879136829186648,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 4,
+        "uid_score": 0.9944692310478956,
+        "accuracy": 1,
+        "exact_match": 1,
+        "f1": 1.0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9929623369591339,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 0,
+        "uid_score": 0.9940871392289979,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      },
+      {
+        "problem_id": "unknown",
+        "output_index": 1,
+        "uid_score": 0.9935977841311388,
+        "accuracy": 0,
+        "exact_match": 0,
+        "f1": 0
+      }
+    ]
+  }
+}
