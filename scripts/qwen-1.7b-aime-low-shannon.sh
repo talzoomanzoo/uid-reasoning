@@ -1,4 +1,4 @@
-python ../src/run_direct_gen_uid_dev.py --model_path deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
+python ../src/run_direct_gen_uid_dev.py --model_path talzoomanzoo/qwen3-1.7b-lowest-uid-shannon-fft \
    --dataset_name math500 \
    --split test \
    --batch_size 500 \

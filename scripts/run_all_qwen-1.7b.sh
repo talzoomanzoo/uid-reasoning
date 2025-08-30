@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e  # Exit on any error
-
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 export HF_HUB_ENABLE_HF_TRANSFER=1
 # Function to run script with logging
@@ -23,9 +22,12 @@ run_script() {
 }
 
 # Run scripts sequentially
-run_script "ds-1.5b-aime-high-variance.sh"
-run_script "ds-1.5b-aime-low-gini.sh"
-run_script "ds-1.5b-aime-low-shannon.sh"
-run_script "ds-1.5b-aime-low-variance.sh"
+run_script "qwen-1.7b-aime.sh"
+run_script "qwen-1.7b-aime-high-gini.sh"
+run_script "qwen-1.7b-aime-high-shannon.sh"
+run_script "qwen-1.7b-aime-high-variance.sh"
+run_script "qwen-1.7b-aime-low-gini.sh"
+run_script "qwen-1.7b-aime-low-shannon.sh"
+run_script "qwen-1.7b-aime-low-variance.sh"
 
 echo "All scripts completed successfully!"
