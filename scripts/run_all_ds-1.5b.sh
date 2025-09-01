@@ -23,9 +23,12 @@ run_script() {
 }
 
 # Run scripts sequentially
-run_script "ds-1.5b-aime-high-variance.sh"
-run_script "ds-1.5b-aime-low-gini.sh"
-run_script "ds-1.5b-aime-low-shannon.sh"
-run_script "ds-1.5b-aime-low-variance.sh"
+run_script "ds-1.5b-gpqa-diamond-high-variance.sh"
+run_script "ds-1.5b-gpqa-diamond-low-gini.sh"
+run_script "ds-1.5b-gpqa-diamond-low-shannon.sh"
+run_script "ds-1.5b-gpqa-diamond-low-variance.sh"
+run_script "ds-1.5b-gpqa-diamond-high-gini.sh"
+run_script "ds-1.5b-gpqa-diamond-high-shannon.sh"
+run_script "ds-1.5b-gpqa-diamond.sh"
 
 echo "All scripts completed successfully!"

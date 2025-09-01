@@ -1,6 +1,6 @@
 python ../src/run_direct_gen_uid_dev.py --model_path talzoomanzoo/deepseek-1.5b-highest-uid-shannon-fft \
-   --dataset_name aime \
-   --split test \
-   --batch_size 30 \
-   --data_limit 30 \
+   --dataset_name gpqa \
+   --split diamond \
+   --batch_size 198 \
+   --data_limit 198 \
    --sample_limit 1
