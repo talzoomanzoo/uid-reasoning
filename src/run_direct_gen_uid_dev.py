@@ -227,9 +227,9 @@ async def main(args):
                 gpu_memory_utilization=0.90,
                 max_model_len=32768,
                 max_num_seqs=4,
-                enforce_eager=False,
+                enforce_eager=True,
                 dtype="bfloat16",
-                tensor_parallel_size=4,
+                tensor_parallel_size=1,
                 swap_space=32,
         )
                 
@@ -308,13 +308,13 @@ async def main(args):
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
             if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'mmlu', 'livecode']:
-                max_tokens = 32768  
+                max_tokens = 16384  
             else:
-                max_tokens = 32768 
+                max_tokens = 16384 
         else:
-            max_tokens = 32768
+            max_tokens = 16384
     # Adjust max_tokens to fit within the model's context length
-    max_tokens = min(max_tokens, 32768 - 243)  # Ensure total tokens do not exceed 32768
+    max_tokens = min(max_tokens, 16384 - 243)  # Ensure total tokens do not exceed 32768
     # Generate model outputs
     # output_list = llm.generate(
     #     input_list, 

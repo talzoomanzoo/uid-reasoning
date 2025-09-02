@@ -3,6 +3,7 @@ import json
 import sys
 import faulthandler
 import platform
+import types
 
 # used for debugging to time steps
 from datetime import datetime
@@ -18,7 +19,30 @@ from io import StringIO
 # used for testing the code that reads from input
 from unittest.mock import patch, mock_open
 
-from pyext import RuntimeModule
+# Custom RuntimeModule replacement for Python 3.12 compatibility
+class RuntimeModule:
+    @staticmethod
+    def from_string(name, docstring, code_string):
+        """Create a module at runtime from a string containing Python code.
+        
+        Args:
+            name: The module name
+            docstring: Optional module docstring
+            code_string: String containing Python code to execute
+            
+        Returns:
+            A module object with the executed code
+        """
+        module = types.ModuleType(name, docstring)
+        module.__file__ = '<runtime_module>'
+        
+        # Execute the code string in the module's namespace
+        exec(code_string, module.__dict__)
+        
+        # Insert the module into sys.modules
+        sys.modules[name] = module
+        
+        return module
 
 from enum import Enum
 

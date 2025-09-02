@@ -103,7 +103,7 @@ def create_uid_vectors(logprobs_list: List[Dict[int, "Logprob"]]) -> Tuple[List[
         current_h.append(h_token)
 
         # segment boundary if the chosen token visually equals a paragraph break
-        if chosen is not None and ("\n\n" in (chosen.decoded_token or "")):
+        if chosen is not None and ("\n\n" in (chosen.decoded_token)):
             segments_lp.append(current_lp)
             segments_h.append(current_h)
             current_lp, current_h = [], []

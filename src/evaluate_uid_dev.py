@@ -8,7 +8,7 @@ import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
-from utils.calculate_uid_rev import calculate_uid_metrics
+from utils.calculate_uid_rev import calculate_uid_metrics, create_uid_vectors, uid_variance, _nonnegative_mass
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
@@ -263,9 +263,10 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             # Process each output and its metrics
             for idx in range(len(question_samples)):
                 result = question_samples[idx]
-                if type(result) == str:
+                if isinstance(result, str):
                     item[f'Output_{idx}'] = result
-                elif type(result) == tuple or type(result) == list or type(result) == ChatGeneration or type(result) == RequestOutput:
+                elif isinstance(result, (tuple, list, ChatGeneration, RequestOutput)):
+                    import pdb; pdb.set_trace()
                     item[f'Output_{idx}'] = result.outputs[0].text
                     item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
                     item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result.outputs[0].logprobs)
@@ -355,7 +356,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
                 
             overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
-            overall_mean_validity = np.mean([val for val in question_math_equal_scores.values()])
+            overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
 
         # Compute overall metrics
         overall_results = {
@@ -375,6 +376,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
                     # 'query_latency': f'{(total_time / (len(input_list) * sample_limit) * 1000):.0f} s',
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
+                    'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
                     'total_time': f'{total_time:.0f} s',
                 }
 
