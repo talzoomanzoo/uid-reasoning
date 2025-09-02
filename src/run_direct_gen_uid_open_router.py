@@ -7,7 +7,7 @@ import os, time
 import numpy as np
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
-from evaluate_uid_dev import run_evaluation
+from evaluate_uid_open_router import run_evaluation
 from prompts import (
     get_task_instruction_openqa, 
     get_task_instruction_math, 
@@ -18,6 +18,12 @@ from prompts import (
 from tqdm import tqdm
 import argparse
 import asyncio
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage
+from langchain_core.utils.utils import secret_from_env
+from langchain_openai import ChatOpenAI
+from typing import Optional
+from pydantic import Field, SecretStr
 
 #configured medical
 def parse_args():
@@ -177,13 +183,10 @@ async def main(args):
         raise ValueError(f"Unsupported dataset_name: {dataset_name}")
     
     # Load the model
-    if "free" in model_path.lower():
-        pass
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-        if tokenizer.pad_token is None:
-            tokenizer.pad_token = tokenizer.eos_token
-        tokenizer.padding_side = 'left'
+    # tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    # if tokenizer.pad_token is None:
+    #     tokenizer.pad_token = tokenizer.eos_token
+    # tokenizer.padding_side = 'left'
     
     if 'qwen-14b' in model_path.lower():
         model_short_name = 'ds-qwen-14b'
@@ -221,18 +224,59 @@ async def main(args):
     else:
         output_dir = f'./outputs/runs.baselines/{dataset_name}.{model_short_name}.direct'
     os.makedirs(output_dir, exist_ok=True)
-
-    llm = LLM(
-                model=model_path,
-                gpu_memory_utilization=0.90,
-                max_model_len=32768,
-                max_num_seqs=4,
-                enforce_eager=False,
-                dtype="bfloat16",
-                tensor_parallel_size=4,
-                swap_space=32,
+    
+    class ChatOpenRouter(ChatOpenAI):
+        openai_api_key: Optional[SecretStr] = Field(
+            alias="api_key",
+            default_factory=secret_from_env("OPENROUTER_API_KEY", default=None),
         )
+        
+        @property
+        def lc_secrets(self) -> dict[str, str]:
+            return {"openai_api_key": "OPENROUTER_API_KEY"}
+
+        def __init__(self,
+                     openai_api_key: Optional[str] = None,
+                     **kwargs):
+            openai_api_key = (
+                openai_api_key or os.environ.get("OPENROUTER_API_KEY")
+            )
+            super().__init__(
+                base_url="https://openrouter.ai/api/v1",
+                openai_api_key=openai_api_key,
+                **kwargs
+            )
+
+    # llm = LLM(
+    #             model=model_path,
+    #             gpu_memory_utilization=0.90,
+    #             max_model_len=32768,
+    #             max_num_seqs=4,
+    #             enforce_eager=False,
+    #             dtype="bfloat16",
+    #             tensor_parallel_size=4,
+    #             swap_space=32,
+    #     )
                 
+    # sampling_params = SamplingParams(
+    #             top_p=top_p,
+    #             top_k=top_k,
+    #             temperature=temperature,
+    #             max_tokens=max_tokens,
+    #             repetition_penalty=repetition_penalty,
+    #             skip_special_tokens=skip_special_tokens,
+    #             include_stop_str_in_output=True,
+    #             logprobs=1
+    #     )
+    llm = ChatOpenRouter(
+        model=model_path,
+        # api_key=os.environ["OPENROUTER_API_KEY"],
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        logprobs=True,
+    )
+
     sampling_params = SamplingParams(
                 top_p=top_p,
                 top_k=top_k,
@@ -241,9 +285,7 @@ async def main(args):
                 repetition_penalty=repetition_penalty,
                 skip_special_tokens=skip_special_tokens,
                 include_stop_str_in_output=True,
-                logprobs=1
         )
-
 
     # Load data
     with open(data_path, mode='r', encoding='utf-8') as json_file:
@@ -297,7 +339,7 @@ async def main(args):
         else:
             prompt = [{"role": "user", "content": user_prompt}]
 
-        prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True, enable_thinking=True)
+        # prompt = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True, enable_thinking=True)
         input_list.append(prompt)
     
     if subset_num != -1:
@@ -354,13 +396,17 @@ async def main(args):
                 cur_input_list = input_batches[start_index:start_index + batch_size]
                 # Generate sample_limit outputs for each input in the batch
                 for _ in range(sample_limit):  # Generate sample_limit times for each input
-                    batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=sampling_params))
-                    output_list.extend(batch_output)
+                    # Convert strings to proper message format for ChatTogether
+                    messages = [HumanMessage(content=prompt) for prompt in cur_input_list]
+                    batch_output = await llm.agenerate([messages])  # agenerate expects a list of message lists
+                    output_list.extend(batch_output.generations)
         else:
             # Generate sample_limit outputs for each input
             for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
-                batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=sampling_params))
-                output_list.extend(batch_output)
+                # Convert strings to proper message format for ChatTogether
+                messages = [HumanMessage(content=prompt) for prompt in input_batches]
+                batch_output = await llm.agenerate([messages])  # agenerate expects a list of message lists
+                output_list.extend(batch_output.generations)
         return output_list
         #     batch_output = await llm.completions.create(
         #         model=model_path,

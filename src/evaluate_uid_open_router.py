@@ -3,7 +3,7 @@ import re
 import json
 import numpy as np
 from collections import Counter
-import string
+import string   
 import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
@@ -266,9 +266,10 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 if type(result) == str:
                     item[f'Output_{idx}'] = result
                 elif type(result) == tuple or type(result) == list or type(result) == ChatGeneration or type(result) == RequestOutput:
-                    item[f'Output_{idx}'] = result.outputs[0].text
-                    item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
-                    item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result.outputs[0].logprobs)
+                    import pdb; pdb.set_trace()
+                    item[f'Output_{idx}'] = result[0].text
+                    item[f"output_tokens_{idx}"] = result[0].message.usage_metadata['output_tokens']
+                    item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result[0].generation_info['logprobs']['content'])
                     
                 if dataset_name in ['gpqa', 'medmcqa']:
                     labeled_answer = item["Correct Choice"]
