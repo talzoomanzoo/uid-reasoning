@@ -487,3 +487,42 @@ def get_task_instruction_code(question, question_title=None, model_name=None):
         )
     return user_prompt
 
+
+def get_step_splitting_instruction(problem, solution, model_name=None):
+    if model_name == "Qwen/Qwen2.5-0.5B":
+        user_prompt = (
+            'You will be given a solution to a problem. Your task is to improve its readability by reformatting it into well-structured reasoning steps **without altering any of the original content**. Follow these guidelines:\n\n'
+            '1. **Do NOT alter the content**: Preserve the original wording, mathematical expressions, and logic. Especially, don\'t try to solve the problem, FOCUS ON REFORMATTING IT!\n\n'
+            '2. **Do NOT add additional information**: Do not add additional information such as explanations or revision of the given solution.\n\n'
+            '3. **Do NOT remove existing information**: Do not get rid of parts of the given solution regardless of how useful it is.\n\n'
+            '4. **Insert special characters to split into reasoning steps**: Use `[SPLIT]` to separate distinct reasoning steps and `[END]` to indicate that you are done. Examples of reasoning steps include:\n'
+            '   - Introductory analysis or setup.\n'
+            '   - Making assumptions.\n'
+            '   - Case discussions.\n'
+            '   - Checking whether the logic mentioned in the previous reasoning step is valid.\n'
+            '   - Formula derivations or simplifications.\n'
+            '   - Conclusions or final results.\n\n'
+            '5. The reformated solution would look like:\n'
+            '```\n'
+            '(reasoning step 1)[SPLIT](reasoning step 2)[SPLIT](reasoning step 3)[SPLIT] ... [SPLIT](reasoning step N)[END]\n'
+            '```\n\n'
+            '6. **Avoid overly granular reasoning steps**: Ensure that each reasoning step contains enough information to be meaningful and self-contained. Avoid splitting the solution into excessively small or trivial steps, as this can make the reasoning fragmented and harder to follow. Instead, aim to group related ideas, calculations, or explanations into cohesive blocks that provide sufficient context and logical progression.\n'
+            '    - Mathematical expressions: Keep mathematical expressions, derivations, or expansions within the same reasoning step as the surrounding text to maintain cohesion. For example, if expanding an equation to solve for a variable, include the entire expansion process in a single reasoning step rather than breaking it into multiple steps.\n'
+            '    - Logical flow: Group steps that are part of the same logical flow or task. For instance, if solving a problem involves multiple related calculations or transformations, combine them into a single reasoning step rather than separating each minor operation.\n'
+            '    - Sweet spot: Strive for a balance where reasoning steps are neither too long (overwhelming) nor too short (trivial). Each step should be substantial enough to stand on its own while contributing to the overall solution.\n'
+            '    - Meaningful chunks: Focus on creating reasoning steps that represent distinct, meaningful phases of the solution. For example, in a multi-step problem, each reasoning step could correspond to a major task (e.g., setting up the problem, performing calculations, interpreting results).\n\n'
+            '7. **Use key phrases to split into reasoning steps**: If the solution includes certain phrases such as "First", "Second", "Lastly", "(A)", "(B)", "1)", "2)", "Next", "Finally", "Since", and "If", try to split the solution into separate reasoning steps using these phrases as identifiers. For example, you could insert "[SPLIT]" before those keyphrases. However, try not to rely on "\\n" as an identifier when splitting into reasoning steps.\n\n'
+            '8. **Focus on readability**: Ensure the reformatted solution is easy to follow while retaining the original structure and content.\n\n'
+            '9. **Segment code**: When a code solution is provided, segment it into meaningful, cohesive blocks based on logical functionality or purpose. Avoid splitting the code line by line unless absolutely necessary. Instead, group related lines of code into distinct units that represent specific tasks, phases, or logical steps.\n'
+            '    - Function definitions: If the code defines a function, separate the function definition (e.g., signature and docstring) from its implementation or usage.\n'
+            '    - Logical phases: If the code involves multiple logical phases (e.g., data preprocessing, model training, and evaluation), segment the code into blocks corresponding to each phase.\n'
+            '    - Specific tasks: If a block of code performs a specific task (e.g., a loop, conditional block, or data transformation), treat it as a single reasoning step.\n'
+            '    - Comments: Comments should NEVER be treated as separate reasoning steps. Always include comments with their corresponding code to maintain context and clarity.\n'
+            '    - Natural grouping: Focus on grouping the code into natural, logical segments that improve readability and understanding, without considering the executability of the code.\n\n'
+            '--------------------------------------------------\n\n'
+            'Start writing after the "[Reformatted Solution]" identifier without generating any opening, closing, and explanations. Do NOT rewrite or modify the original content. Don\'t repeat the "[Reformatted Solution]" identifier as well.\n\n'
+            'Here is the problem, and the solution that needs to be reformatted:\n\n'
+            f'Problem: {problem}\n\n'
+            f'Solution: {solution}\n\n'
+        )
+    return user_prompt
