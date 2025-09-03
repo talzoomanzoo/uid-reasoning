@@ -286,6 +286,7 @@ async def main(args):
                     data_limit=len(data_batch),
                     sample_limit=args.sample_limit,
                     model_path=args.model_path,
+                    batch_size=args.batch_size,
                     apply_backoff=False
                 )
             except Exception as e:
@@ -305,6 +306,7 @@ async def main(args):
         len(full_data),
         args.sample_limit,
         args.model_path,
+        args.batch_size,
         apply_backoff=False
     )
 

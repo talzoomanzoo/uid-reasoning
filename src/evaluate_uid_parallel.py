@@ -8,7 +8,7 @@ import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
-from utils.calculate_uid_rev import calculate_uid_metrics
+from utils.calculate_uid_parallel import calculate_uid_metrics
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
@@ -138,7 +138,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, batch_size, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -266,10 +266,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 if isinstance(result, str):
                     item[f'Output_{idx}'] = result
                 elif isinstance(result, (tuple, list, ChatGeneration, RequestOutput)):
-                    import pdb; pdb.set_trace()
                     item[f'Output_{idx}'] = result.outputs[0].text
                     item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
-                    item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result.outputs[0].logprobs, result.prompt, result.outputs[0].text, args.batch_size) #logprobs, question, solution, batchsize
+                    item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result.outputs[0].logprobs, result.prompt, result.outputs[0].text, batch_size) #logprobs, question, solution, batchsize
                     
                 if dataset_name in ['gpqa', 'medmcqa']:
                     labeled_answer = item["Correct Choice"]

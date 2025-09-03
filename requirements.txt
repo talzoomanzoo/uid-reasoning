@@ -99,7 +99,6 @@ pycparser==2.22
 pydantic==2.11.7
 pydantic-extra-types==2.10.5
 pydantic_core==2.33.2
-pyext==0.7
 Pygments==2.19.2
 python-dotenv==1.1.1
 python-json-logger==3.3.0

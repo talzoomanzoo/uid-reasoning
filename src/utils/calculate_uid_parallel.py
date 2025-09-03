@@ -102,8 +102,12 @@ def segment_logprobs_by_prompting(logprobs_list: List[Dict[int, "Logprob"]], que
         include_stop_str_in_output=False,
     )
     
-    prompt = get_step_splitting_instruction(question, solution)
-    response = segment_llm.generate([prompt], sampling_params)
+    def make_prompt(question, solution) -> str:
+        return get_step_splitting_instruction(question, solution, model_name="Qwen/Qwen2.5-0.5B")
+    
+    prompts = [make_prompt(question, solution)]
+
+    response = segment_llm.generate(prompts, sampling_params)
     
     
     # Extract the response text
