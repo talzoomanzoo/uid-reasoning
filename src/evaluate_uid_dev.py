@@ -247,7 +247,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # Existing evaluation for other datasets
         avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
 
-        # If the dataset is GPQA, track metrics per domain
+        # If the dataset is GPQA or math500, track metrics per domain
         domain_metrics = {}
 
         # Track math_equal accuracy and validity per question
@@ -297,7 +297,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
                 # Track scores for this question
-                if dataset_name != 'gpqa':
+                if dataset_name != 'gpqa' and dataset_name != 'math500':
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
                     # Store the original metrics for backward compatibility
@@ -309,7 +309,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                         num_valid_answer += 1
 
                 # If the dataset is GPQA, track metrics per domain
-                if dataset_name == 'gpqa':
+                elif dataset_name == 'gpqa':
                     domain = item.get("High-level domain", "Unknown")
                     if domain not in domain_metrics:
                         domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0}
@@ -329,9 +329,30 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
 
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if is_valid else 0)
+                
+                elif dataset_name == 'math500':
+                    level = item.get("level", "Unknown")
+                    if level not in domain_metrics:
+                        domain_metrics[level] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0}
+                    
+                    # Add metrics for this output to the level
+                    domain_metrics[level]['em'].append(metric['em'])
+                    domain_metrics[level]['acc'].append(metric['acc'])
+                    domain_metrics[level]['f1'].append(metric['f1'])
+                    domain_metrics[level]['math_equal'].append(metric['math_equal'])
+                    domain_metrics[level]['total_num'] += 1
+                    
+                    if idx == 0:
+                        item['Question'] = input_prompt
+                    
+                    if is_valid:
+                        domain_metrics[level]['num_valid_answer'] += 1
+                        
+                    question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
+                    question_validity_scores[question_idx].append(1 if is_valid else 0)
 
         # Compute mean accuracy and validity per question
-        if dataset_name != 'gpqa':
+        if dataset_name != 'gpqa' and dataset_name != 'math500':
             question_mean_accuracies = {}
             question_mean_validities = {}
             for question_idx in question_math_equal_scores.keys():
@@ -379,9 +400,23 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
                     'total_time': f'{total_time:.0f} s',
                 }
+                
+        elif dataset_name == 'math500':
+            for dm, m in domain_metrics.items():
+                domain_avg_metrics[dm] = {
+                    'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
+                    'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
+                    'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
+                    'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
+                    'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
+                    'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
+                    'total_time': f'{total_time:.0f} s',
+                }
 
         final_metrics = {'overall': overall_results}
         if dataset_name == 'gpqa':
+            final_metrics['per_domain'] = domain_avg_metrics
+        elif dataset_name == 'math500':
             final_metrics['per_domain'] = domain_avg_metrics
 
         t = time.localtime()
