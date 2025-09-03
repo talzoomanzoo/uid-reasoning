@@ -8,7 +8,7 @@ import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
-from utils.calculate_uid_rev import calculate_uid_metrics, create_uid_vectors, uid_variance, _nonnegative_mass
+from utils.calculate_uid_rev import calculate_uid_metrics
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
@@ -269,7 +269,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     import pdb; pdb.set_trace()
                     item[f'Output_{idx}'] = result.outputs[0].text
                     item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
-                    item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result.outputs[0].logprobs, result.outputs[0].text, args.batch_size)
+                    item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result.outputs[0].logprobs, result.prompt, result.outputs[0].text, args.batch_size) #logprobs, question, solution, batchsize
                     
                 if dataset_name in ['gpqa', 'medmcqa']:
                     labeled_answer = item["Correct Choice"]
@@ -385,8 +385,8 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             final_metrics['per_domain'] = domain_avg_metrics
 
         t = time.localtime()
-        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}.json'
-        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}.metrics.json'
+        result_json_name = f'llm_segmented_{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}.json'
+        metrics_json_name = f'llm_segmented_{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}.metrics.json'
         if apply_backoff:
             result_json_name = output_dir.replace('.json', f'.backoff.{sample_limit}.json')
             metrics_json_name = output_dir.replace('.json', f'.metrics.backoff.{sample_limit}.json')

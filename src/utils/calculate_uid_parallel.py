@@ -23,7 +23,7 @@ except Exception:  # pragma: no cover - allow running without vLLM installed
 # Public API
 # ------------------------------
 
-def calculate_uid_metrics(logprobs_list: List[Dict[int, "Logprob"]], text: str, batch_size: int) -> Dict[str, float]:
+def calculate_uid_metrics(logprobs_list: List[Dict[int, "Logprob"]], question: str, solution: str, batch_size: int) -> Dict[str, float]:
     """
     Calculate UID operationalizations for a single reasoning trace, following UID_PoC.
 
@@ -41,7 +41,7 @@ def calculate_uid_metrics(logprobs_list: List[Dict[int, "Logprob"]], text: str, 
           - H-only (avg entropy per segment; full distribution when available)
           - D-only (confidence gap: Δ LP_i across segments)
     """ 
-    uid_eq, uid_lp, uid_h, uid_d = create_uid_vectors(logprobs_list, text, batch_size)
+    uid_eq, uid_lp, uid_h, uid_d = create_uid_vectors(logprobs_list, question, solution, batch_size)
 
     return {
         # composite
@@ -70,9 +70,9 @@ def calculate_uid_metrics(logprobs_list: List[Dict[int, "Logprob"]], text: str, 
 # UID(z) vector construction
 # ------------------------------
 
-def segment_logprobs_by_newlines(logprobs_list: List[Dict[int, "Logprob"]], batch_size: int) -> Tuple[List[List[float]], List[List[float]]]:
+def segment_logprobs_by_prompting(logprobs_list: List[Dict[int, "Logprob"]], question: str, solution: str, batch_size: int) -> Tuple[List[List[float]], List[List[float]]]:
     """
-    Segment logprobs into segments based on "\n\n" boundaries in chosen tokens.
+    Segment logprobs into segments by prompting the model to split the solution into steps.
     
     Returns
     -------
@@ -81,8 +81,6 @@ def segment_logprobs_by_newlines(logprobs_list: List[Dict[int, "Logprob"]], batc
     """
     segments_lp: List[List[float]] = []        # chosen-token logprobs per step
     segments_h: List[List[float]] = []         # full-distribution entropy per step
-    current_lp: List[float] = []
-    current_h: List[float] = []
     
     model_path = "Qwen/Qwen2.5-0.5B"
     segment_llm = LLM(model=model_path,
@@ -104,22 +102,66 @@ def segment_logprobs_by_newlines(logprobs_list: List[Dict[int, "Logprob"]], batc
         include_stop_str_in_output=False,
     )
     
-    for question, solution in zip(questions, solutions):
-        prompt = get_step_splitting_instruction(question, solution)
-        response = segment_llm.generate([prompt], sampling_params)
-        response = response.outputs[0].text
-        response = response.split("\n\n")
-        response = [r.strip() for r in response if r.strip()]
-        
-        for r in response:
-            if r.startswith("(reasoning step"):
-                current_lp.append(r)
-            elif r.startswith("(end)"):
-                segments_lp.append(current_lp)
-                current_lp = []
-        segments_h.append(current_lp)
+    prompt = get_step_splitting_instruction(question, solution)
+    response = segment_llm.generate([prompt], sampling_params)
+    
+    
+    # Extract the response text
+    response_text = response[0].outputs[0].text if response and response[0].outputs else ""
+    print("segment_llm_response:", response_text)
+    
+    # Parse the reasoning steps from the response
+    # Expected format: '(reasoning step 1)[SPLIT](reasoning step 2)[SPLIT]...(reasoning step N)[END]'
+    reasoning_steps = []
+    if response_text:
+        # Split by [SPLIT] and remove the [END] marker
+        parts = response_text.split('[SPLIT]')
+        print("parts:", parts)
+        for part in parts:
+            part = part.strip()
+            if part.startswith('(') and part.endswith(')'):
+                # Extract the content between parentheses
+                step_content = part[1:-1]  # Remove outer parentheses
+                if step_content.startswith('reasoning step'):
+                    # Extract the actual reasoning content
+                    step_text = step_content.replace('reasoning step', '').strip()
+                    if step_text:
+                        reasoning_steps.append(step_text)
+    
+    # If no valid steps found, fall back to single segment
+    if not reasoning_steps:
+        # Process all logprobs as a single segment
         current_lp = []
-                
+        current_h = []
+        
+        for token in logprobs_list:
+            if not token:
+                # empty token; treat as neutral
+                chosen = None
+                token_logprobs = []
+            else:
+                # choose the argmax logprob as the generated token (heuristic)
+                chosen = max(token.values(), key=lambda o: float(o.logprob))
+                token_logprobs = [float(o.logprob) for o in token.values()]
+
+            # avg logprob uses the chosen token
+            lp_chosen = float(chosen.logprob) if chosen is not None else 0.0
+            current_lp.append(lp_chosen)
+
+            # step entropy uses full (or top-k) distribution, renormalized
+            h_token = entropy_from_logprobs(token_logprobs)
+            current_h.append(h_token)
+        
+        segments_lp = [current_lp]
+        segments_h = [current_h]
+        return segments_lp, segments_h
+    
+    # Now segment the logprobs based on the reasoning steps
+    # We need to match each reasoning step with the corresponding tokens in the solution
+    current_lp = []
+    current_h = []
+    step_idx = 0
+    
     for token in logprobs_list:
         if not token:
             # empty token; treat as neutral
@@ -137,18 +179,25 @@ def segment_logprobs_by_newlines(logprobs_list: List[Dict[int, "Logprob"]], batc
         # step entropy uses full (or top-k) distribution, renormalized
         h_token = entropy_from_logprobs(token_logprobs)
         current_h.append(h_token)
-
-        # segment boundary if the chosen token visually equals a paragraph break
-        if chosen is not None and ("\n\n" in (chosen.decoded_token)):
-            segments_lp.append(current_lp)
-            segments_h.append(current_h)
-            current_lp, current_h = [], []
-
-    # flush trailing
+        
+        # Check if we've reached the end of a reasoning step
+        # This is a heuristic - we'll segment based on the reasoning steps identified by the LLM
+        if step_idx < len(reasoning_steps) and chosen is not None:
+            # Simple heuristic: segment every N tokens where N is roughly total_tokens / num_steps
+            tokens_per_step = len(logprobs_list) // len(reasoning_steps)
+            if len(current_lp) >= tokens_per_step and step_idx < len(reasoning_steps) - 1:
+                segments_lp.append(current_lp)
+                segments_h.append(current_h)
+                current_lp, current_h = [], []
+                step_idx += 1
+    
+    # Add the final segment
     if current_lp:
+        print("current_lp:", current_lp)
+        print("current_h:", current_h)
         segments_lp.append(current_lp)
         segments_h.append(current_h)
-
+    
     # Edge case: if no segments were found, create a single segment
     if not segments_lp:
         segments_lp = [current_lp or [0.0]]
@@ -156,20 +205,16 @@ def segment_logprobs_by_newlines(logprobs_list: List[Dict[int, "Logprob"]], batc
     
     return segments_lp, segments_h
 
-def create_uid_vectors(logprobs_list: List[Dict[int, "Logprob"]], text: str, batch_size: int) -> Tuple[List[float], List[float], List[float], List[float]]:
+def create_uid_vectors(logprobs_list: List[Dict[int, "Logprob"]], question: str, solution: str, batch_size: int) -> Tuple[List[float], List[float], List[float], List[float]]:
     """
     Build UID vectors per segment.
-
-    Segmentation rule: split when the chosen token's decoded text contains "\n\n".
-    Since we don't have the explicitly chosen token, we assume it is the token with the
-    highest log-probability within that step's dictionary (a common case).
 
     Returns
     -------
     uid_vector_equal, uid_vector_logprob, uid_vector_entropy, uid_vector_confidence_gap
     """
-    # 1) Segment steps by "\\n\\n" observed on the chosen token
-    segments_lp, segments_h = segment_logprobs_by_newlines(logprobs_list, text, batch_size)
+    # 1) Segment steps by prompting the model to split the solution into steps
+    segments_lp, segments_h = segment_logprobs_by_prompting(logprobs_list, question, solution, batch_size)
 
     # 2) Aggregate per-segment statistics
     lp_values = [float(np.mean(seg)) if len(seg) > 0 else 0.0 for seg in segments_lp]

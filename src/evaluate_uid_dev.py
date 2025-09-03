@@ -266,7 +266,6 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 if isinstance(result, str):
                     item[f'Output_{idx}'] = result
                 elif isinstance(result, (tuple, list, ChatGeneration, RequestOutput)):
-                    import pdb; pdb.set_trace()
                     item[f'Output_{idx}'] = result.outputs[0].text
                     item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
                     item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result.outputs[0].logprobs)

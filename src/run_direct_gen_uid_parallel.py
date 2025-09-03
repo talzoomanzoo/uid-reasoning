@@ -7,7 +7,7 @@ import os, time
 import numpy as np
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
-from evaluate_uid_dev import run_evaluation
+from evaluate_uid_parallel import run_evaluation
 from prompts import (
     get_task_instruction_openqa, 
     get_task_instruction_math, 
@@ -178,9 +178,9 @@ async def main(args):
         gpu_memory_utilization=0.65,
         max_model_len=32768,
         max_num_seqs=max(4, args.batch_size),   # allow full batches
-        enforce_eager=True,
+        enforce_eager=False,
         dtype="bfloat16",
-        tensor_parallel_size=1,
+        tensor_parallel_size=4,
         swap_space=32,
     )
 
