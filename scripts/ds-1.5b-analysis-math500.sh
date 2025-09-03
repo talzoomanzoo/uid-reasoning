@@ -1,0 +1,1 @@
+python ../src/analysis_by_uid.py --input /workspace/uid-reasoning/scripts/outputs/runs.baselines/math500.deepseek-r1-distill-qwen-1.5b.direct/test.9.3,14:4-1.json --outdir ../src/analysis_out --analysis_by_level True

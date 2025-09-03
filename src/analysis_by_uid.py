@@ -396,10 +396,198 @@ def extract_shannon_equal_outputs(data, outdir, filename_prefix):
     return shannon_file
 
 
+def analyze_uid_accuracy_by_level(data):
+    """
+    Analyze accuracy based on UID scores, grouped by difficulty level.
+    For each problem, find outputs with highest and lowest UID scores for each metric,
+    then calculate their accuracy, grouped by level.
+    """
+    
+    # Define UID metrics to analyze
+    uid_metrics = [
+        "uid_variance_equal", "uid_gini_equal", "uid_shannon_equal",
+        "uid_variance_logprob", "uid_gini_logprob", "uid_shannon_logprob", 
+        "uid_variance_entropy", "uid_gini_entropy", "uid_shannon_entropy",
+        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap"
+    ]
+    
+    # Group problems by level
+    problems_by_level = defaultdict(list)
+    for problem in data:
+        level = problem.get('level', 'unknown')
+        problems_by_level[level].append(problem)
+    
+    level_results = {}
+    
+    for level, level_problems in problems_by_level.items():
+        results = {
+            'highest_uid': defaultdict(list),
+            'lowest_uid': defaultdict(list)
+        }
+        
+        for problem in level_problems:
+            problem_id = problem.get('id', 'unknown')
+            
+            # Find all outputs for this problem
+            outputs = []
+            i = 0
+            while f'Output_{i}' in problem:
+                output_key = f'Output_{i}'
+                metrics_key = f'Metrics_{i}'
+                uid_metrics_key = f'uid_metrics_{i}'
+                
+                if uid_metrics_key in problem and metrics_key in problem:
+                    outputs.append({
+                        'index': i,
+                        'uid_metrics': problem[uid_metrics_key],
+                        'accuracy': problem[metrics_key].get('acc', 0),
+                        'exact_match': problem[metrics_key].get('em', 0),
+                        'f1': problem[metrics_key].get('f1', 0)
+                    })
+                i += 1
+            
+            if not outputs:
+                continue
+                
+            # Analyze each UID metric
+            for metric in uid_metrics:
+                # Find output with highest UID score
+                highest_output = max(outputs, key=lambda x: x['uid_metrics'].get(metric, -float('inf')))
+                highest_uid_score = highest_output['uid_metrics'].get(metric, 0)
+                
+                # Find output with lowest UID score
+                lowest_output = min(outputs, key=lambda x: x['uid_metrics'].get(metric, float('inf')))
+                lowest_uid_score = lowest_output['uid_metrics'].get(metric, 0)
+                
+                # Store results
+                results['highest_uid'][metric].append({
+                    'problem_id': problem_id,
+                    'output_index': highest_output['index'],
+                    'uid_score': highest_uid_score,
+                    'accuracy': highest_output['accuracy'],
+                    'exact_match': highest_output['exact_match'],
+                    'f1': highest_output['f1']
+                })
+                
+                results['lowest_uid'][metric].append({
+                    'problem_id': problem_id,
+                    'output_index': lowest_output['index'],
+                    'uid_score': lowest_uid_score,
+                    'accuracy': lowest_output['accuracy'],
+                    'exact_match': lowest_output['exact_match'],
+                    'f1': lowest_output['f1']
+                })
+        
+        level_results[level] = results
+    
+    return level_results
+
+
+def create_level_boxplots(level_summary, level_results, outdir, filename_prefix, input_filename=None):
+    """Create boxplots for each level showing UID analysis results."""
+    # Set up the plotting style
+    plt.style.use('default')
+    sns.set_palette("husl")
+    
+    # Get all levels
+    levels = sorted(level_summary.keys())
+    
+    # Create figure with subplots for each level
+    fig, axes = plt.subplots(len(levels), 1, figsize=(16, 6 * len(levels)))
+    if len(levels) == 1:
+        axes = [axes]
+    
+    if input_filename:
+        dataset_name = input_filename.split("/")[-2] if "/" in input_filename else input_filename.replace(".json", "")
+        fig.suptitle('UID Analysis by Difficulty Level: Mean Accuracy by Individual Metric \n ' + dataset_name, fontsize=16, fontweight='bold')
+    else:
+        fig.suptitle('UID Analysis by Difficulty Level: Mean Accuracy by Individual Metric \n ' + filename_prefix, fontsize=16, fontweight='bold')
+    
+    plot_files = []  # Track individual plot files
+    
+    for i, level in enumerate(levels):
+        ax = axes[i]
+        summary = level_summary[level]
+        
+        # Get metrics for this level
+        metrics = list(summary['highest_uid'].keys())
+        metric_labels = [metric.replace('uid_', '').replace('_', ' ').title() for metric in metrics]
+        
+        # Get data for this level
+        highest_mean_acc = [summary['highest_uid'][metric]['mean_accuracy'] for metric in metrics]
+        lowest_mean_acc = [summary['lowest_uid'][metric]['mean_accuracy'] for metric in metrics]
+        
+        x = np.arange(len(metric_labels))
+        width = 0.35
+        
+        bars_highest = ax.bar(x - width/2, highest_mean_acc, width, label='Highest UID', color='lightblue', alpha=0.8)
+        bars_lowest = ax.bar(x + width/2, lowest_mean_acc, width, label='Lowest UID', color='lightcoral', alpha=0.8)
+
+        # Add value labels on top of bars
+        for bar, value in zip(bars_highest, highest_mean_acc):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                    f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        for bar, value in zip(bars_lowest, lowest_mean_acc):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                    f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        ax.set_xlabel('UID Metrics')
+        ax.set_ylabel('Mean Accuracy')
+        ax.set_title(f'Level {level} - Mean Accuracy by UID Metric')
+        ax.set_xticks(x)
+        ax.set_xticklabels(metric_labels, rotation=45, ha='right')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.set_ylim(0, 1.1)
+        
+        # Create individual plot for this level
+        plt.figure(figsize=(12, 8))
+        individual_ax = plt.gca()
+        
+        bars_highest_ind = individual_ax.bar(x - width/2, highest_mean_acc, width, label='Highest UID', color='lightblue', alpha=0.8)
+        bars_lowest_ind = individual_ax.bar(x + width/2, lowest_mean_acc, width, label='Lowest UID', color='lightcoral', alpha=0.8)
+
+        # Add value labels on top of bars for individual plot
+        for bar, value in zip(bars_highest_ind, highest_mean_acc):
+            individual_ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                              f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        for bar, value in zip(bars_lowest_ind, lowest_mean_acc):
+            individual_ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                              f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        individual_ax.set_xlabel('UID Metrics')
+        individual_ax.set_ylabel('Mean Accuracy')
+        individual_ax.set_title(f'Level {level} - UID Analysis: Mean Accuracy by Individual Metric')
+        individual_ax.set_xticks(x)
+        individual_ax.set_xticklabels(metric_labels, rotation=45, ha='right')
+        individual_ax.legend()
+        individual_ax.grid(True, alpha=0.3)
+        individual_ax.set_ylim(0, 1.1)
+        
+        # Save individual level plot
+        individual_plot_file = os.path.join(outdir, f"{filename_prefix}_uid_analysis_level_{level}.png")
+        plt.savefig(individual_plot_file, dpi=300, bbox_inches='tight')
+        plt.close()
+        plot_files.append(individual_plot_file)
+    
+    plt.tight_layout()
+    
+    # Save the combined plot
+    combined_plot_file = os.path.join(outdir, f"{filename_prefix}_uid_analysis_by_level.png")
+    plt.savefig(combined_plot_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    return combined_plot_file, plot_files
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=str, required=True)
     parser.add_argument("--outdir", default="analysis_out")
+    parser.add_argument("--analysis_by_level", default=False, required=False)
+
     args = parser.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)
@@ -431,7 +619,7 @@ def main():
             stats = summary[uid_type][metric]
             print(f"{metric:35} | Accuracy: {stats['mean_accuracy']:.4f} ± {stats['std_accuracy']:.4f} | "
                   f"Exact Match: {stats['mean_exact_match']:.4f} ± {stats['std_exact_match']:.4f} | "
-                  f"F1: {stats['mean_f1']:.4f} ± {stats['std_f1']:.4f} | "
+                  f"F1: {stats['mean_f1']:.4f} ± {stats['mean_f1']:.4f} | "
                   f"UID Score: {stats['mean_uid_score']:.4f} ± {stats['std_uid_score']:.4f}")
     
     # Print aggregated results
@@ -476,6 +664,85 @@ def main():
     aggregated_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_aggregated.json")
     with open(aggregated_file, "w") as f:
         json.dump(aggregated, f, indent=2)
+    
+    # Analysis by level if requested
+    if args.analysis_by_level:
+        print("\n" + "="*80)
+        print("ANALYSIS BY DIFFICULTY LEVEL")
+        print("="*80)
+        
+        # Analyze UID-based accuracy by level
+        level_results = analyze_uid_accuracy_by_level(data)
+        
+        # Calculate summary statistics for each level
+        level_summary = {}
+        for level, level_data in level_results.items():
+            level_summary[level] = calculate_summary_stats(level_data)
+        
+        # Calculate aggregated statistics for each level
+        level_aggregated = {}
+        for level, level_data in level_results.items():
+            # We need to pass the summary, not the raw results
+            level_aggregated[level] = calculate_aggregated_stats(level_summary[level])
+        
+        # Print results by level
+        for level in sorted(level_summary.keys()):
+            print(f"\nLEVEL {level} - ACCURACY ANALYSIS BASED ON UID SCORES:")
+            print("-" * 60)
+            
+            for uid_type in ['highest_uid', 'lowest_uid']:
+                print(f"\n{uid_type.upper().replace('_', ' ')} UID SCORES:")
+                print("-" * 40)
+                
+                for metric in sorted(level_summary[level][uid_type].keys()):
+                    stats = level_summary[level][uid_type][metric]
+                    print(f"{metric:35} | Accuracy: {stats['mean_accuracy']:.4f} ± {stats['std_accuracy']:.4f} | "
+                          f"Exact Match: {stats['mean_exact_match']:.4f} ± {stats['std_exact_match']:.4f} | "
+                          f"F1: {stats['mean_f1']:.4f} ± {stats['std_f1']:.4f} | "
+                          f"UID Score: {stats['mean_uid_score']:.4f} ± {stats['std_uid_score']:.4f}")
+            
+            # Print aggregated results for this level
+            print(f"\nLEVEL {level} - AGGREGATED STATISTICS:")
+            print("-" * 40)
+            stats = level_aggregated[level]
+            for uid_type in ['highest_uid', 'lowest_uid']:
+                print(f"\n{uid_type.upper().replace('_', ' ')} UID SCORES (AGGREGATED):")
+                print("-" * 30)
+                level_stats = stats[uid_type]
+                print(f"Mean Accuracy: {level_stats['mean_accuracy']:.4f} ± {level_stats['std_accuracy']:.4f}")
+                print(f"Mean Accuracy Std: {level_stats['mean_accuracy_std']:.4f} ± {level_stats['std_accuracy_std']:.4f}")
+                print(f"Mean Exact Match: {level_stats['mean_exact_match']:.4f} ± {level_stats['mean_exact_match_std']:.4f}")
+                print(f"Mean Exact Match Std: {level_stats['mean_exact_match_std']:.4f} ± {level_stats['std_exact_match_std']:.4f}")
+                print(f"Mean F1: {level_stats['mean_f1']:.4f} ± {level_stats['std_f1']:.4f}")
+                print(f"Mean F1 Std: {level_stats['mean_f1_std']:.4f} ± {level_stats['std_f1_std']:.4f}")
+                print(f"Mean UID Score: {level_stats['mean_uid_score']:.4f} ± {level_stats['std_uid_score']:.4f}")
+                print(f"Mean UID Score Std: {level_stats['mean_uid_score_std']:.4f} ± {level_stats['std_uid_score_std']:.4f}")
+        
+        # Create level-specific boxplots
+        level_plot_file, individual_level_plots = create_level_boxplots(level_summary, level_results, args.outdir, filename_prefix, args.input)
+        
+        # Save level-specific results
+        level_results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_analysis_by_level.json")
+        with open(level_results_file, "w") as f:
+            json.dump(level_results, f, indent=2)
+        
+        # Save level-specific summary
+        level_summary_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_summary_by_level.json")
+        with open(level_summary_file, "w") as f:
+            json.dump(level_summary, f, indent=2)
+        
+        # Save level-specific aggregated results
+        level_aggregated_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_aggregated_by_level.json")
+        with open(level_aggregated_file, "w") as f:
+            json.dump(level_aggregated, f, indent=2)
+        
+        print(f"\nLevel-specific detailed results saved to: {level_results_file}")
+        print(f"Level-specific summary saved to: {level_summary_file}")
+        print(f"Level-specific aggregated results saved to: {level_aggregated_file}")
+        print(f"Level-specific combined boxplots saved to: {level_plot_file}")
+        print(f"Individual level plots saved to:")
+        for plot_file in individual_level_plots:
+            print(f"  - {plot_file}")
     
     print(f"\nDetailed results saved to: {results_file}")
     print(f"Summary saved to: {summary_file}")
