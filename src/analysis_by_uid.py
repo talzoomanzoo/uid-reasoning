@@ -582,11 +582,198 @@ def create_level_boxplots(level_summary, level_results, outdir, filename_prefix,
     return combined_plot_file, plot_files
 
 
+def analyze_uid_accuracy_by_domain(data):
+    """
+    Analyze accuracy based on UID scores, grouped by high-level domain.
+    For each problem, find outputs with highest and lowest UID scores for each metric,
+    then calculate their accuracy, grouped by domain.
+    """
+    
+    # Define UID metrics to analyze
+    uid_metrics = [
+        "uid_variance_equal", "uid_gini_equal", "uid_shannon_equal",
+        "uid_variance_logprob", "uid_gini_logprob", "uid_shannon_logprob", 
+        "uid_variance_entropy", "uid_gini_entropy", "uid_shannon_entropy",
+        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap"
+    ]
+    
+    # Group problems by domain
+    problems_by_domain = defaultdict(list)
+    for problem in data:
+        domain = problem.get('High-level domain', 'unknown')
+        problems_by_domain[domain].append(problem)
+    
+    domain_results = {}
+    
+    for domain, domain_problems in problems_by_domain.items():
+        results = {
+            'highest_uid': defaultdict(list),
+            'lowest_uid': defaultdict(list)
+        }
+        
+        for problem in domain_problems:
+            problem_id = problem.get('id', 'unknown')
+            
+            # Find all outputs for this problem
+            outputs = []
+            i = 0
+            while f'Output_{i}' in problem:
+                output_key = f'Output_{i}'
+                metrics_key = f'Metrics_{i}'
+                uid_metrics_key = f'uid_metrics_{i}'
+                
+                if uid_metrics_key in problem and metrics_key in problem:
+                    outputs.append({
+                        'index': i,
+                        'uid_metrics': problem[uid_metrics_key],
+                        'accuracy': problem[metrics_key].get('acc', 0),
+                        'exact_match': problem[metrics_key].get('em', 0),
+                        'f1': problem[metrics_key].get('f1', 0)
+                    })
+                i += 1
+            
+            if not outputs:
+                continue
+                
+            # Analyze each UID metric
+            for metric in uid_metrics:
+                # Find output with highest UID score
+                highest_output = max(outputs, key=lambda x: x['uid_metrics'].get(metric, -float('inf')))
+                highest_uid_score = highest_output['uid_metrics'].get(metric, 0)
+                
+                # Find output with lowest UID score
+                lowest_output = min(outputs, key=lambda x: x['uid_metrics'].get(metric, float('inf')))
+                lowest_uid_score = lowest_output['uid_metrics'].get(metric, 0)
+                
+                # Store results
+                results['highest_uid'][metric].append({
+                    'problem_id': problem_id,
+                    'output_index': highest_output['index'],
+                    'uid_score': highest_uid_score,
+                    'accuracy': highest_output['accuracy'],
+                    'exact_match': highest_output['exact_match'],
+                    'f1': highest_output['f1']
+                })
+                
+                results['lowest_uid'][metric].append({
+                    'problem_id': problem_id,
+                    'output_index': lowest_output['index'],
+                    'uid_score': lowest_uid_score,
+                    'accuracy': lowest_output['accuracy'],
+                    'exact_match': lowest_output['exact_match'],
+                    'f1': lowest_output['f1']
+                })
+        
+        domain_results[domain] = results
+    
+    return domain_results
+
+
+def create_domain_boxplots(domain_summary, domain_results, outdir, filename_prefix, input_filename=None):
+    """Create boxplots for each domain showing UID analysis results."""
+    # Set up the plotting style
+    plt.style.use('default')
+    sns.set_palette("husl")
+    
+    # Get all domains
+    domains = sorted(domain_summary.keys())
+    
+    # Create figure with subplots for each domain
+    fig, axes = plt.subplots(len(domains), 1, figsize=(16, 6 * len(domains)))
+    if len(domains) == 1:
+        axes = [axes]
+    
+    if input_filename:
+        dataset_name = input_filename.split("/")[-2] if "/" in input_filename else input_filename.replace(".json", "")
+        fig.suptitle('UID Analysis by Domain: Mean Accuracy by Individual Metric \n ' + dataset_name, fontsize=16, fontweight='bold')
+    else:
+        fig.suptitle('UID Analysis by Domain: Mean Accuracy by Individual Metric \n ' + filename_prefix, fontsize=16, fontweight='bold')
+    
+    plot_files = []  # Track individual plot files
+    
+    for i, domain in enumerate(domains):
+        ax = axes[i]
+        summary = domain_summary[domain]
+        
+        # Get metrics for this domain
+        metrics = list(summary['highest_uid'].keys())
+        metric_labels = [metric.replace('uid_', '').replace('_', ' ').title() for metric in metrics]
+        
+        # Get data for this domain
+        highest_mean_acc = [summary['highest_uid'][metric]['mean_accuracy'] for metric in metrics]
+        lowest_mean_acc = [summary['lowest_uid'][metric]['mean_accuracy'] for metric in metrics]
+        
+        x = np.arange(len(metric_labels))
+        width = 0.35
+        
+        bars_highest = ax.bar(x - width/2, highest_mean_acc, width, label='Highest UID', color='lightblue', alpha=0.8)
+        bars_lowest = ax.bar(x + width/2, lowest_mean_acc, width, label='Lowest UID', color='lightcoral', alpha=0.8)
+
+        # Add value labels on top of bars
+        for bar, value in zip(bars_highest, highest_mean_acc):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                    f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        for bar, value in zip(bars_lowest, lowest_mean_acc):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                    f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        ax.set_xlabel('UID Metrics')
+        ax.set_ylabel('Mean Accuracy')
+        ax.set_title(f'Domain {domain} - Mean Accuracy by UID Metric')
+        ax.set_xticks(x)
+        ax.set_xticklabels(metric_labels, rotation=45, ha='right')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.set_ylim(0, 1.1)
+        
+        # Create individual plot for this domain
+        plt.figure(figsize=(12, 8))
+        individual_ax = plt.gca()
+        
+        bars_highest_ind = individual_ax.bar(x - width/2, highest_mean_acc, width, label='Highest UID', color='lightblue', alpha=0.8)
+        bars_lowest_ind = individual_ax.bar(x + width/2, lowest_mean_acc, width, label='Lowest UID', color='lightcoral', alpha=0.8)
+
+        # Add value labels on top of bars for individual plot
+        for bar, value in zip(bars_highest_ind, highest_mean_acc):
+            individual_ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                              f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        for bar, value in zip(bars_lowest_ind, lowest_mean_acc):
+            individual_ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                              f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        individual_ax.set_xlabel('UID Metrics')
+        individual_ax.set_ylabel('Mean Accuracy')
+        individual_ax.set_title(f'Domain {domain} - UID Analysis: Mean Accuracy by Individual Metric')
+        individual_ax.set_xticks(x)
+        individual_ax.set_xticklabels(metric_labels, rotation=45, ha='right')
+        individual_ax.legend()
+        individual_ax.grid(True, alpha=0.3)
+        individual_ax.set_ylim(0, 1.1)
+        
+        # Save individual domain plot
+        individual_plot_file = os.path.join(outdir, f"{filename_prefix}_uid_analysis_domain_{domain}.png")
+        plt.savefig(individual_plot_file, dpi=300, bbox_inches='tight')
+        plt.close()
+        plot_files.append(individual_plot_file)
+    
+    plt.tight_layout()
+    
+    # Save the combined plot
+    combined_plot_file = os.path.join(outdir, f"{filename_prefix}_uid_analysis_by_domain.png")
+    plt.savefig(combined_plot_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    return combined_plot_file, plot_files
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=str, required=True)
     parser.add_argument("--outdir", default="analysis_out")
     parser.add_argument("--analysis_by_level", default=False, required=False)
+    parser.add_argument("--analysis_by_domain", default=False, required=False)
 
     args = parser.parse_args()
 
@@ -742,6 +929,85 @@ def main():
         print(f"Level-specific combined boxplots saved to: {level_plot_file}")
         print(f"Individual level plots saved to:")
         for plot_file in individual_level_plots:
+            print(f"  - {plot_file}")
+    
+    # Analysis by domain if requested
+    if args.analysis_by_domain:
+        print("\n" + "="*80)
+        print("ANALYSIS BY HIGH-LEVEL DOMAIN")
+        print("="*80)
+        
+        # Analyze UID-based accuracy by domain
+        domain_results = analyze_uid_accuracy_by_domain(data)
+        
+        # Calculate summary statistics for each domain
+        domain_summary = {}
+        for domain, domain_data in domain_results.items():
+            domain_summary[domain] = calculate_summary_stats(domain_data)
+        
+        # Calculate aggregated statistics for each domain
+        domain_aggregated = {}
+        for domain, domain_data in domain_results.items():
+            # We need to pass the summary, not the raw results
+            domain_aggregated[domain] = calculate_aggregated_stats(domain_summary[domain])
+        
+        # Print results by domain
+        for domain in sorted(domain_summary.keys()):
+            print(f"\nDOMAIN {domain} - ACCURACY ANALYSIS BASED ON UID SCORES:")
+            print("-" * 60)
+            
+            for uid_type in ['highest_uid', 'lowest_uid']:
+                print(f"\n{uid_type.upper().replace('_', ' ')} UID SCORES:")
+                print("-" * 40)
+                
+                for metric in sorted(domain_summary[domain][uid_type].keys()):
+                    stats = domain_summary[domain][uid_type][metric]
+                    print(f"{metric:35} | Accuracy: {stats['mean_accuracy']:.4f} ± {stats['std_accuracy']:.4f} | "
+                          f"Exact Match: {stats['mean_exact_match']:.4f} ± {stats['std_exact_match']:.4f} | "
+                          f"F1: {stats['mean_f1']:.4f} ± {stats['std_f1']:.4f} | "
+                          f"UID Score: {stats['mean_uid_score']:.4f} ± {stats['std_uid_score']:.4f}")
+            
+            # Print aggregated results for this domain
+            print(f"\nDOMAIN {domain} - AGGREGATED STATISTICS:")
+            print("-" * 40)
+            stats = domain_aggregated[domain]
+            for uid_type in ['highest_uid', 'lowest_uid']:
+                print(f"\n{uid_type.upper().replace('_', ' ')} UID SCORES (AGGREGATED):")
+                print("-" * 30)
+                domain_stats = stats[uid_type]
+                print(f"Mean Accuracy: {domain_stats['mean_accuracy']:.4f} ± {domain_stats['std_accuracy']:.4f}")
+                print(f"Mean Accuracy Std: {domain_stats['mean_accuracy_std']:.4f} ± {domain_stats['std_accuracy_std']:.4f}")
+                print(f"Mean Exact Match: {domain_stats['mean_exact_match']:.4f} ± {domain_stats['mean_exact_match_std']:.4f}")
+                print(f"Mean Exact Match Std: {domain_stats['mean_exact_match_std']:.4f} ± {domain_stats['std_exact_match_std']:.4f}")
+                print(f"Mean F1: {domain_stats['mean_f1']:.4f} ± {domain_stats['std_f1']:.4f}")
+                print(f"Mean F1 Std: {domain_stats['mean_f1_std']:.4f} ± {domain_stats['std_f1_std']:.4f}")
+                print(f"Mean UID Score: {domain_stats['mean_uid_score']:.4f} ± {domain_stats['std_uid_score']:.4f}")
+                print(f"Mean UID Score Std: {domain_stats['mean_uid_score_std']:.4f} ± {domain_stats['std_uid_score_std']:.4f}")
+        
+        # Create domain-specific boxplots
+        domain_plot_file, individual_domain_plots = create_domain_boxplots(domain_summary, domain_results, args.outdir, filename_prefix, args.input)
+        
+        # Save domain-specific results
+        domain_results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_analysis_by_domain.json")
+        with open(domain_results_file, "w") as f:
+            json.dump(domain_results, f, indent=2)
+        
+        # Save domain-specific summary
+        domain_summary_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_summary_by_domain.json")
+        with open(domain_summary_file, "w") as f:
+            json.dump(domain_summary, f, indent=2)
+        
+        # Save domain-specific aggregated results
+        domain_aggregated_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_aggregated_by_domain.json")
+        with open(domain_aggregated_file, "w") as f:
+            json.dump(domain_aggregated, f, indent=2)
+        
+        print(f"\nDomain-specific detailed results saved to: {domain_results_file}")
+        print(f"Domain-specific summary saved to: {domain_summary_file}")
+        print(f"Domain-specific aggregated results saved to: {domain_aggregated_file}")
+        print(f"Domain-specific combined boxplots saved to: {domain_plot_file}")
+        print(f"Individual domain plots saved to:")
+        for plot_file in individual_domain_plots:
             print(f"  - {plot_file}")
     
     print(f"\nDetailed results saved to: {results_file}")
