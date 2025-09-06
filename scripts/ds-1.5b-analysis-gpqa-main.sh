@@ -1,0 +1,1 @@
+python ../src/analysis_by_uid.py --input /scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/gpqa.deepseek-r1-distill-qwen-1.5b.direct/main.9.5,8:15-8.json --outdir ../src/analysis_out --analysis_by_domain True
