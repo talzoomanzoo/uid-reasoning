@@ -287,8 +287,11 @@ def visualize_id_vectors(uid_equal, uid_lp, uid_h, uid_d, title="ID Scores Acros
     title : str, optional
         Title for the plot
     save_path : str, optional
-        Path to save the plot. If None, displays the plot.
+        Path to save the plot. If None, saves to default location.
     """
+    import os
+    from datetime import datetime
+    
     # Create segment indices
     segments = list(range(len(uid_equal)))
     
@@ -314,12 +317,17 @@ def visualize_id_vectors(uid_equal, uid_lp, uid_h, uid_d, title="ID Scores Acros
     # Adjust layout
     plt.tight_layout()
     
-    # Save or display
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to: {save_path}")
-    else:
-        plt.show()
+    # Save the plot
+    if save_path is None:
+        # Default save path with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_path = f"/workspace/uid-reasoning/scripts/outputs/runs.baselines/uid_vectors_{timestamp}.png"
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"Plot saved to: {save_path}")
     
     plt.close()
 
@@ -334,8 +342,11 @@ def visualize_id_metrics_comparison(uid_metrics_dict, title="ID Metrics Comparis
     title : str, optional
         Title for the plot
     save_path : str, optional
-        Path to save the plot. If None, displays the plot.
+        Path to save the plot. If None, saves to default location.
     """
+    import os
+    from datetime import datetime
+    
     # Extract metric names (assuming all samples have the same metrics)
     sample_names = list(uid_metrics_dict.keys())
     if not sample_names:
@@ -378,12 +389,17 @@ def visualize_id_metrics_comparison(uid_metrics_dict, title="ID Metrics Comparis
     
     plt.tight_layout()
     
-    # Save or display
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to: {save_path}")
-    else:
-        plt.show()
+    # Save the plot
+    if save_path is None:
+        # Default save path with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_path = f"/workspace/uid-reasoning/scripts/outputs/runs.baselines/uid_metrics_comparison_{timestamp}.png"
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"Plot saved to: {save_path}")
     
     plt.close()
 
