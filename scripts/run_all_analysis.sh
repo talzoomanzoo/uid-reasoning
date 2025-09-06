@@ -20,6 +20,6 @@ run_script() {
     fi
 }
 run_script "ds-1.5b-analysis-gpqa-diamond.sh"
-run_script "ds-1.5b-analysis-math500.sh"
+run_script "ds-1.5b-analysis-aime.sh"
 
 echo "All analysis scripts completed successfully"
