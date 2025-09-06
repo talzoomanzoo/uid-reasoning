@@ -270,14 +270,14 @@ def uid_gini(vec: List[float]) -> float:
     return float(g)
 
 
-def visualize_uid_vectors(uid_equal, uid_lp, uid_h, uid_d, title="UID Vectors Across Segments", save_path=None):
+def visualize_id_vectors(uid_equal, uid_lp, uid_h, uid_d, title="ID Scores Across Steps", save_path=None):
     """
-    Visualize the UID vectors across segments in a line plot.
+    Visualize the ID vectors across steps in a line plot.
     
     Parameters
     ----------
     uid_equal : List[float]
-        Composite UID vector with equal weights
+        Composite ID vector with equal weights
     uid_lp : List[float]
         Log probability vector
     uid_h : List[float]
@@ -296,14 +296,14 @@ def visualize_uid_vectors(uid_equal, uid_lp, uid_h, uid_d, title="UID Vectors Ac
     plt.figure(figsize=(12, 8))
     
     # Plot each vector
-    plt.plot(segments, uid_equal, 'b-', linewidth=2, label='Composite UID (Equal Weights)', marker='o')
+    plt.plot(segments, uid_equal, 'b-', linewidth=2, label='Composite ID (Equal Weights)', marker='o')
     plt.plot(segments, uid_lp, 'r-', linewidth=2, label='Log Probability', marker='s')
     plt.plot(segments, uid_h, 'g-', linewidth=2, label='Entropy', marker='^')
     plt.plot(segments, uid_d, 'm-', linewidth=2, label='Confidence Gap', marker='d')
     
     # Customize the plot
-    plt.xlabel('Segment Index', fontsize=12)
-    plt.ylabel('UID Value', fontsize=12)
+    plt.xlabel('Step Index', fontsize=12)
+    plt.ylabel('ID Score', fontsize=12)
     plt.title(title, fontsize=14, fontweight='bold')
     plt.legend(fontsize=10)
     plt.grid(True, alpha=0.3)
@@ -323,14 +323,14 @@ def visualize_uid_vectors(uid_equal, uid_lp, uid_h, uid_d, title="UID Vectors Ac
     
     plt.close()
 
-def visualize_uid_metrics_comparison(uid_metrics_dict, title="UID Metrics Comparison", save_path=None):
+def visualize_id_metrics_comparison(uid_metrics_dict, title="ID Metrics Comparison", save_path=None):
     """
-    Visualize multiple UID metrics across different samples or conditions.
+    Visualize multiple ID metrics across different samples or conditions.
     
     Parameters
     ----------
     uid_metrics_dict : Dict[str, Dict[str, float]]
-        Dictionary where keys are sample/condition names and values are UID metrics
+        Dictionary where keys are sample/condition names and values are ID metrics
     title : str, optional
         Title for the plot
     save_path : str, optional
@@ -388,15 +388,15 @@ def visualize_uid_metrics_comparison(uid_metrics_dict, title="UID Metrics Compar
     plt.close()
 
 # Add this to the existing calculate_uid_metrics function to return vectors for visualization
-def calculate_uid_metrics_with_vectors(logprobs_list: List[Dict[int, "Logprob"]], thinkseg: bool) -> Tuple[Dict[str, float], List[float], List[float], List[float], List[float]]:
+def calculate_id_metrics_with_vectors(logprobs_list: List[Dict[int, "Logprob"]], thinkseg: bool) -> Tuple[Dict[str, float], List[float], List[float], List[float], List[float]]:
     """
-    Calculate UID metrics and return both metrics and vectors for visualization.
+    Calculate ID metrics and return both metrics and vectors for visualization.
     
     Returns
     -------
     Tuple containing:
-    - metrics_dict: Dictionary of UID metrics
-    - uid_equal: Composite UID vector
+    - metrics_dict: Dictionary of ID metrics
+    - uid_equal: Composite ID vector
     - uid_lp: Log probability vector  
     - uid_h: Entropy vector
     - uid_d: Confidence gap vector

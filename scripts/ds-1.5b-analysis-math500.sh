@@ -1,1 +1,1 @@
-python ../src/analysis_by_uid.py --input /scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/math500.deepseek-r1-distill-qwen-1.5b.direct/test.9.4,5:26-8.json --outdir ../src/analysis_out --analysis_by_level True
+python ../src/analysis_by_uid.py --input /scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/math500.ds-qwen-14b.direct/test.9.5,20:37-8.json --outdir ../src/analysis_out --analysis_by_level True
