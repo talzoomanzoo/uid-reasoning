@@ -8,7 +8,7 @@ import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
-from utils.calculate_uid_rev import calculate_uid_metrics, create_uid_vectors, uid_variance, _nonnegative_mass
+from utils.calculate_uid_rev_viz import calculate_uid_metrics, create_uid_vectors, uid_variance, _nonnegative_mass, calculate_uid_metrics_with_vectors, visualize_uid_vectors, visualize_uid_metrics_comparison
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
@@ -268,7 +268,12 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 elif isinstance(result, (tuple, list, ChatGeneration, RequestOutput)):
                     item[f'Output_{idx}'] = result.outputs[0].text
                     item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
-                    item[f"uid_metrics_{idx}"] = calculate_uid_metrics(result.outputs[0].logprobs, thinkseg=thinkseg)
+                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_uid_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
+                    item[f"uid_metrics_{idx}_metrics"] = metrics
+                    visualize_uid_vectors(
+                        uid_eq, uid_lp, uid_h, uid_d, title=f"UID Vectors for {dataset_name} {split} {sample_limit} {thinkseg}"
+                    )
+
                     
                 if dataset_name in ['gpqa', 'medmcqa']:
                     labeled_answer = item["Correct Choice"]
