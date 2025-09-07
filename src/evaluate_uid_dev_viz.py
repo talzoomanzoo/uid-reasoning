@@ -273,7 +273,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 if dataset_name in ['gpqa', 'medmcqa']:
                     labeled_answer = item["Correct Choice"]
                     mode = 'choose'
-                elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks']:
+                elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks', 'gsm8k']:
                     labeled_answer = item["answer"]
                     mode = 'gen'
                 elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
@@ -538,6 +538,11 @@ if __name__ == "__main__":
         normal_output_path = './outputs/amc.qwq.direct/test.12.14,14:31.json'
         if 'qwq' not in output_path:
             normal_output_path = './outputs/runs.baselines/amc.qwen2.5-32b-instruct.direct/test.12.14,20:26.json'
+    elif 'gsm8k' in output_path:
+        dataset_name = 'gsm8k'
+        normal_output_path = './outputs/gsm8k.qwq.direct/test.12.13,18:26.json'
+        if 'qwq' not in output_path:
+            normal_output_path = './outputs/runs.baselines/gsm8k.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
     elif 'livecode' in output_path:
         dataset_name = 'livecode'
         normal_output_path = './outputs/livecode.qwq.direct/test.12.13,21:24.json'
@@ -646,7 +651,7 @@ if __name__ == "__main__":
                 labeled_answer = item["answer"]
                 domain = item.get("level", "Unknown")
                 mode = 'gen'
-            elif dataset_name in ['aime', 'amc']:
+            elif dataset_name in ['aime', 'amc', 'gsm8k']:
                 labeled_answer = item["answer"]
                 mode = 'gen'
                 domain = 'Unknown'
@@ -692,10 +697,10 @@ if __name__ == "__main__":
                 if dataset_name in ['gpqa', 'medmcqa']:
                     normal_labeled_answer = normal_item["Correct Choice"]
                     normal_mode = 'choose'
-                elif dataset_name in ['math500', 'hendrycks']:
+                elif dataset_name in ['math500', 'hendrycks', 'gsm8k']:
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'gen'
-                elif dataset_name in ['aime', 'amc']:
+                elif dataset_name in ['aime', 'amc', 'gsm8k']:
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'gen'
                 elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
