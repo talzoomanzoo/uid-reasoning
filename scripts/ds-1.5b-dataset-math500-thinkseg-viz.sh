@@ -1,7 +1,7 @@
 python ../src/run_direct_gen_uid_dev_viz.py --model_path deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
-   --dataset_name gpqa \
-   --split main \
+   --dataset_name math500 \
+   --split test \
    --thinkseg True \
-   --batch_size 1 \
-   --data_limit 1 \
+   --batch_size 10 \
+   --data_limit 10 \
    --sample_limit 1

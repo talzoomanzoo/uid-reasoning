@@ -8,7 +8,7 @@ import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
-from utils.calculate_uid_rev_viz import calculate_id_metrics_with_vectors, visualize_id_vectors, visualize_id_metrics_comparison
+from utils.calculate_uid_rev_viz import calculate_id_metrics_with_vectors, visualize_id_vectors, visualize_average_id_vectors, visualize_average_step_counts
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
@@ -263,16 +263,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             # Process each output and its metrics
             for idx in range(len(question_samples)):
                 result = question_samples[idx]
-                if isinstance(result, str):
-                    item[f'Output_{idx}'] = result
-                elif isinstance(result, (tuple, list, ChatGeneration, RequestOutput)):
-                    item[f'Output_{idx}'] = result.outputs[0].text
-                    item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
-                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    item[f"uid_metrics_{idx}_metrics"] = metrics
-                    visualize_id_vectors(
-                        uid_eq, uid_lp, uid_h, uid_d, title=f"UID Vectors for {dataset_name} {split} {sample_limit} {thinkseg}"
-                    )
+                # if isinstance(result, str):
+                #     item[f'Output_{idx}'] = result
+                # elif isinstance(result, (tuple, list, ChatGeneration, RequestOutput)):
+                item[f'Output_{idx}'] = result.outputs[0].text
+                item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
 
                     
                 if dataset_name in ['gpqa', 'medmcqa']:
@@ -304,6 +299,22 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 if dataset_name != 'gpqa' and dataset_name != 'math500':
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
+                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
+                    item[f"id_metrics_{idx}_metrics"] = metrics
+                    # Store vectors for later averaging
+                    item[f"id_equal_{idx}"] = uid_eq
+                    item[f"id_lp_{idx}"] = uid_lp
+                    item[f"id_h_{idx}"] = uid_h
+                    item[f"id_d_{idx}"] = uid_d
+                    
+                    # Individual visualization (optional)
+                    # visualize_id_vectors(
+                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, 
+                    #     title=f"{model_path} : ID Scores Across Steps for {dataset_name} {split}"
+                    # )
+                    # visualize_id_vectors(
+                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, title=f"ID Scores Across Steps for {dataset_name} {split}"
+                    # )
                     # Store the original metrics for backward compatibility
                     if idx == 0:
                         item['Question'] = input_prompt
@@ -333,6 +344,22 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
 
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if is_valid else 0)
+                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
+                    item[f"id_metrics_{idx}_metrics"] = metrics
+                    # Store vectors for later averaging
+                    item[f"id_equal_{idx}"] = uid_eq
+                    item[f"id_lp_{idx}"] = uid_lp
+                    item[f"id_h_{idx}"] = uid_h
+                    item[f"id_d_{idx}"] = uid_d
+                    
+                    # Individual visualization (optional)
+                    # visualize_id_vectors(
+                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, 
+                    #     title=f"{model_path} : ID Scores Across Steps for {dataset_name} {split}"
+                    # )
+                    # visualize_id_vectors(
+                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, title=f"ID Scores Across Steps for {dataset_name} {split}"
+                    # )
                 
                 elif dataset_name == 'math500':
                     level = item.get("level", "Unknown")
@@ -354,6 +381,24 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                         
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if is_valid else 0)
+                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
+                    item[f"id_metrics_{idx}_metrics"] = metrics
+                    # Store vectors for later averaging
+                    item[f"id_equal_{idx}"] = uid_eq
+                    item[f"id_lp_{idx}"] = uid_lp
+                    item[f"id_h_{idx}"] = uid_h
+                    item[f"id_d_{idx}"] = uid_d
+                    
+                    # Individual visualization (optional)
+                    # visualize_id_vectors(
+                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, 
+                    #     title=f"{model_path} : ID Scores Across Steps for {dataset_name} {split}"
+                    # )
+                    # visualize_id_vectors(
+                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, title=f"{model_path} : ID Scores Across Steps for {dataset_name} {split}"
+                    # )
+                    # Visualize average ID vectors
+                    # visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg)
 
         # Compute mean accuracy and validity per question
         if dataset_name != 'gpqa' and dataset_name != 'math500':
@@ -382,6 +427,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 
             overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
             overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
+
+        # Visualize average ID vectors across all samples
+        visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg)
+        # Also visualize average step counts
+        visualize_average_step_counts(filtered_data, dataset_name, model_path, split, thinkseg)
 
         # Compute overall metrics
         overall_results = {
@@ -440,7 +490,6 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
 
         with open(os.path.join(output_dir, metrics_json_name), mode='w', encoding='utf-8') as json_file:
             json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
-
 
 
 if __name__ == "__main__":
