@@ -333,7 +333,7 @@ def visualize_id_vectors(uid_equal, uid_lp, uid_h, uid_d, dataset_name, model_pa
     if save_path is None:
         # Default save path with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/id_scores_across_steps_{dataset_name}.{split}.{model_path}_{timestamp}.png"
+        save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/id_scores_across_steps_{dataset_name}.{split}.{model_path}_{timestamp}.png"
     
     # Ensure directory exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -475,7 +475,7 @@ def visualize_average_step_counts(data, dataset_name, model_path, split, thinkse
     plt.tight_layout()
     
     # Save overall plot
-    overall_save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_step_count_{dataset_name}.{split}.{model_path}_{timestamp}.png"
+    overall_save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_step_count_{dataset_name}.{split}.{model_path}_{timestamp}.png"
     os.makedirs(os.path.dirname(overall_save_path), exist_ok=True)
     plt.savefig(overall_save_path, dpi=300, bbox_inches='tight')
     print(f"Overall step count plot saved to: {overall_save_path}")
@@ -514,7 +514,7 @@ def visualize_average_step_counts(data, dataset_name, model_path, split, thinkse
         plt.tight_layout()
         
         # Save math_equal plot
-        math_equal_save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_step_count_by_correctness_{dataset_name}.{split}.{model_path}_{timestamp}.png"
+        math_equal_save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_step_count_by_correctness_{dataset_name}.{split}.{model_path}_{timestamp}.png"
         os.makedirs(os.path.dirname(math_equal_save_path), exist_ok=True)
         plt.savefig(math_equal_save_path, dpi=300, bbox_inches='tight')
         print(f"Correctness step count plot saved to: {math_equal_save_path}")
@@ -544,7 +544,7 @@ def visualize_average_step_counts(data, dataset_name, model_path, split, thinkse
         plt.tight_layout()
         
         # Save level plot
-        level_save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_step_count_by_level_{dataset_name}.{split}.{model_path}_{timestamp}.png"
+        level_save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_step_count_by_level_{dataset_name}.{split}.{model_path}_{timestamp}.png"
         os.makedirs(os.path.dirname(level_save_path), exist_ok=True)
         plt.savefig(level_save_path, dpi=300, bbox_inches='tight')
         print(f"Level step count plot saved to: {level_save_path}")
@@ -582,7 +582,7 @@ def visualize_average_step_counts(data, dataset_name, model_path, split, thinkse
         plt.tight_layout()
         
         # Save domain plot
-        domain_save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_step_count_by_domain_{dataset_name}.{split}.{model_path}_{timestamp}.png"
+        domain_save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_step_count_by_domain_{dataset_name}.{split}.{model_path}_{timestamp}.png"
         os.makedirs(os.path.dirname(domain_save_path), exist_ok=True)
         plt.savefig(domain_save_path, dpi=300, bbox_inches='tight')
         print(f"Domain step count plot saved to: {domain_save_path}")
@@ -738,7 +738,7 @@ def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg
     
     # Visualize overall average
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_id_scores_{dataset_name}.{split}.{model_path}_{timestamp}.png"
+    save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_id_scores_{dataset_name}.{split}.{model_path}_{timestamp}.png"
     
     visualize_id_vectors(
         avg_uid_equal.tolist(), avg_uid_lp.tolist(), avg_uid_h.tolist(), avg_uid_d.tolist(),
@@ -785,7 +785,7 @@ def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg
         
         # Visualize correctness average
         correctness_label = "Correct" if correctness == "True" else "Incorrect"
-        correctness_save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_id_scores_{dataset_name}.{split}.{correctness_label.lower()}.{model_path}_{timestamp}.png"
+        correctness_save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_id_scores_{dataset_name}.{split}.{correctness_label.lower()}.{model_path}_{timestamp}.png"
         
         visualize_id_vectors(
             correctness_avg_equal.tolist(), correctness_avg_lp.tolist(), correctness_avg_h.tolist(), correctness_avg_d.tolist(),
@@ -831,7 +831,7 @@ def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg
             domain_avg_d = np.mean(domain_padded_d, axis=0)
             
             # Visualize domain average
-            domain_save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_id_scores_{dataset_name}.{split}.domain_{domain}.{model_path}_{timestamp}.png"
+            domain_save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_id_scores_{dataset_name}.{split}.domain_{domain}.{model_path}_{timestamp}.png"
             
             visualize_id_vectors(
                 domain_avg_equal.tolist(), domain_avg_lp.tolist(), domain_avg_h.tolist(), domain_avg_d.tolist(),
@@ -877,7 +877,7 @@ def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg
             level_avg_d = np.mean(level_padded_d, axis=0)
             
             # Visualize level average
-            level_save_path = f"/scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_id_scores_{dataset_name}.{split}.level_{level}.{model_path}_{timestamp}.png"
+            level_save_path = f"/scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/avg_id_scores_{dataset_name}.{split}.level_{level}.{model_path}_{timestamp}.png"
             
             visualize_id_vectors(
                 level_avg_equal.tolist(), level_avg_lp.tolist(), level_avg_h.tolist(), level_avg_d.tolist(),

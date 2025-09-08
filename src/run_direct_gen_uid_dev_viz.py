@@ -8,6 +8,8 @@ import numpy as np
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 from evaluate_uid_dev_viz import run_evaluation
+from evaluate_uid_dev_viz_self_certainty import run_evaluation_self_certainty
+# from evaluate_uid_dev_viz_usc import run_evaluation_usc
 from prompts import (
     get_task_instruction_openqa, 
     get_task_instruction_math, 
@@ -32,7 +34,7 @@ def parse_args():
     
     parser.add_argument(
         '--dataset_name', 
-        type=str, 
+        type=str,
         required=True, 
         choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa', 'gsm8k'],
         help="Name of the dataset to use."
@@ -142,6 +144,20 @@ def parse_args():
         default=False,
         help="Whether to use thinkseg. Defaults to False if not specified."
     )
+
+    parser.add_argument(
+        '--self-certainty',
+        type=bool,
+        default=False,
+        help="Whether to use self-certainty. Defaults to False if not specified."
+    )
+
+    parser.add_argument(
+        '--usc',
+        type=bool,
+        default=False,
+        help="Whether to use usc. Defaults to False if not specified."
+    )
     
     return parser.parse_args()
 
@@ -161,6 +177,8 @@ async def main(args):
     skip_special_tokens = args.skip_special_tokens
     use_beam_search = args.use_beam_search
     thinkseg = args.thinkseg
+    self_certainty = args.self_certainty
+    usc = args.usc
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 
@@ -325,37 +343,6 @@ async def main(args):
             max_tokens = 32768
     # Adjust max_tokens to fit within the model's context length
     max_tokens = min(max_tokens, 32768 - 243)  # Ensure total tokens do not exceed 32768
-    # Generate model outputs
-    # output_list = llm.generate(
-    #     input_list, 
-    #     sampling_params=SamplingParams(
-    #         max_tokens=max_tokens, 
-    #         temperature=temperature, 
-    #         top_p=top_p, 
-    #         top_k=top_k, 
-    #         repetition_penalty=repetition_penalty,
-    #     )
-    # )
-
-    # output_list = llm.chat.completions.create(
-    #     model=model_path,
-    #     messages=input_list,
-    #     max_tokens=max_tokens,
-    #     temperature=temperature,
-    #     top_p=top_p,
-    #     # top_k=top_k,
-    #     # repetition_penalty=repetition_penalty,
-    # )
-
-    # output_list = llm.completions.create(
-    #     model=model_path,
-    #     prompt=input_list,
-    #     max_tokens=max_tokens,
-    #     temperature=temperature,
-    #     top_p=top_p,
-    #     # top_k=top_k,
-    #     # repetition_penalty=repetition_penalty,
-    # )
 
     async def generate_outputs(llm, input_batches, model_path, max_tokens, sample_limit, temperature, top_p, batch_size):
         output_list = []
@@ -382,21 +369,53 @@ async def main(args):
     t_start = time.time()
     output_list = await generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
     total_time = time.time() - t_start
-    # Run evaluation
-    run_evaluation(
-        filtered_data, 
-        input_list, 
-        output_list, 
-        dataset_name, 
-        output_dir, 
-        total_time, 
-        split,
-        data_limit,
-        sample_limit,
-        model_path,
-        thinkseg,
-        apply_backoff=False
-    )
+
+    if self_certainty == True:
+        run_evaluation_self_certainty(
+            filtered_data,
+            input_list,
+            output_list,
+            dataset_name,
+            output_dir,
+            total_time,
+            split,
+            data_limit,
+            sample_limit,
+            model_path,
+            self_certainty,
+            tokenizer,
+            apply_backoff=False
+        )
+    elif usc == True:
+        run_evaluation_usc(
+            filtered_data,
+            input_list,
+            output_list,
+            dataset_name,
+            output_dir,
+            total_time,
+            split,
+            data_limit,
+            sample_limit,
+            model_path,
+            usc,
+            apply_backoff=False
+        )
+    else:
+        run_evaluation(
+            filtered_data, 
+            input_list, 
+            output_list, 
+            dataset_name, 
+            output_dir, 
+            total_time, 
+            split,
+            data_limit,
+            sample_limit,
+            model_path,
+            thinkseg,
+            apply_backoff=False
+        )
 
 if __name__ == "__main__":
     args = parse_args()

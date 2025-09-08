@@ -300,7 +300,6 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
                     metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    import pdb; pdb.set_trace()
                     item[f"id_metrics_{idx}_metrics"] = metrics
                     # Store vectors for later averaging
                     item[f"id_equal_{idx}"] = uid_eq

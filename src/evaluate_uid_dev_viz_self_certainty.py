@@ -8,7 +8,7 @@ import os, time
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
-from utils.calculate_uid_rev_viz import calculate_id_metrics_with_vectors, visualize_id_vectors, visualize_average_id_vectors, visualize_average_step_counts
+from utils.calculate_uid_rev_viz_self_certainty import calculate_self_certainty, calculate_borda_voting_self_certainty
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
@@ -138,7 +138,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, thinkseg, apply_backoff=False):
+def run_evaluation_self_certainty(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, self_certainty, tokenizer, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -253,12 +253,15 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # Track math_equal accuracy and validity per question
         question_math_equal_scores = defaultdict(list)
         question_validity_scores = defaultdict(list)
+        question_self_certainty_scores = defaultdict(list)
         for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
             # Get all samples for this question
             question_samples = []
             for i in range(question_idx, len(output_list), len(input_list)):
                 question_samples.append(output_list[i])
                 num_valid_answer = 0
+
+            per_output_self_cert_summary = []
 
             # Process each output and its metrics
             for idx in range(len(question_samples)):
@@ -293,20 +296,22 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 # Store metrics for this specific generation
                 item[f'Pred_Answer_{idx}'] = pred_answer
                 item[f'Metrics_{idx}'] = metric
+
+                sc_obj = calculate_self_certainty(result.outputs[0].logprobs)
+                item[f'Self_Certainty_{idx}'] = sc_obj
+                per_output_self_cert_summary.append({
+                    f'output_{idx}': sc_obj.get('self_certainty', float('nan')),
+                    'math_equal': bool(metric.get('math_equal', False)),
+                })
+
+                borda_voting_self_cert = calculate_borda_voting_self_certainty(per_output_self_cert_summary)
+
                 is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
                 # Track scores for this question
                 if dataset_name != 'gpqa' and dataset_name != 'math500':
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
-                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    import pdb; pdb.set_trace()
-                    item[f"id_metrics_{idx}_metrics"] = metrics
-                    # Store vectors for later averaging
-                    item[f"id_equal_{idx}"] = uid_eq
-                    item[f"id_lp_{idx}"] = uid_lp
-                    item[f"id_h_{idx}"] = uid_h
-                    item[f"id_d_{idx}"] = uid_d
                     
                     # Individual visualization (optional)
                     # visualize_id_vectors(
@@ -345,13 +350,6 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
 
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if is_valid else 0)
-                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    item[f"id_metrics_{idx}_metrics"] = metrics
-                    # Store vectors for later averaging
-                    item[f"id_equal_{idx}"] = uid_eq
-                    item[f"id_lp_{idx}"] = uid_lp
-                    item[f"id_h_{idx}"] = uid_h
-                    item[f"id_d_{idx}"] = uid_d
                     
                     # Individual visualization (optional)
                     # visualize_id_vectors(
@@ -382,14 +380,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                         
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if is_valid else 0)
-                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    item[f"id_metrics_{idx}_metrics"] = metrics
-                    # Store vectors for later averaging
-                    item[f"id_equal_{idx}"] = uid_eq
-                    item[f"id_lp_{idx}"] = uid_lp
-                    item[f"id_h_{idx}"] = uid_h
-                    item[f"id_d_{idx}"] = uid_d
-                    
+                   
                     # Individual visualization (optional)
                     # visualize_id_vectors(
                     #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, 
@@ -401,44 +392,51 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     # Visualize average ID vectors
                     # visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg)
 
+            item['self_certainty_by_output '] = per_output_self_cert_summary
+            item['borda_voting_self_cert'] = borda_voting_self_cert
+            question_self_certainty_scores[question_idx].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+
         # Compute mean accuracy and validity per question
         if dataset_name != 'gpqa' and dataset_name != 'math500':
             question_mean_accuracies = {}
             question_mean_validities = {}
+            question_self_certainty_accuracy = {}
             for question_idx in question_math_equal_scores.keys():
                 question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
                 question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+                question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
             # Add per-question metrics to each item in filtered_data
             for i in range(len(filtered_data)):
                 filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+                filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
             # Compute overall mean accuracy and validity across all questions
             overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
             overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
+            overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
         else:
             question_mean_accuracies = {}
             question_mean_validities = {}
+            question_self_certainty_accuracy = {}
             for question_idx in question_math_equal_scores.keys():
                 question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
                 question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+                question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
             # Add per-question metrics to each item in filtered_data
             for i in range(len(filtered_data)):
                 filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+                filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
                 
             overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
             overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
-
-        # Visualize average ID vectors across all samples
-        visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg)
-        # Also visualize average step counts
-        visualize_average_step_counts(filtered_data, dataset_name, model_path, split, thinkseg)
-
+            overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
         # Compute overall metrics
         overall_results = {
             'total_time': f'{total_time:.0f} s',
             'overall_mean_accuracy': overall_mean_accuracy,  # Mean of per-question accuracies
             'overall_mean_validity': overall_mean_validity,   # Mean of per-question validities
+            'overall_mean_self_certainty_accuracy': overall_mean_self_certainty_accuracy,   # Mean of per-question self-certainty accuracy
         }
 
         # If the dataset is GPQA, output average metrics per domain
@@ -475,11 +473,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             final_metrics['per_domain'] = domain_avg_metrics
 
         t = time.localtime()
-        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}.json'
-        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}.metrics.json'
+        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-self_certainty{self_certainty}.json'
+        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-self_certainty{self_certainty}.metrics.json'
         if apply_backoff:
-            result_json_name = output_dir.replace('.json', f'.backoff.{sample_limit}-thinkseg{thinkseg}.json')
-            metrics_json_name = output_dir.replace('.json', f'.metrics.backoff.{sample_limit}-thinkseg{thinkseg}.json')
+            result_json_name = output_dir.replace('.json', f'.backoff.{sample_limit}-self_certainty{self_certainty}.json')
+            metrics_json_name = output_dir.replace('.json', f'.metrics.backoff.{sample_limit}-self_certainty{self_certainty}.json')
 
     # Ensure the output directory exists
         if not os.path.exists(output_dir):
@@ -805,7 +803,7 @@ if __name__ == "__main__":
         total_time = 0  # Modify if timing information is available
 
         # Run evaluation
-        run_evaluation(
+        run_evaluation_self_certainty(
             filtered_data=data,
             input_list=input_list,
             output_list=output_list,
@@ -814,6 +812,8 @@ if __name__ == "__main__":
             output_dir=output_path,
             total_time=total_time,
             split=split,
+            self_certainty=self_certainty,
+            tokenizer=tokenizer,
             apply_backoff=True,
         )
         # run_evaluation handles saving the metrics for livecode
@@ -822,7 +822,7 @@ if __name__ == "__main__":
     if dataset_name != 'livecode' or not args.apply_backoff:
         # If dataset is livecode and backoff was applied, metrics are already saved by run_evaluation
         if args.apply_backoff:
-            output_metrics_path = output_metrics_path.replace('.json', '.backoff-thinkseg{thinkseg}.json')
+            output_metrics_path = output_metrics_path.replace('.json', '.backoff-self_certainty{self_certainty}.json')
         with open(output_metrics_path, mode='w', encoding='utf-8') as json_file:
             json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
 
