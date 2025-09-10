@@ -1,7 +1,7 @@
 python ../src/run_direct_gen_uid_dev_viz.py --model_path deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
    --dataset_name gsm8k \
    --split train \
-   --thinkseg True \
-   --batch_size 50 \
-   --data_limit 50 \
-   --sample_limit 2
+   --self-certainty True \
+   --batch_size 1000 \
+   --data_limit 1000 \
+   --sample_limit 5

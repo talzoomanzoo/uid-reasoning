@@ -38,7 +38,7 @@ def analyze_uid_accuracy(data):
         while f'Output_{i}' in problem:
             output_key = f'Output_{i}'
             metrics_key = f'Metrics_{i}'
-            uid_metrics_key = f'uid_metrics_{i}'
+            uid_metrics_key = f'id_metrics_{i}_metrics'
             
             if uid_metrics_key in problem and metrics_key in problem:
                 outputs.append({
@@ -232,7 +232,7 @@ def create_correlation_plot(data, outdir, filename_prefix, input_filename=None):
         while f'Output_{i}' in problem:
             output_key = f'Output_{i}'
             metrics_key = f'Metrics_{i}'
-            uid_metrics_key = f'uid_metrics_{i}'
+            uid_metrics_key = f'id_metrics_{i}_metrics'
             
             if uid_metrics_key in problem and metrics_key in problem:
                 uid_data = problem[uid_metrics_key]
@@ -338,7 +338,7 @@ def extract_shannon_equal_outputs(data, outdir, filename_prefix):
         while f'Output_{i}' in problem:
             output_key = f'Output_{i}'
             metrics_key = f'Metrics_{i}'
-            uid_metrics_key = f'uid_metrics_{i}'
+            uid_metrics_key = f'id_metrics_{i}_metrics'
             
             if uid_metrics_key in problem and metrics_key in problem:
                 uid_data = problem[uid_metrics_key]
@@ -434,7 +434,7 @@ def analyze_uid_accuracy_by_level(data):
             while f'Output_{i}' in problem:
                 output_key = f'Output_{i}'
                 metrics_key = f'Metrics_{i}'
-                uid_metrics_key = f'uid_metrics_{i}'
+                uid_metrics_key = f'id_metrics_{i}_metrics'
                 
                 if uid_metrics_key in problem and metrics_key in problem:
                     outputs.append({
@@ -620,7 +620,7 @@ def analyze_uid_accuracy_by_domain(data):
             while f'Output_{i}' in problem:
                 output_key = f'Output_{i}'
                 metrics_key = f'Metrics_{i}'
-                uid_metrics_key = f'uid_metrics_{i}'
+                uid_metrics_key = f'id_metrics_{i}_metrics'
                 
                 if uid_metrics_key in problem and metrics_key in problem:
                     outputs.append({

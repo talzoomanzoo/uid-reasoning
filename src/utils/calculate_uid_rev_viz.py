@@ -615,7 +615,7 @@ def visualize_average_step_counts(data, dataset_name, model_path, split, thinkse
             count = len(math_equal_step_counts['False'])
             print(f"  Incorrect: {avg:.2f} ± {std:.2f} steps (n={count})")
 
-def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg=False):
+def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg=False, step_limit=200):
     """
     Visualize average ID vectors across all samples.
     For math500, also visualize by level.
@@ -633,6 +633,8 @@ def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg
         Dataset split
     thinkseg : bool
         Whether to use thinkseg
+    step_limit : int
+        Number of steps to limit
     """
     import os
     from datetime import datetime
@@ -665,45 +667,50 @@ def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg
                 uid_d = item.get(f"id_d_{idx}", [])
                 
                 if uid_eq and uid_lp and uid_h and uid_d:
-                    all_uid_equal.append(uid_eq)
-                    all_uid_lp.append(uid_lp)
-                    all_uid_h.append(uid_h)
-                    all_uid_d.append(uid_d)
-                    
-                    # Get math_equal status for this output
-                    math_equal = item.get(f"Metrics_{idx}", {}).get("math_equal", False)
-                    math_equal_key = str(math_equal)
-                    math_equal_vectors[math_equal_key]['id_equal'].append(uid_eq)
-                    math_equal_vectors[math_equal_key]['id_lp'].append(uid_lp)
-                    math_equal_vectors[math_equal_key]['id_h'].append(uid_h)
-                    math_equal_vectors[math_equal_key]['id_d'].append(uid_d)
-                    
-                    # For math500, group by level
-                    if dataset_name == 'math500' and level_vectors is not None:
-                        level = item.get("level", "Unknown")
-                        if level not in level_vectors:
-                            level_vectors[level] = {
-                                'id_equal': [], 'id_lp': [], 'id_h': [], 'id_d': []
-                            }
-                        level_vectors[level]['id_equal'].append(uid_eq)
-                        level_vectors[level]['id_lp'].append(uid_lp)
-                        level_vectors[level]['id_h'].append(uid_h)
-                        level_vectors[level]['id_d'].append(uid_d)
-                    if dataset_name == 'gpqa' and domain_vectors is not None:
-                        domain = item.get("High-level domain", "Unknown")
-                        if domain not in domain_vectors:
-                            domain_vectors[domain] = {
-                                'id_equal': [], 'id_lp': [], 'id_h': [], 'id_d': []
-                            }
-                        domain_vectors[domain]['id_equal'].append(uid_eq)
-                        domain_vectors[domain]['id_lp'].append(uid_lp)
-                        domain_vectors[domain]['id_h'].append(uid_h)
-                        domain_vectors[domain]['id_d'].append(uid_d)
+                    # NEW: Filter by step count (length of vector)
+                    step_count = len(uid_eq)
+                    if step_count <= step_limit:
+                        all_uid_equal.append(uid_eq)
+                        all_uid_lp.append(uid_lp)
+                        all_uid_h.append(uid_h)
+                        all_uid_d.append(uid_d)
+                        
+                        # Get math_equal status for this output
+                        math_equal = item.get(f"Metrics_{idx}", {}).get("math_equal", False)
+                        math_equal_key = str(math_equal)
+                        math_equal_vectors[math_equal_key]['id_equal'].append(uid_eq)
+                        math_equal_vectors[math_equal_key]['id_lp'].append(uid_lp)
+                        math_equal_vectors[math_equal_key]['id_h'].append(uid_h)
+                        math_equal_vectors[math_equal_key]['id_d'].append(uid_d)
+                        
+                        # For math500, group by level
+                        if dataset_name == 'math500' and level_vectors is not None:
+                            level = item.get("level", "Unknown")
+                            if level not in level_vectors:
+                                level_vectors[level] = {
+                                    'id_equal': [], 'id_lp': [], 'id_h': [], 'id_d': []
+                                }
+                            level_vectors[level]['id_equal'].append(uid_eq)
+                            level_vectors[level]['id_lp'].append(uid_lp)
+                            level_vectors[level]['id_h'].append(uid_h)
+                            level_vectors[level]['id_d'].append(uid_d)
+                        if dataset_name == 'gpqa' and domain_vectors is not None:
+                            domain = item.get("High-level domain", "Unknown")
+                            if domain not in domain_vectors:
+                                domain_vectors[domain] = {
+                                    'id_equal': [], 'id_lp': [], 'id_h': [], 'id_d': []
+                                }
+                            domain_vectors[domain]['id_equal'].append(uid_eq)
+                            domain_vectors[domain]['id_lp'].append(uid_lp)
+                            domain_vectors[domain]['id_h'].append(uid_h)
+                            domain_vectors[domain]['id_d'].append(uid_d)
             idx += 1
     
     if not all_uid_equal:
-        print("No ID vectors found to visualize")
+        print(f"No ID vectors found to visualize (step_limit={step_limit})")
         return
+    
+    print(f"Visualizing {len(all_uid_equal)} vectors with step_count <= {step_limit}")
     
     # Calculate average vectors for all data
     max_length = max(len(vec) for vec in all_uid_equal)

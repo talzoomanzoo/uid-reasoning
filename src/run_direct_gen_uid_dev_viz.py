@@ -158,6 +158,14 @@ def parse_args():
         default=False,
         help="Whether to use usc. Defaults to False if not specified."
     )
+
+    parser.add_argument(
+        '--step-limit',
+        type=int,
+        default=50,
+        required=False,
+        help="Number of steps to limit. Defaults to 50 if not specified."
+    )
     
     return parser.parse_args()
 
@@ -179,6 +187,7 @@ async def main(args):
     thinkseg = args.thinkseg
     self_certainty = args.self_certainty
     usc = args.usc
+    step_limit = args.step_limit
     # Set default repetition_penalty if not provided
     if repetition_penalty is None:
         repetition_penalty = 1.05 
@@ -414,6 +423,7 @@ async def main(args):
             sample_limit,
             model_path,
             thinkseg,
+            step_limit,
             apply_backoff=False
         )
 

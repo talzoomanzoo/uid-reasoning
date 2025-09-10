@@ -138,7 +138,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, thinkseg, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, thinkseg, step_limit, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -300,7 +300,6 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
                     question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
                     metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    import pdb; pdb.set_trace()
                     item[f"id_metrics_{idx}_metrics"] = metrics
                     # Store vectors for later averaging
                     item[f"id_equal_{idx}"] = uid_eq
@@ -430,7 +429,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
 
         # Visualize average ID vectors across all samples
-        visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg)
+        visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg, step_limit)
         # Also visualize average step counts
         visualize_average_step_counts(filtered_data, dataset_name, model_path, split, thinkseg)
 
@@ -475,11 +474,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             final_metrics['per_domain'] = domain_avg_metrics
 
         t = time.localtime()
-        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}.json'
-        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}.metrics.json'
+        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.json'
+        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.metrics.json'
         if apply_backoff:
-            result_json_name = output_dir.replace('.json', f'.backoff.{sample_limit}-thinkseg{thinkseg}.json')
-            metrics_json_name = output_dir.replace('.json', f'.metrics.backoff.{sample_limit}-thinkseg{thinkseg}.json')
+            result_json_name = output_dir.replace('.json', f'.backoff.{sample_limit}-thinkseg{thinkseg}-step{step_limit}.json')
+            metrics_json_name = output_dir.replace('.json', f'.metrics.backoff.{sample_limit}-thinkseg{thinkseg}-step{step_limit}.json')
 
     # Ensure the output directory exists
         if not os.path.exists(output_dir):
