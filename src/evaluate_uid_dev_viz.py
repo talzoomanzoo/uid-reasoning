@@ -9,6 +9,7 @@ from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
 from utils.calculate_uid_rev_viz import calculate_id_metrics_with_vectors, visualize_id_vectors, visualize_average_id_vectors, visualize_average_step_counts
+from utils.calculate_uid_rev_viz_self_certainty import calculate_self_certainty, calculate_borda_voting_self_certainty
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
@@ -138,7 +139,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, thinkseg, step_limit, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, thinkseg, step_limit, self_certainty, usc, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -253,6 +254,8 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # Track math_equal accuracy and validity per question
         question_math_equal_scores = defaultdict(list)
         question_validity_scores = defaultdict(list)
+        question_self_certainty_scores = defaultdict(list)
+        question_usc_scores = defaultdict(list)
         for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
             # Get all samples for this question
             question_samples = []
@@ -260,6 +263,8 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 question_samples.append(output_list[i])
                 num_valid_answer = 0
 
+            per_output_self_cert_summary = []
+            
             # Process each output and its metrics
             for idx in range(len(question_samples)):
                 result = question_samples[idx]
@@ -273,7 +278,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 if dataset_name in ['gpqa', 'medmcqa']:
                     labeled_answer = item["Correct Choice"]
                     mode = 'choose'
-                elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks', 'gsm8k']:
+                elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
                     labeled_answer = item["answer"]
                     mode = 'gen'
                 elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
@@ -293,6 +298,17 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 # Store metrics for this specific generation
                 item[f'Pred_Answer_{idx}'] = pred_answer
                 item[f'Metrics_{idx}'] = metric
+
+                sc_obj = calculate_self_certainty(result.outputs[0].logprobs)
+                item[f'Self_Certainty_{idx}'] = sc_obj
+
+                per_output_self_cert_summary.append({
+                    f'output_{idx}': sc_obj.get('self_certainty', float('nan')),
+                    'math_equal': bool(metric.get('math_equal', False)),
+                })
+
+                borda_voting_self_cert = calculate_borda_voting_self_certainty(per_output_self_cert_summary)
+
                 is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
                 # Track scores for this question
@@ -327,7 +343,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 elif dataset_name == 'gpqa':
                     domain = item.get("High-level domain", "Unknown")
                     if domain not in domain_metrics:
-                        domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0}
+                        domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'self_certainty_accuracy': []}
                     
                     # Add metrics for this output to the domain
                     domain_metrics[domain]['em'].append(metric['em'])
@@ -335,7 +351,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[domain]['f1'].append(metric['f1'])
                     domain_metrics[domain]['math_equal'].append(metric['math_equal'])
                     domain_metrics[domain]['total_num'] += 1
-
+                    domain_metrics[domain]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
                     if idx == 0:
                         item['Question'] = input_prompt
                     
@@ -364,7 +380,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 elif dataset_name == 'math500':
                     level = item.get("level", "Unknown")
                     if level not in domain_metrics:
-                        domain_metrics[level] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0}
+                        domain_metrics[level] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'self_certainty_accuracy': []}
                     
                     # Add metrics for this output to the level
                     domain_metrics[level]['em'].append(metric['em'])
@@ -372,7 +388,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[level]['f1'].append(metric['f1'])
                     domain_metrics[level]['math_equal'].append(metric['math_equal'])
                     domain_metrics[level]['total_num'] += 1
-                    
+                    domain_metrics[level]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
                     if idx == 0:
                         item['Question'] = input_prompt
                     
@@ -399,34 +415,44 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     # )
                     # Visualize average ID vectors
                     # visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg)
+            item['self_certainty_by_output '] = per_output_self_cert_summary
+            item['borda_voting_self_cert'] = borda_voting_self_cert
+            question_self_certainty_scores[question_idx].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
 
         # Compute mean accuracy and validity per question
         if dataset_name != 'gpqa' and dataset_name != 'math500':
             question_mean_accuracies = {}
             question_mean_validities = {}
+            question_self_certainty_accuracy = {}
             for question_idx in question_math_equal_scores.keys():
                 question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
                 question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+                question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
             # Add per-question metrics to each item in filtered_data
             for i in range(len(filtered_data)):
                 filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+                filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
             # Compute overall mean accuracy and validity across all questions
             overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
             overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
+            overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
         else:
             question_mean_accuracies = {}
             question_mean_validities = {}
+            question_self_certainty_accuracy = {}
             for question_idx in question_math_equal_scores.keys():
                 question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
                 question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+                question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
             # Add per-question metrics to each item in filtered_data
             for i in range(len(filtered_data)):
                 filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
-                
+                filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
             overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
             overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
+            overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
 
         # Visualize average ID vectors across all samples
         visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg, step_limit)
@@ -438,6 +464,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             'total_time': f'{total_time:.0f} s',
             'overall_mean_accuracy': overall_mean_accuracy,  # Mean of per-question accuracies
             'overall_mean_validity': overall_mean_validity,   # Mean of per-question validities
+            'overall_mean_self_certainty_accuracy': overall_mean_self_certainty_accuracy,   # Mean of per-question self-certainty accuracy
         }
 
         # If the dataset is GPQA, output average metrics per domain
@@ -447,9 +474,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 domain_avg_metrics[dm] = {
                     'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
                     'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
+                    'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
                     'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
                     'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
-                    # 'query_latency': f'{(total_time / (len(input_list) * sample_limit) * 1000):.0f} s',
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
                     'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
                     'total_time': f'{total_time:.0f} s',
@@ -458,9 +485,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         elif dataset_name == 'math500':
             for dm, m in domain_metrics.items():
                 domain_avg_metrics[dm] = {
-                    'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
-                    'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
-                    'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
+                    'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
                     'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
                     'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
@@ -543,6 +568,21 @@ if __name__ == "__main__":
         normal_output_path = './outputs/gsm8k.qwq.direct/test.12.13,18:26.json'
         if 'qwq' not in output_path:
             normal_output_path = './outputs/runs.baselines/gsm8k.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
+    elif 'minervamath' in output_path:
+        dataset_name = 'minervamath'
+        normal_output_path = './outputs/minervamath.qwq.direct/test.12.13,18:26.json'
+        if 'qwq' not in output_path:
+            normal_output_path = './outputs/runs.baselines/minervamath.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
+    elif 'olympiadbench' in output_path:
+        dataset_name = 'olympiadbench'
+        normal_output_path = './outputs/olympiadbench.qwq.direct/test.12.13,18:26.json'
+        if 'qwq' not in output_path:
+            normal_output_path = './outputs/runs.baselines/olympiadbench.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
+    elif 'hmmt' in output_path:
+        dataset_name = 'hmmt'
+        normal_output_path = './outputs/hmmt.qwq.direct/test.12.13,18:26.json'
+        if 'qwq' not in output_path:
+            normal_output_path = './outputs/runs.baselines/hmmt.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
     elif 'livecode' in output_path:
         dataset_name = 'livecode'
         normal_output_path = './outputs/livecode.qwq.direct/test.12.13,21:24.json'
@@ -651,7 +691,7 @@ if __name__ == "__main__":
                 labeled_answer = item["answer"]
                 domain = item.get("level", "Unknown")
                 mode = 'gen'
-            elif dataset_name in ['aime', 'amc', 'gsm8k']:
+            elif dataset_name in ['aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
                 labeled_answer = item["answer"]
                 mode = 'gen'
                 domain = 'Unknown'
@@ -697,10 +737,10 @@ if __name__ == "__main__":
                 if dataset_name in ['gpqa', 'medmcqa']:
                     normal_labeled_answer = normal_item["Correct Choice"]
                     normal_mode = 'choose'
-                elif dataset_name in ['math500', 'hendrycks', 'gsm8k']:
+                elif dataset_name in ['math500', 'hendrycks']:
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'gen'
-                elif dataset_name in ['aime', 'amc', 'gsm8k']:
+                elif dataset_name in ['aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'gen'
                 elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
@@ -813,6 +853,8 @@ if __name__ == "__main__":
             output_dir=output_path,
             total_time=total_time,
             split=split,
+            self_certainty=self_certainty,
+            usc=usc,
             apply_backoff=True,
         )
         # run_evaluation handles saving the metrics for livecode

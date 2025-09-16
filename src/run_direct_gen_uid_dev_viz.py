@@ -36,7 +36,7 @@ def parse_args():
         '--dataset_name', 
         type=str,
         required=True, 
-        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa', 'gsm8k'],
+        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt'],
         help="Name of the dataset to use."
     )
     
@@ -202,6 +202,12 @@ async def main(args):
         data_path = f'../data/AIME/{split}.json'
     elif dataset_name == 'gsm8k':
         data_path = f'../data/GSM8K/{split}.json'
+    elif dataset_name == 'minervamath':
+        data_path = f'../data/MINERVA_MATH/{split}.json'
+    elif dataset_name == 'olympiadbench':
+        data_path = f'../data/OLYMPIADBENCH/{split}.json'
+    elif dataset_name == 'hmmt':
+        data_path = f'../data/HMMT/{split}.json'
     elif dataset_name == 'amc':
         data_path = f'../data/AMC/{split}.json'
     elif dataset_name == 'livecode':
@@ -251,7 +257,7 @@ async def main(args):
 
     # if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
     if model_short_name in ['emdr2']:
-        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode', 'gsm8k']:
+        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
             output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
         else:
             output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct'
@@ -268,6 +274,7 @@ async def main(args):
                 dtype="bfloat16",
                 tensor_parallel_size=4,
                 swap_space=32,
+                trust_remote_code=True,
         )
                 
     sampling_params = SamplingParams(
@@ -306,7 +313,7 @@ async def main(args):
             else:
                 user_prompt = get_task_instruction_openqa(question)
 
-        elif dataset_name in ['math500', 'aime', 'amc', 'gsm8k']:
+        elif dataset_name in ['math500', 'aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() or 's1' in model_path.lower():
                 user_prompt = get_task_instruction_math(question, model_name='qwq')
             else:
@@ -344,7 +351,7 @@ async def main(args):
     # Set default max_tokens if not provided
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-            if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'mmlu', 'livecode', 'gsm8k']:
+            if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'mmlu', 'livecode', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
                 max_tokens = 32768  
             else:
                 max_tokens = 32768 
@@ -379,39 +386,36 @@ async def main(args):
     output_list = await generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
     total_time = time.time() - t_start
 
-    if self_certainty == True:
-        run_evaluation_self_certainty(
-            filtered_data,
-            input_list,
-            output_list,
-            dataset_name,
-            output_dir,
-            total_time,
-            split,
-            data_limit,
-            sample_limit,
-            model_path,
-            self_certainty,
-            tokenizer,
-            apply_backoff=False
-        )
-    elif usc == True:
-        run_evaluation_usc(
-            filtered_data,
-            input_list,
-            output_list,
-            dataset_name,
-            output_dir,
-            total_time,
-            split,
-            data_limit,
-            sample_limit,
-            model_path,
-            usc,
-            apply_backoff=False
-        )
-    else:
-        run_evaluation(
+    # run_evaluation_self_certainty(
+    #         filtered_data,
+    #         input_list,
+    #         output_list,
+    #         dataset_name,
+    #         output_dir,
+    #         total_time,
+    #         split,
+    #         data_limit,
+    #         sample_limit,
+    #         model_path,
+    #         self_certainty,
+    #         tokenizer,
+    #         apply_backoff=False
+    #     )
+    # run_evaluation_usc(
+    #         filtered_data,
+    #         input_list,
+    #         output_list,
+    #         dataset_name,
+    #         output_dir,
+    #         total_time,
+    #         split,
+    #         data_limit,
+    #         sample_limit,
+    #         model_path,
+    #         usc,
+    #         apply_backoff=False
+    #     )
+    run_evaluation(
             filtered_data, 
             input_list, 
             output_list, 
@@ -424,6 +428,8 @@ async def main(args):
             model_path,
             thinkseg,
             step_limit,
+            self_certainty,
+            usc,
             apply_backoff=False
         )
 

@@ -39,27 +39,32 @@ def calculate_uid_metrics(logprobs_list: List[Dict[int, "Logprob"]], thinkseg: b
           - D-only (confidence gap: Δ LP_i across segments)
     """ 
     uid_eq, uid_lp, uid_h, uid_d = create_uid_vectors(logprobs_list, thinkseg)
+    id_eq_linear, id_lp_linear, id_h_linear, id_d_linear = create_id_linear(uid_eq, uid_lp, uid_h, uid_d)
 
     return {
         # composite
         "uid_variance_equal": uid_variance(uid_eq),
         "uid_gini_equal": uid_gini(uid_eq),
         "uid_shannon_equal": uid_shannon(uid_eq),
+        "uid_l2_equal": uid_l2(uid_eq, id_eq_linear),
 
         # LP-only
         "uid_variance_logprob": uid_variance(uid_lp),
         "uid_gini_logprob": uid_gini(uid_lp),
         "uid_shannon_logprob": uid_shannon(uid_lp),
-
+        "uid_l2_logprob": uid_l2(uid_lp, id_lp_linear),
+        
         # H-only
         "uid_variance_entropy": uid_variance(uid_h),
         "uid_gini_entropy": uid_gini(uid_h),
         "uid_shannon_entropy": uid_shannon(uid_h),
-
+        "uid_l2_entropy": uid_l2(uid_h, id_h_linear),
+        
         # D-only
         "uid_variance_confidence_gap": uid_variance(uid_d),
         "uid_gini_confidence_gap": uid_gini(uid_d),
         "uid_shannon_confidence_gap": uid_shannon(uid_d),
+        "uid_l2_confidence_gap": uid_l2(uid_d, id_d_linear),
     }
 
 
@@ -108,6 +113,40 @@ def create_uid_vectors(logprobs_list: List[Dict[int, "Logprob"]], thinkseg: bool
 
     # Return all four aligned vectors (now non-negative)
     return uid_equal_nonneg, uid_lp_nonneg, uid_h_nonneg, uid_d_nonneg
+
+
+def create_id_linear(uid_eq: List[float], uid_lp: List[float], uid_h: List[float], uid_d: List[float]) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """
+    Fit a linear function y = a*x + b to each UID vector.
+
+    Parameters
+    ----------
+    uid_eq, uid_lp, uid_h, uid_d : List[float]
+        Per-segment UID vectors (already non-negative from create_uid_vectors).
+
+    Returns
+    -------
+    Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]
+        {
+          "equal": {"slope": a, "intercept": b, "fitted": List[float]},
+          "logprob": {"slope": a, "intercept": b, "fitted": List[float]},
+          "entropy": {"slope": a, "intercept": b, "fitted": List[float]},
+          "confidence_gap": {"slope": a, "intercept": b, "fitted": List[float]},
+        }
+    """
+    def _fit_line(y: List[float]) -> Dict[str, Any]:
+        n = len(y)
+        if n == 0:
+            return {"slope": 0.0, "intercept": 0.0, "fitted": []}
+        if n == 1:
+            b = float(y[0])
+            return {"slope": 0.0, "intercept": b, "fitted": [b]}
+        x = np.arange(n, dtype=float)
+        a, b = np.polyfit(x, np.asarray(y, dtype=float), 1)
+        yhat = (a * x + b).astype(float).tolist()
+        return {"slope": float(a), "intercept": float(b), "fitted": yhat}
+
+    return _fit_line(uid_eq), _fit_line(uid_lp), _fit_line(uid_h), _fit_line(uid_d)
 
 
 def segment_by_paragraph_breaks(logprobs_list, thinkseg):
@@ -358,27 +397,31 @@ def calculate_id_metrics_with_vectors(logprobs_list: List[Dict[int, "Logprob"]],
     - uid_d: Confidence gap vector
     """
     uid_eq, uid_lp, uid_h, uid_d = create_uid_vectors(logprobs_list, thinkseg)
-
+    id_eq_linear, id_lp_linear, id_h_linear, id_d_linear = create_id_linear(uid_eq, uid_lp, uid_h, uid_d)
     metrics_dict = {
         # composite
         "uid_variance_equal": uid_variance(uid_eq),
         "uid_gini_equal": uid_gini(uid_eq),
         "uid_shannon_equal": uid_shannon(uid_eq),
+        "uid_l2_equal": uid_l2(uid_eq, id_eq_linear),
+
 
         # LP-only
         "uid_variance_logprob": uid_variance(uid_lp),
         "uid_gini_logprob": uid_gini(uid_lp),
         "uid_shannon_logprob": uid_shannon(uid_lp),
+        "uid_l2_logprob": uid_l2(uid_lp, id_lp_linear),
 
         # H-only
         "uid_variance_entropy": uid_variance(uid_h),
         "uid_gini_entropy": uid_gini(uid_h),
         "uid_shannon_entropy": uid_shannon(uid_h),
-
+        "uid_l2_entropy": uid_l2(uid_h, id_h_linear),
         # D-only
         "uid_variance_confidence_gap": uid_variance(uid_d),
         "uid_gini_confidence_gap": uid_gini(uid_d),
         "uid_shannon_confidence_gap": uid_shannon(uid_d),
+        "uid_l2_confidence_gap": uid_l2(uid_d, id_d_linear),
     }
     
     return metrics_dict, uid_eq, uid_lp, uid_h, uid_d
@@ -892,3 +935,41 @@ def visualize_average_id_vectors(data, dataset_name, model_path, split, thinkseg
                 title=f"Average ID Scores Across Steps - {dataset_name} {split} Level {level}",
                 save_path=level_save_path
             )
+
+def uid_l2(
+    y: List[float],
+    fit: Dict[str, Any],
+    alpha: float = 1.5,
+    tail_k: int = 10,
+    min_score: float = 0.0,
+    max_score: float = 1.0,
+    eps: float = 1e-12,
+) -> float:
+    """
+    Weighted L2 distance between a UID vector and its fitted line.
+    Optionally min-max normalize the final score with provided bounds.
+
+    Returns
+    -------
+    float
+        raw_score                  if min_score or max_score is None/invalid
+        (raw_score - min)/(max-min) clipped to [0,1] otherwise
+    """
+    y_arr = np.asarray(y, dtype=float)
+    yhat = np.asarray(fit.get("fitted", []), dtype=float)
+    if y_arr.size == 0 or yhat.size == 0:
+        raw = 0.0
+    else:
+        n = min(y_arr.size, yhat.size)
+        r = y_arr[:n] - yhat[:n]
+        w = np.ones(n, dtype=float)
+        if tail_k > 0 and alpha != 1.5:
+            k = min(tail_k, n)
+            w[-k:] *= float(alpha)
+        raw = float(np.sqrt(np.sum(w * (r ** 2))))
+
+    if min_score is None or max_score is None or not np.isfinite(min_score) or not np.isfinite(max_score) or (max_score - min_score) <= eps:
+        return raw
+
+    x = (raw - float(min_score)) / (float(max_score) - float(min_score))
+    return float(np.clip(x, 0.0, 1.0))

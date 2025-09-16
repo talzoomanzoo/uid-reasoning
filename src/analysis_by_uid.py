@@ -21,7 +21,8 @@ def analyze_uid_accuracy(data):
         "uid_variance_equal", "uid_gini_equal", "uid_shannon_equal",
         "uid_variance_logprob", "uid_gini_logprob", "uid_shannon_logprob", 
         "uid_variance_entropy", "uid_gini_entropy", "uid_shannon_entropy",
-        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap"
+        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap",
+        "uid_l2_equal", "uid_l2_logprob", "uid_l2_entropy", "uid_l2_confidence_gap"
     ]
     
     results = {
@@ -44,7 +45,7 @@ def analyze_uid_accuracy(data):
                 outputs.append({
                     'index': i,
                     'uid_metrics': problem[uid_metrics_key],
-                    'accuracy': problem[metrics_key].get('acc', 0),
+                    'accuracy': problem[metrics_key].get('math_equal', 0),
                     'exact_match': problem[metrics_key].get('em', 0),
                     'f1': problem[metrics_key].get('f1', 0)
                 })
@@ -159,7 +160,7 @@ def calculate_aggregated_stats(summary):
     
     return aggregated
 
-def create_boxplots(summary, results, outdir, filename_prefix, input_filename=None):
+def create_boxplots(summary, results, outdir, filename_prefix, input_filename=None, overall_metrics=None):
     """Create bar graphs for mean accuracy and boxplots for individual metrics by UID type."""
     # Set up the plotting style
     plt.style.use('default')
@@ -197,6 +198,19 @@ def create_boxplots(summary, results, outdir, filename_prefix, input_filename=No
     for bar, value in zip(bars2_lowest, lowest_mean_acc):
         ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
                 f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+    # Add dotted lines for overall metrics if provided
+    if overall_metrics:
+        overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
+        overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+        
+        if overall_accuracy is not None:
+            ax2.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
+                       label=f'Overall Accuracy ({overall_accuracy:.3f})', alpha=0.8)
+        
+        if overall_self_certainty is not None:
+            ax2.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
+                       label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
 
     ax2.set_title('Mean Accuracy by Individual Metric')
     ax2.set_ylabel('Mean Accuracy')
@@ -241,7 +255,7 @@ def create_correlation_plot(data, outdir, filename_prefix, input_filename=None):
                 data_point = {
                     'problem_id': problem_id,
                     'output_index': i,
-                    'accuracy': metrics_data.get('acc', 0),
+                    'accuracy': metrics_data.get('math_equal', 0),
                     'exact_match': metrics_data.get('em', 0),
                     'f1': metrics_data.get('f1', 0)
                 }
@@ -349,7 +363,7 @@ def extract_shannon_equal_outputs(data, outdir, filename_prefix):
                     'output_index': i,
                     'output': problem[output_key],
                     'uid_shannon_equal': uid_data.get('uid_shannon_equal', 0),
-                    'accuracy': metrics_data.get('acc', 0),
+                    'accuracy': metrics_data.get('math_equal', 0),
                     'exact_match': metrics_data.get('em', 0),
                     'f1': metrics_data.get('f1', 0)
                 })
@@ -408,7 +422,8 @@ def analyze_uid_accuracy_by_level(data):
         "uid_variance_equal", "uid_gini_equal", "uid_shannon_equal",
         "uid_variance_logprob", "uid_gini_logprob", "uid_shannon_logprob", 
         "uid_variance_entropy", "uid_gini_entropy", "uid_shannon_entropy",
-        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap"
+        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap",
+        "uid_l2_equal", "uid_l2_logprob", "uid_l2_entropy", "uid_l2_confidence_gap"
     ]
     
     # Group problems by level
@@ -483,7 +498,7 @@ def analyze_uid_accuracy_by_level(data):
     return level_results
 
 
-def create_level_boxplots(level_summary, level_results, outdir, filename_prefix, input_filename=None):
+def create_level_boxplots(level_summary, level_results, outdir, filename_prefix, input_filename=None, overall_metrics=None, level_specific_metrics=None):
     """Create boxplots for each level showing UID analysis results."""
     # Set up the plotting style
     plt.style.use('default')
@@ -532,6 +547,32 @@ def create_level_boxplots(level_summary, level_results, outdir, filename_prefix,
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
                     f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
 
+        # Add dotted lines for level-specific metrics if provided
+        if level_specific_metrics and str(level) in level_specific_metrics:
+            level_metrics = level_specific_metrics[str(level)]
+            level_accuracy = level_metrics.get('math_equal', None)
+            level_self_certainty = level_metrics.get('self_certainty_accuracy', None)
+            
+            if level_accuracy is not None:
+                ax.axhline(y=level_accuracy, color='red', linestyle='--', linewidth=2, 
+                           label=f'Level {level} Accuracy ({level_accuracy:.3f})', alpha=0.8)
+            
+            if level_self_certainty is not None:
+                ax.axhline(y=level_self_certainty, color='green', linestyle='--', linewidth=2, 
+                           label=f'Level {level} Self-Certainty ({level_self_certainty:.3f})', alpha=0.8)
+        # Fallback to overall metrics if level-specific not available
+        elif overall_metrics:
+            overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
+            overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+            
+            if overall_accuracy is not None:
+                ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
+                           label=f'Overall Accuracy ({overall_accuracy:.3f})', alpha=0.8)
+            
+            if overall_self_certainty is not None:
+                ax.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
+                           label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
+
         ax.set_xlabel('UID Metrics')
         ax.set_ylabel('Mean Accuracy')
         ax.set_title(f'Level {level} - Mean Accuracy by UID Metric')
@@ -556,6 +597,32 @@ def create_level_boxplots(level_summary, level_results, outdir, filename_prefix,
         for bar, value in zip(bars_lowest_ind, lowest_mean_acc):
             individual_ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
                               f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        # Add dotted lines for level-specific metrics if provided (for individual plots too)
+        if level_specific_metrics and str(level) in level_specific_metrics:
+            level_metrics = level_specific_metrics[str(level)]
+            level_accuracy = level_metrics.get('math_equal', None)
+            level_self_certainty = level_metrics.get('self_certainty_accuracy', None)
+            
+            if level_accuracy is not None:
+                individual_ax.axhline(y=level_accuracy, color='red', linestyle='--', linewidth=2, 
+                                     label=f'Level {level} Accuracy ({level_accuracy:.3f})', alpha=0.8)
+            
+            if level_self_certainty is not None:
+                individual_ax.axhline(y=level_self_certainty, color='green', linestyle='--', linewidth=2, 
+                                     label=f'Level {level} Self-Certainty ({level_self_certainty:.3f})', alpha=0.8)
+        # Fallback to overall metrics if level-specific not available
+        elif overall_metrics:
+            overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
+            overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+            
+            if overall_accuracy is not None:
+                individual_ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
+                                     label=f'Overall Accuracy ({overall_accuracy:.3f})', alpha=0.8)
+            
+            if overall_self_certainty is not None:
+                individual_ax.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
+                                     label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
 
         individual_ax.set_xlabel('UID Metrics')
         individual_ax.set_ylabel('Mean Accuracy')
@@ -594,7 +661,8 @@ def analyze_uid_accuracy_by_domain(data):
         "uid_variance_equal", "uid_gini_equal", "uid_shannon_equal",
         "uid_variance_logprob", "uid_gini_logprob", "uid_shannon_logprob", 
         "uid_variance_entropy", "uid_gini_entropy", "uid_shannon_entropy",
-        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap"
+        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap",
+        "uid_l2_equal", "uid_l2_logprob", "uid_l2_entropy", "uid_l2_confidence_gap"
     ]
     
     # Group problems by domain
@@ -626,7 +694,7 @@ def analyze_uid_accuracy_by_domain(data):
                     outputs.append({
                         'index': i,
                         'uid_metrics': problem[uid_metrics_key],
-                        'accuracy': problem[metrics_key].get('acc', 0),
+                        'accuracy': problem[metrics_key].get('math_equal', 0),
                         'exact_match': problem[metrics_key].get('em', 0),
                         'f1': problem[metrics_key].get('f1', 0)
                     })
@@ -669,7 +737,7 @@ def analyze_uid_accuracy_by_domain(data):
     return domain_results
 
 
-def create_domain_boxplots(domain_summary, domain_results, outdir, filename_prefix, input_filename=None):
+def create_domain_boxplots(domain_summary, domain_results, outdir, filename_prefix, input_filename=None, overall_metrics=None):
     """Create boxplots for each domain showing UID analysis results."""
     # Set up the plotting style
     plt.style.use('default')
@@ -718,6 +786,19 @@ def create_domain_boxplots(domain_summary, domain_results, outdir, filename_pref
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
                     f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
 
+        # Add dotted lines for overall metrics if provided
+        if overall_metrics:
+            overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
+            overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+            
+            if overall_accuracy is not None:
+                ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
+                           label=f'Overall Accuracy ({overall_accuracy:.3f})', alpha=0.8)
+            
+            if overall_self_certainty is not None:
+                ax.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
+                           label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
+
         ax.set_xlabel('UID Metrics')
         ax.set_ylabel('Mean Accuracy')
         ax.set_title(f'Domain {domain} - Mean Accuracy by UID Metric')
@@ -742,6 +823,19 @@ def create_domain_boxplots(domain_summary, domain_results, outdir, filename_pref
         for bar, value in zip(bars_lowest_ind, lowest_mean_acc):
             individual_ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
                               f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        # Add dotted lines for overall metrics if provided (for individual plots too)
+        if overall_metrics:
+            overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
+            overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+            
+            if overall_accuracy is not None:
+                individual_ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
+                                     label=f'Overall Accuracy ({overall_accuracy:.3f})', alpha=0.8)
+            
+            if overall_self_certainty is not None:
+                individual_ax.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
+                                     label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
 
         individual_ax.set_xlabel('UID Metrics')
         individual_ax.set_ylabel('Mean Accuracy')
@@ -771,9 +865,10 @@ def create_domain_boxplots(domain_summary, domain_results, outdir, filename_pref
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=str, required=True)
+    parser.add_argument("--input2", type=str, required=False, help="Path to metrics JSON file containing overall_mean_accuracy and overall_mean_self_certainty_accuracy")
     parser.add_argument("--outdir", default="analysis_out")
-    parser.add_argument("--analysis_by_level", default=False, required=False)
-    parser.add_argument("--analysis_by_domain", default=False, required=False)
+    parser.add_argument("--analysis_by_level", action='store_true', help="Enable analysis by difficulty level")
+    parser.add_argument("--analysis_by_domain", action='store_true', help="Enable analysis by domain")
 
     args = parser.parse_args()
 
@@ -782,7 +877,33 @@ def main():
     with open(args.input, "r") as f:
         data = json.load(f)
     
+    # Load overall metrics if provided
+    overall_metrics = None
+    level_specific_metrics = None
+    if args.input2:
+        with open(args.input2, "r") as f:
+            metrics_data = json.load(f)
+            # Extract metrics from the "overall" key if it exists
+            if "overall" in metrics_data:
+                overall_metrics = metrics_data["overall"]
+            else:
+                overall_metrics = metrics_data
+            
+            # Extract level-specific metrics from "per_domain" key
+            if "per_domain" in metrics_data:
+                level_specific_metrics = metrics_data["per_domain"]
+    
     print(f"Analyzing {len(data)} problems...")
+    
+    # Print overall metrics for debugging
+    if overall_metrics:
+        print(f"Overall metrics loaded: {overall_metrics}")
+        print(f"Overall accuracy: {overall_metrics.get('overall_mean_accuracy', 'Not found')}")
+        print(f"Overall self-certainty: {overall_metrics.get('overall_mean_self_certainty_accuracy', 'Not found')}")
+    
+    # Print level-specific metrics for debugging
+    if level_specific_metrics:
+        print(f"Level-specific metrics loaded: {level_specific_metrics}")
     
     # Analyze UID-based accuracy
     results = analyze_uid_accuracy(data)
@@ -829,7 +950,7 @@ def main():
     
     # Create boxplots
     filename_prefix = args.input.split("/")[-2] if "/" in args.input else args.input.replace(".json", "")
-    plot_file = create_boxplots(summary, results, args.outdir, filename_prefix, args.input)
+    plot_file = create_boxplots(summary, results, args.outdir, filename_prefix, args.input, overall_metrics)
     
     # Create correlation plots
     correlation_plot_file = create_correlation_plot(data, args.outdir, filename_prefix, args.input)
@@ -905,8 +1026,8 @@ def main():
                 print(f"Mean UID Score: {level_stats['mean_uid_score']:.4f} ± {level_stats['std_uid_score']:.4f}")
                 print(f"Mean UID Score Std: {level_stats['mean_uid_score_std']:.4f} ± {level_stats['std_uid_score_std']:.4f}")
         
-        # Create level-specific boxplots
-        level_plot_file, individual_level_plots = create_level_boxplots(level_summary, level_results, args.outdir, filename_prefix, args.input)
+        # Create level-specific boxplots with level-specific metrics
+        level_plot_file, individual_level_plots = create_level_boxplots(level_summary, level_results, args.outdir, filename_prefix, args.input, overall_metrics, level_specific_metrics)
         
         # Save level-specific results
         level_results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_analysis_by_level.json")
@@ -985,7 +1106,7 @@ def main():
                 print(f"Mean UID Score Std: {domain_stats['mean_uid_score_std']:.4f} ± {domain_stats['std_uid_score_std']:.4f}")
         
         # Create domain-specific boxplots
-        domain_plot_file, individual_domain_plots = create_domain_boxplots(domain_summary, domain_results, args.outdir, filename_prefix, args.input)
+        domain_plot_file, individual_domain_plots = create_domain_boxplots(domain_summary, domain_results, args.outdir, filename_prefix, args.input, overall_metrics)
         
         # Save domain-specific results
         domain_results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_analysis_by_domain.json")
