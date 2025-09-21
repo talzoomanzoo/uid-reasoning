@@ -1,0 +1,38 @@
+{
+  "highest_uid": {
+    "mean_accuracy": 0.06666666666666668,
+    "std_accuracy": 0.020412414523193152,
+    "mean_accuracy_std": 0.24580967116017155,
+    "std_accuracy_std": 0.03719087414519706,
+    "mean_exact_match": 0.06666666666666668,
+    "std_exact_match": 0.020412414523193152,
+    "mean_exact_match_std": 0.24580967116017155,
+    "std_exact_match_std": 0.03719087414519706,
+    "mean_f1": 0.07256944444444445,
+    "std_f1": 0.024253416298750444,
+    "mean_f1_std": 0.2503182826509993,
+    "std_f1_std": 0.03958817272920209,
+    "mean_uid_score": 0.4896131770224472,
+    "std_uid_score": 0.3037081867670424,
+    "mean_uid_score_std": 0.12290271626648315,
+    "std_uid_score_std": 0.10852375378090069
+  },
+  "lowest_uid": {
+    "mean_accuracy": 0.07291666666666667,
+    "std_accuracy": 0.013010412496663333,
+    "mean_accuracy_std": 0.2589231084502551,
+    "std_accuracy_std": 0.01973270042373727,
+    "mean_exact_match": 0.07291666666666667,
+    "std_exact_match": 0.013010412496663333,
+    "mean_exact_match_std": 0.2589231084502551,
+    "std_exact_match_std": 0.01973270042373727,
+    "mean_f1": 0.08055555555555555,
+    "std_f1": 0.014829275350043488,
+    "mean_f1_std": 0.2643441446275284,
+    "std_f1_std": 0.019510531911285833,
+    "mean_uid_score": 0.26257236144794716,
+    "std_uid_score": 0.2855379749469165,
+    "mean_uid_score_std": 0.09768582137129614,
+    "std_uid_score_std": 0.07333755551475805
+  }
+}

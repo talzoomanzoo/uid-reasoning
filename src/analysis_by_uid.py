@@ -203,6 +203,9 @@ def create_boxplots(summary, results, outdir, filename_prefix, input_filename=No
     if overall_metrics:
         overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
         overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+        overall_cot_decoding = overall_metrics.get('overall_mean_cot_decoding_accuracy', None)
+        overall_confidence = overall_metrics.get('overall_mean_confidence_accuracy', None)
+        overall_entropy = overall_metrics.get('overall_mean_entropy_accuracy', None)
         
         if overall_accuracy is not None:
             ax2.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
@@ -211,6 +214,18 @@ def create_boxplots(summary, results, outdir, filename_prefix, input_filename=No
         if overall_self_certainty is not None:
             ax2.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
                        label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
+
+        if overall_cot_decoding is not None:
+            ax2.axhline(y=overall_cot_decoding, color='blue', linestyle='--', linewidth=2, 
+                       label=f'Overall Cot-Decoding ({overall_cot_decoding:.3f})', alpha=0.8)
+
+        if overall_confidence is not None:
+            ax2.axhline(y=overall_confidence, color='yellow', linestyle='--', linewidth=2, 
+                       label=f'Overall Confidence ({overall_confidence:.3f})', alpha=0.8)
+
+        if overall_entropy is not None:
+            ax2.axhline(y=overall_entropy, color='purple', linestyle='--', linewidth=2, 
+                       label=f'Overall Entropy ({overall_entropy:.3f})', alpha=0.8)
 
     ax2.set_title('Mean Accuracy by Individual Metric')
     ax2.set_ylabel('Mean Accuracy')
@@ -564,6 +579,9 @@ def create_level_boxplots(level_summary, level_results, outdir, filename_prefix,
         elif overall_metrics:
             overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
             overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+            overall_cot_decoding = overall_metrics.get('overall_mean_cot_decoding_accuracy', None)
+            overall_confidence = overall_metrics.get('overall_mean_confidence_accuracy', None)
+            overall_entropy = overall_metrics.get('overall_mean_entropy_accuracy', None)
             
             if overall_accuracy is not None:
                 ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
@@ -572,6 +590,18 @@ def create_level_boxplots(level_summary, level_results, outdir, filename_prefix,
             if overall_self_certainty is not None:
                 ax.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
                            label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
+
+            if overall_cot_decoding is not None:
+                ax.axhline(y=overall_cot_decoding, color='blue', linestyle='--', linewidth=2, 
+                           label=f'Overall Cot-Decoding ({overall_cot_decoding:.3f})', alpha=0.8)
+
+            if overall_confidence is not None:
+                ax.axhline(y=overall_confidence, color='yellow', linestyle='--', linewidth=2, 
+                           label=f'Overall Confidence ({overall_confidence:.3f})', alpha=0.8)
+
+            if overall_entropy is not None:
+                ax.axhline(y=overall_entropy, color='purple', linestyle='--', linewidth=2, 
+                           label=f'Overall Entropy ({overall_entropy:.3f})', alpha=0.8)
 
         ax.set_xlabel('UID Metrics')
         ax.set_ylabel('Mean Accuracy')
@@ -603,6 +633,9 @@ def create_level_boxplots(level_summary, level_results, outdir, filename_prefix,
             level_metrics = level_specific_metrics[str(level)]
             level_accuracy = level_metrics.get('math_equal', None)
             level_self_certainty = level_metrics.get('self_certainty_accuracy', None)
+            level_cot_decoding = level_metrics.get('cot_decoding_accuracy', None)
+            level_confidence = level_metrics.get('confidence_accuracy', None)
+            level_entropy = level_metrics.get('entropy_accuracy', None)
             
             if level_accuracy is not None:
                 individual_ax.axhline(y=level_accuracy, color='red', linestyle='--', linewidth=2, 
@@ -611,10 +644,25 @@ def create_level_boxplots(level_summary, level_results, outdir, filename_prefix,
             if level_self_certainty is not None:
                 individual_ax.axhline(y=level_self_certainty, color='green', linestyle='--', linewidth=2, 
                                      label=f'Level {level} Self-Certainty ({level_self_certainty:.3f})', alpha=0.8)
+            
+            if level_cot_decoding is not None:
+                individual_ax.axhline(y=level_cot_decoding, color='blue', linestyle='--', linewidth=2, 
+                                     label=f'Level {level} Cot-Decoding ({level_cot_decoding:.3f})', alpha=0.8)
+            
+            if level_confidence is not None:
+                individual_ax.axhline(y=level_confidence, color='yellow', linestyle='--', linewidth=2, 
+                                     label=f'Level {level} Confidence ({level_confidence:.3f})', alpha=0.8)
+            
+            if level_entropy is not None:
+                individual_ax.axhline(y=level_entropy, color='purple', linestyle='--', linewidth=2, 
+                                     label=f'Level {level} Entropy ({level_entropy:.3f})', alpha=0.8)
         # Fallback to overall metrics if level-specific not available
         elif overall_metrics:
             overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
             overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+            overall_cot_decoding = overall_metrics.get('overall_mean_cot_decoding_accuracy', None)
+            overall_confidence = overall_metrics.get('overall_mean_confidence_accuracy', None)
+            overall_entropy = overall_metrics.get('overall_mean_entropy_accuracy', None)
             
             if overall_accuracy is not None:
                 individual_ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
@@ -623,6 +671,18 @@ def create_level_boxplots(level_summary, level_results, outdir, filename_prefix,
             if overall_self_certainty is not None:
                 individual_ax.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
                                      label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
+
+            if overall_cot_decoding is not None:
+                individual_ax.axhline(y=overall_cot_decoding, color='blue', linestyle='--', linewidth=2, 
+                                     label=f'Overall Cot-Decoding ({overall_cot_decoding:.3f})', alpha=0.8)
+
+            if overall_confidence is not None:
+                individual_ax.axhline(y=overall_confidence, color='yellow', linestyle='--', linewidth=2, 
+                                     label=f'Overall Confidence ({overall_confidence:.3f})', alpha=0.8)
+
+            if overall_entropy is not None:
+                individual_ax.axhline(y=overall_entropy, color='purple', linestyle='--', linewidth=2, 
+                                     label=f'Overall Entropy ({overall_entropy:.3f})', alpha=0.8)
 
         individual_ax.set_xlabel('UID Metrics')
         individual_ax.set_ylabel('Mean Accuracy')
@@ -790,6 +850,9 @@ def create_domain_boxplots(domain_summary, domain_results, outdir, filename_pref
         if overall_metrics:
             overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
             overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+            overall_cot_decoding = overall_metrics.get('overall_mean_cot_decoding_accuracy', None)
+            overall_confidence = overall_metrics.get('overall_mean_confidence_accuracy', None)
+            overall_entropy = overall_metrics.get('overall_mean_entropy_accuracy', None)
             
             if overall_accuracy is not None:
                 ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
@@ -798,6 +861,18 @@ def create_domain_boxplots(domain_summary, domain_results, outdir, filename_pref
             if overall_self_certainty is not None:
                 ax.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
                            label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
+
+            if overall_cot_decoding is not None:
+                ax.axhline(y=overall_cot_decoding, color='blue', linestyle='--', linewidth=2, 
+                           label=f'Overall Cot-Decoding ({overall_cot_decoding:.3f})', alpha=0.8)
+
+            if overall_confidence is not None:
+                ax.axhline(y=overall_confidence, color='yellow', linestyle='--', linewidth=2, 
+                           label=f'Overall Confidence ({overall_confidence:.3f})', alpha=0.8)
+
+            if overall_entropy is not None:
+                ax.axhline(y=overall_entropy, color='purple', linestyle='--', linewidth=2, 
+                           label=f'Overall Entropy ({overall_entropy:.3f})', alpha=0.8)
 
         ax.set_xlabel('UID Metrics')
         ax.set_ylabel('Mean Accuracy')
@@ -828,6 +903,9 @@ def create_domain_boxplots(domain_summary, domain_results, outdir, filename_pref
         if overall_metrics:
             overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
             overall_self_certainty = overall_metrics.get('overall_mean_self_certainty_accuracy', None)
+            overall_cot_decoding = overall_metrics.get('overall_mean_cot_decoding_accuracy', None)
+            overall_confidence = overall_metrics.get('overall_mean_confidence_accuracy', None)
+            overall_entropy = overall_metrics.get('overall_mean_entropy_accuracy', None)
             
             if overall_accuracy is not None:
                 individual_ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
@@ -836,6 +914,18 @@ def create_domain_boxplots(domain_summary, domain_results, outdir, filename_pref
             if overall_self_certainty is not None:
                 individual_ax.axhline(y=overall_self_certainty, color='green', linestyle='--', linewidth=2, 
                                      label=f'Overall Self-Certainty ({overall_self_certainty:.3f})', alpha=0.8)
+
+            if overall_cot_decoding is not None:
+                individual_ax.axhline(y=overall_cot_decoding, color='blue', linestyle='--', linewidth=2, 
+                                     label=f'Overall Cot-Decoding ({overall_cot_decoding:.3f})', alpha=0.8)
+
+            if overall_confidence is not None:
+                individual_ax.axhline(y=overall_confidence, color='yellow', linestyle='--', linewidth=2, 
+                                     label=f'Overall Confidence ({overall_confidence:.3f})', alpha=0.8)
+
+            if overall_entropy is not None:
+                individual_ax.axhline(y=overall_entropy, color='purple', linestyle='--', linewidth=2, 
+                                     label=f'Overall Entropy ({overall_entropy:.3f})', alpha=0.8)
 
         individual_ax.set_xlabel('UID Metrics')
         individual_ax.set_ylabel('Mean Accuracy')
@@ -900,7 +990,9 @@ def main():
         print(f"Overall metrics loaded: {overall_metrics}")
         print(f"Overall accuracy: {overall_metrics.get('overall_mean_accuracy', 'Not found')}")
         print(f"Overall self-certainty: {overall_metrics.get('overall_mean_self_certainty_accuracy', 'Not found')}")
-    
+        print(f"Overall cot-decoding: {overall_metrics.get('overall_mean_cot_decoding_accuracy', 'Not found')}")
+        print(f"Overall confidence: {overall_metrics.get('overall_mean_confidence_accuracy', 'Not found')}")
+        print(f"Overall entropy: {overall_metrics.get('overall_mean_entropy_accuracy', 'Not found')}")
     # Print level-specific metrics for debugging
     if level_specific_metrics:
         print(f"Level-specific metrics loaded: {level_specific_metrics}")

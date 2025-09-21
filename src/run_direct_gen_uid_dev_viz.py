@@ -148,8 +148,8 @@ def parse_args():
     parser.add_argument(
         '--self-certainty',
         type=bool,
-        default=False,
-        help="Whether to use self-certainty. Defaults to False if not specified."
+        default=True,
+        help="Whether to use self-certainty. Defaults to True if not specified."
     )
 
     parser.add_argument(
@@ -162,9 +162,30 @@ def parse_args():
     parser.add_argument(
         '--step-limit',
         type=int,
-        default=50,
+        default=300,
         required=False,
         help="Number of steps to limit. Defaults to 50 if not specified."
+    )
+    
+    parser.add_argument(
+        '--cot_decoding',
+        type=bool,
+        default=False,
+        help="Whether to use cot decoding. Defaults to False if not specified."
+    )
+    
+    parser.add_argument(
+        '--confidence',
+        type=bool,
+        default=False,
+        help="Whether to use confidence. Defaults to False if not specified."
+    )
+    
+    parser.add_argument(
+        '--entropy',
+        type=bool,
+        default=False,
+        help="Whether to use entropy. Defaults to False if not specified."
     )
     
     return parser.parse_args()
@@ -188,9 +209,12 @@ async def main(args):
     self_certainty = args.self_certainty
     usc = args.usc
     step_limit = args.step_limit
+    cot_decoding = args.cot_decoding
+    confidence = args.confidence
+    entropy = args.entropy
     # Set default repetition_penalty if not provided
-    if repetition_penalty is None:
-        repetition_penalty = 1.05 
+    # if repetition_penalty is None:
+    #     repetition_penalty = 1.05 
         #if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
     
     # Paths to datasets
@@ -282,7 +306,6 @@ async def main(args):
                 top_k=top_k,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                repetition_penalty=repetition_penalty,
                 skip_special_tokens=skip_special_tokens,
                 include_stop_str_in_output=True,
                 logprobs=1
@@ -429,7 +452,9 @@ async def main(args):
             thinkseg,
             step_limit,
             self_certainty,
-            usc,
+            cot_decoding,
+            confidence,
+            entropy,
             apply_backoff=False
         )
 

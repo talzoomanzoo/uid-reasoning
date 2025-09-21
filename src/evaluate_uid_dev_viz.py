@@ -10,6 +10,8 @@ from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
 from utils.calculate_uid_rev_viz import calculate_id_metrics_with_vectors, visualize_id_vectors, visualize_average_id_vectors, visualize_average_step_counts
 from utils.calculate_uid_rev_viz_self_certainty import calculate_self_certainty, calculate_borda_voting_self_certainty
+from utils.calculate_uid_rev_viz_cot_decoding import calculate_cot_decoding, calculate_highest_cot_decoding
+from utils.calculate_uid_rev_viz_baselines import calculate_confidence, calculate_entropy, calculate_highest_confidence, calculate_lowest_entropy
 from tqdm import tqdm
 from langchain_core.outputs.chat_generation import ChatGeneration
 from vllm import RequestOutput
@@ -139,7 +141,7 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, thinkseg, step_limit, self_certainty, usc, apply_backoff=False):
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, thinkseg, step_limit, self_certainty, cot_decoding, confidence, entropy, apply_backoff=False):
     if dataset_name == 'livecode':
         # Prepare samples and generations for codegen_metrics
         samples_list = []
@@ -255,7 +257,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         question_math_equal_scores = defaultdict(list)
         question_validity_scores = defaultdict(list)
         question_self_certainty_scores = defaultdict(list)
-        question_usc_scores = defaultdict(list)
+        question_cot_decoding_scores = defaultdict(list)
+        question_confidence_scores = defaultdict(list)
+        question_entropy_scores = defaultdict(list)
         for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
             # Get all samples for this question
             question_samples = []
@@ -264,7 +268,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 num_valid_answer = 0
 
             per_output_self_cert_summary = []
-            
+            per_output_cot_decoding_summary = []
+            per_output_confidence_summary = []
+            per_output_entropy_summary = []
             # Process each output and its metrics
             for idx in range(len(question_samples)):
                 result = question_samples[idx]
@@ -302,12 +308,39 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 sc_obj = calculate_self_certainty(result.outputs[0].logprobs)
                 item[f'Self_Certainty_{idx}'] = sc_obj
 
+                cot_decoding_obj = calculate_cot_decoding(result.outputs[0].logprobs)
+                item[f'Cot_Decoding_{idx}'] = cot_decoding_obj
+
+                confidence_obj = calculate_confidence(result.outputs[0].logprobs)
+                item[f'Confidence_{idx}'] = confidence_obj
+
+                entropy_obj = calculate_entropy(result.outputs[0].logprobs)
+                item[f'Entropy_{idx}'] = entropy_obj
+
                 per_output_self_cert_summary.append({
                     f'output_{idx}': sc_obj.get('self_certainty', float('nan')),
                     'math_equal': bool(metric.get('math_equal', False)),
                 })
 
+                per_output_cot_decoding_summary.append({
+                    f'output_{idx}': cot_decoding_obj.get('confidence_score', float('nan')),
+                    'math_equal': bool(metric.get('math_equal', False)),
+                })
+
+                per_output_confidence_summary.append({
+                    f'output_{idx}': confidence_obj.get('calculate_confidence', float('nan')),
+                    'math_equal': bool(metric.get('math_equal', False)),
+                })
+
+                per_output_entropy_summary.append({
+                    f'output_{idx}': entropy_obj.get('calculate_entropy', float('nan')),
+                    'math_equal': bool(metric.get('math_equal', False)),
+                })
+
                 borda_voting_self_cert = calculate_borda_voting_self_certainty(per_output_self_cert_summary)
+                highest_cot_decoding = calculate_highest_cot_decoding(per_output_cot_decoding_summary)
+                highest_confidence = calculate_highest_confidence(per_output_confidence_summary)
+                lowest_entropy = calculate_lowest_entropy(per_output_entropy_summary)
 
                 is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
@@ -352,6 +385,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[domain]['math_equal'].append(metric['math_equal'])
                     domain_metrics[domain]['total_num'] += 1
                     domain_metrics[domain]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                    domain_metrics[domain]['cot_decoding_accuracy'].append(1 if highest_cot_decoding['math_equal'] == True else 0)
+                    domain_metrics[domain]['confidence_accuracy'].append(1 if highest_confidence['math_equal'] == True else 0)
+                    domain_metrics[domain]['entropy_accuracy'].append(1 if lowest_entropy['math_equal'] == True else 0)
                     if idx == 0:
                         item['Question'] = input_prompt
                     
@@ -380,7 +416,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 elif dataset_name == 'math500':
                     level = item.get("level", "Unknown")
                     if level not in domain_metrics:
-                        domain_metrics[level] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'self_certainty_accuracy': []}
+                        domain_metrics[level] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
                     
                     # Add metrics for this output to the level
                     domain_metrics[level]['em'].append(metric['em'])
@@ -389,6 +425,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[level]['math_equal'].append(metric['math_equal'])
                     domain_metrics[level]['total_num'] += 1
                     domain_metrics[level]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                    domain_metrics[level]['cot_decoding_accuracy'].append(1 if highest_cot_decoding['math_equal'] == True else 0)
+                    domain_metrics[level]['confidence_accuracy'].append(1 if highest_confidence['math_equal'] == True else 0)
+                    domain_metrics[level]['entropy_accuracy'].append(1 if lowest_entropy['math_equal'] == True else 0)
                     if idx == 0:
                         item['Question'] = input_prompt
                     
@@ -417,43 +456,69 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     # visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg)
             item['self_certainty_by_output '] = per_output_self_cert_summary
             item['borda_voting_self_cert'] = borda_voting_self_cert
+            item['highest_cot_decoding'] = highest_cot_decoding
             question_self_certainty_scores[question_idx].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
-
+            question_cot_decoding_scores[question_idx].append(1 if highest_cot_decoding['math_equal'] == True else 0)
+            question_confidence_scores[question_idx].append(1 if highest_confidence['math_equal'] == True else 0)
+            question_entropy_scores[question_idx].append(1 if lowest_entropy['math_equal'] == True else 0)
         # Compute mean accuracy and validity per question
         if dataset_name != 'gpqa' and dataset_name != 'math500':
             question_mean_accuracies = {}
             question_mean_validities = {}
             question_self_certainty_accuracy = {}
+            question_cot_decoding_accuracy = {}
+            question_confidence_accuracy = {}
+            question_entropy_accuracy = {}
             for question_idx in question_math_equal_scores.keys():
                 question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
                 question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
                 question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
-            # Add per-question metrics to each item in filtered_data
+                question_cot_decoding_accuracy[f'question_{question_idx}'] = np.mean(question_cot_decoding_scores[question_idx])
+                question_confidence_accuracy[f'question_{question_idx}'] = np.mean(question_confidence_scores[question_idx])
+                question_entropy_accuracy[f'question_{question_idx}'] = np.mean(question_entropy_scores[question_idx])
+                # Add per-question metrics to each item in filtered_data
             for i in range(len(filtered_data)):
                 filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
                 filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
+                filtered_data[i]['per_question_mean_cot_decoding_accuracy'] = question_cot_decoding_accuracy[f'question_{i}']
+                filtered_data[i]['per_question_mean_confidence_accuracy'] = question_confidence_accuracy[f'question_{i}']
+                filtered_data[i]['per_question_mean_entropy_accuracy'] = question_entropy_accuracy[f'question_{i}']
             # Compute overall mean accuracy and validity across all questions
             overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
             overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
             overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
+            overall_mean_cot_decoding_accuracy = np.mean([acc for acc in question_cot_decoding_accuracy.values()])
+            overall_mean_confidence_accuracy = np.mean([acc for acc in question_confidence_accuracy.values()])
+            overall_mean_entropy_accuracy = np.mean([acc for acc in question_entropy_accuracy.values()])
         else:
             question_mean_accuracies = {}
             question_mean_validities = {}
             question_self_certainty_accuracy = {}
+            question_cot_decoding_accuracy = {}
+            question_confidence_accuracy = {}
+            question_entropy_accuracy = {}
             for question_idx in question_math_equal_scores.keys():
                 question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
                 question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
                 question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
-            # Add per-question metrics to each item in filtered_data
+                question_cot_decoding_accuracy[f'question_{question_idx}'] = np.mean(question_cot_decoding_scores[question_idx])
+                question_confidence_accuracy[f'question_{question_idx}'] = np.mean(question_confidence_scores[question_idx])
+                question_entropy_accuracy[f'question_{question_idx}'] = np.mean(question_entropy_scores[question_idx])
             for i in range(len(filtered_data)):
                 filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
                 filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
+                filtered_data[i]['per_question_mean_cot_decoding_accuracy'] = question_cot_decoding_accuracy[f'question_{i}']
+                filtered_data[i]['per_question_mean_confidence_accuracy'] = question_confidence_accuracy[f'question_{i}']
+                filtered_data[i]['per_question_mean_entropy_accuracy'] = question_entropy_accuracy[f'question_{i}']
+                filtered_data[i]['per_question_mean_cot_decoding_accuracy'] = question_cot_decoding_accuracy[f'question_{i}']
             overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
             overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
             overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
-
+            overall_mean_cot_decoding_accuracy = np.mean([acc for acc in question_cot_decoding_accuracy.values()])
+            overall_mean_confidence_accuracy = np.mean([acc for acc in question_confidence_accuracy.values()])
+            overall_mean_entropy_accuracy = np.mean([acc for acc in question_entropy_accuracy.values()])
         # Visualize average ID vectors across all samples
         visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg, step_limit)
         # Also visualize average step counts
@@ -465,7 +530,10 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             'overall_mean_accuracy': overall_mean_accuracy,  # Mean of per-question accuracies
             'overall_mean_validity': overall_mean_validity,   # Mean of per-question validities
             'overall_mean_self_certainty_accuracy': overall_mean_self_certainty_accuracy,   # Mean of per-question self-certainty accuracy
-        }
+            'overall_mean_cot_decoding_accuracy': overall_mean_cot_decoding_accuracy,   # Mean of per-question cot-decoding accuracy
+            'overall_mean_confidence_accuracy': overall_mean_confidence_accuracy,   # Mean of per-question confidence accuracy
+            'overall_mean_entropy_accuracy': overall_mean_entropy_accuracy,   # Mean of per-question entropy accuracy
+    }
 
         # If the dataset is GPQA, output average metrics per domain
         domain_avg_metrics = {}
@@ -475,6 +543,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
                     'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
                     'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
+                    'cot_decoding_accuracy': np.mean(m['cot_decoding_accuracy']) if len(m['cot_decoding_accuracy']) > 0 else 0,
+                    'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
+                    'entropy_accuracy': np.mean(m['entropy_accuracy']) if len(m['entropy_accuracy']) > 0 else 0,
                     'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
                     'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
@@ -486,6 +557,9 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             for dm, m in domain_metrics.items():
                 domain_avg_metrics[dm] = {
                     'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
+                    'cot_decoding_accuracy': np.mean(m['cot_decoding_accuracy']) if len(m['cot_decoding_accuracy']) > 0 else 0,
+                    'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
+                    'entropy_accuracy': np.mean(m['entropy_accuracy']) if len(m['entropy_accuracy']) > 0 else 0,
                     'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
                     'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
                     'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
@@ -854,7 +928,9 @@ if __name__ == "__main__":
             total_time=total_time,
             split=split,
             self_certainty=self_certainty,
-            usc=usc,
+            cot_decoding=cot_decoding,
+            confidence=confidence,
+            entropy=entropy,
             apply_backoff=True,
         )
         # run_evaluation handles saving the metrics for livecode
