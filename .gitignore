@@ -11,5 +11,6 @@ data/outputs/*
 **/plots_out/*
 **/analysis_out/*
 **/analysis_out_ds/*
+**/analysis_out_llama/*
 **/outputs_ds/*
 **/sft_data/*
