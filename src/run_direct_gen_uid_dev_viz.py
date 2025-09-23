@@ -162,7 +162,7 @@ def parse_args():
     parser.add_argument(
         '--step-limit',
         type=int,
-        default=300,
+        default=50,
         required=False,
         help="Number of steps to limit. Defaults to 50 if not specified."
     )
