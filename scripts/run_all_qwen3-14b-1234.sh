@@ -22,12 +22,8 @@ run_script() {
 }
 
 # Run scripts sequentially
-run_script "qwen-1.7b-gpqa-diamond.sh"
-run_script "qwen-1.7b-gpqa-diamond-high-gini.sh"
-run_script "qwen-1.7b-gpqa-diamond-high-shannon.sh"
-run_script "qwen-1.7b-gpqa-diamond-high-variance.sh"
-run_script "qwen-1.7b-gpqa-diamond-low-gini.sh"
-run_script "qwen-1.7b-gpqa-diamond-low-shannon.sh"
-run_script "qwen-1.7b-gpqa-diamon-low-variance.sh"
+run_script "qwen3-14b-aime-1234.sh"
+run_script "qwen3-14b-hmmt-1234.sh"
+run_script "qwen3-14b-minerva-1234.sh"
 
 echo "All scripts completed successfully!"
