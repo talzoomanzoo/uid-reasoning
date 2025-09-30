@@ -284,7 +284,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 if dataset_name in ['gpqa', 'medmcqa']:
                     labeled_answer = item["Correct Choice"]
                     mode = 'choose'
-                elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
+                elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
                     labeled_answer = item["answer"]
                     mode = 'gen'
                 elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
@@ -376,7 +376,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 elif dataset_name == 'gpqa':
                     domain = item.get("High-level domain", "Unknown")
                     if domain not in domain_metrics:
-                        domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'self_certainty_accuracy': []}
+                        domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
                     
                     # Add metrics for this output to the domain
                     domain_metrics[domain]['em'].append(metric['em'])
@@ -464,6 +464,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # Compute mean accuracy and validity per question
         if dataset_name != 'gpqa' and dataset_name != 'math500':
             question_mean_accuracies = {}
+            question_upper_bound = {}
             question_mean_validities = {}
             question_self_certainty_accuracy = {}
             question_cot_decoding_accuracy = {}
@@ -471,6 +472,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             question_entropy_accuracy = {}
             for question_idx in question_math_equal_scores.keys():
                 question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
+                question_upper_bound[f'question_{question_idx}'] = float(np.max(question_math_equal_scores[question_idx]))
                 question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
                 question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
                 question_cot_decoding_accuracy[f'question_{question_idx}'] = np.mean(question_cot_decoding_scores[question_idx])
@@ -479,6 +481,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 # Add per-question metrics to each item in filtered_data
             for i in range(len(filtered_data)):
                 filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
+                filtered_data[i]['per_question_upper_bound_accuracy'] = question_upper_bound[f'question_{i}']
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
                 filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
                 filtered_data[i]['per_question_mean_cot_decoding_accuracy'] = question_cot_decoding_accuracy[f'question_{i}']
@@ -486,6 +489,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 filtered_data[i]['per_question_mean_entropy_accuracy'] = question_entropy_accuracy[f'question_{i}']
             # Compute overall mean accuracy and validity across all questions
             overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
+            overall_mean_upper_bound = np.mean([ub for ub in question_upper_bound.values()])
             overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
             overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
             overall_mean_cot_decoding_accuracy = np.mean([acc for acc in question_cot_decoding_accuracy.values()])
@@ -493,6 +497,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             overall_mean_entropy_accuracy = np.mean([acc for acc in question_entropy_accuracy.values()])
         else:
             question_mean_accuracies = {}
+            question_upper_bound = {}
             question_mean_validities = {}
             question_self_certainty_accuracy = {}
             question_cot_decoding_accuracy = {}
@@ -500,6 +505,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             question_entropy_accuracy = {}
             for question_idx in question_math_equal_scores.keys():
                 question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
+                question_upper_bound[f'question_{question_idx}'] = float(np.max(question_math_equal_scores[question_idx]))
                 question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
                 question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
                 question_cot_decoding_accuracy[f'question_{question_idx}'] = np.mean(question_cot_decoding_scores[question_idx])
@@ -507,6 +513,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 question_entropy_accuracy[f'question_{question_idx}'] = np.mean(question_entropy_scores[question_idx])
             for i in range(len(filtered_data)):
                 filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
+                filtered_data[i]['per_question_upper_bound_accuracy'] = question_upper_bound[f'question_{i}']
                 filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
                 filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
                 filtered_data[i]['per_question_mean_cot_decoding_accuracy'] = question_cot_decoding_accuracy[f'question_{i}']
@@ -514,6 +521,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 filtered_data[i]['per_question_mean_entropy_accuracy'] = question_entropy_accuracy[f'question_{i}']
                 filtered_data[i]['per_question_mean_cot_decoding_accuracy'] = question_cot_decoding_accuracy[f'question_{i}']
             overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
+            overall_mean_upper_bound = np.mean([ub for ub in question_upper_bound.values()])
             overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
             overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
             overall_mean_cot_decoding_accuracy = np.mean([acc for acc in question_cot_decoding_accuracy.values()])
@@ -528,6 +536,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         overall_results = {
             'total_time': f'{total_time:.0f} s',
             'overall_mean_accuracy': overall_mean_accuracy,  # Mean of per-question accuracies
+            'overall_mean_upper_bound_accuracy': overall_mean_upper_bound,   # Mean of per-question upper bound accuracies
             'overall_mean_validity': overall_mean_validity,   # Mean of per-question validities
             'overall_mean_self_certainty_accuracy': overall_mean_self_certainty_accuracy,   # Mean of per-question self-certainty accuracy
             'overall_mean_cot_decoding_accuracy': overall_mean_cot_decoding_accuracy,   # Mean of per-question cot-decoding accuracy
@@ -542,6 +551,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 domain_avg_metrics[dm] = {
                     'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
                     'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
+                    'upper_bound_accuracy': np.mean(m['upper_bound_accuracy']) if len(m['upper_bound_accuracy']) > 0 else 0,
                     'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
                     'cot_decoding_accuracy': np.mean(m['cot_decoding_accuracy']) if len(m['cot_decoding_accuracy']) > 0 else 0,
                     'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
@@ -556,6 +566,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         elif dataset_name == 'math500':
             for dm, m in domain_metrics.items():
                 domain_avg_metrics[dm] = {
+                    'upper_bound_accuracy': np.mean(m['upper_bound_accuracy']) if len(m['upper_bound_accuracy']) > 0 else 0,
                     'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
                     'cot_decoding_accuracy': np.mean(m['cot_decoding_accuracy']) if len(m['cot_decoding_accuracy']) > 0 else 0,
                     'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
@@ -584,6 +595,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             os.makedirs(output_dir)
 
     # Save prediction results and metrics
+        import pdb;pdb.set_trace()
         with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
             json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
 
@@ -657,6 +669,11 @@ if __name__ == "__main__":
         normal_output_path = './outputs/hmmt.qwq.direct/test.12.13,18:26.json'
         if 'qwq' not in output_path:
             normal_output_path = './outputs/runs.baselines/hmmt.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
+    elif 'brumo' in output_path:
+        dataset_name = 'brumo'
+        normal_output_path = './outputs/brumo.qwq.direct/test.12.13,18:26.json'
+        if 'qwq' not in output_path:
+            normal_output_path = './outputs/runs.baselines/brumo.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
     elif 'livecode' in output_path:
         dataset_name = 'livecode'
         normal_output_path = './outputs/livecode.qwq.direct/test.12.13,21:24.json'
@@ -765,7 +782,7 @@ if __name__ == "__main__":
                 labeled_answer = item["answer"]
                 domain = item.get("level", "Unknown")
                 mode = 'gen'
-            elif dataset_name in ['aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
+            elif dataset_name in ['aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
                 labeled_answer = item["answer"]
                 mode = 'gen'
                 domain = 'Unknown'
@@ -814,7 +831,7 @@ if __name__ == "__main__":
                 elif dataset_name in ['math500', 'hendrycks']:
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'gen'
-                elif dataset_name in ['aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
+                elif dataset_name in ['aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'gen'
                 elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
@@ -851,18 +868,19 @@ if __name__ == "__main__":
 
             # Track metrics per domain
             if domain not in domain_metrics:
-                domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': []}
+                domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': [], 'upper_bound_accuracy': [], 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
                 domain_metrics[domain]['total_num'] += 1
                 domain_metrics[domain]['query_latency'].append(item['query_latency'])
                 avg_em.append(metric['em'])
                 avg_acc.append(metric['acc'])
                 avg_f1.append(metric['f1'])
                 avg_math.append(metric['math_equal'])
-                domain_metrics[domain]['em'].append(metric['em'])
-                domain_metrics[domain]['acc'].append(metric['acc'])
-                domain_metrics[domain]['f1'].append(metric['f1'])
-                domain_metrics[domain]['math_equal'].append(metric['math_equal'])
-
+                avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
+                avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                avg_cot_decoding.append(1 if highest_cot_decoding['math_equal'] == True else 0)
+                avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
+                avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
+                
             if my_method_valid:
                 num_valid_answer += 1
                 domain_metrics[domain]['num_valid_answer'] += 1
@@ -875,6 +893,11 @@ if __name__ == "__main__":
             'math_equal': np.mean(avg_math) if len(avg_math) > 0 else 0, 
             'num_valid_answer': f'{num_valid_answer} of {len(data)}',
             'query_latency': query_latency,
+            'upper_bound_accuracy': np.mean(avg_upper_bound) if len(avg_upper_bound) > 0 else 0,
+            'self_certainty_accuracy': np.mean(avg_self_certainty) if len(avg_self_certainty) > 0 else 0,
+            'cot_decoding_accuracy': np.mean(avg_cot_decoding) if len(avg_cot_decoding) > 0 else 0,
+            'confidence_accuracy': np.mean(avg_confidence) if len(avg_confidence) > 0 else 0,
+            'entropy_accuracy': np.mean(avg_entropy) if len(avg_entropy) > 0 else 0,
         }
         if args.apply_backoff:
             overall_metrics['original_num_valid_answer'] = original_num_valid_answer
@@ -888,6 +911,11 @@ if __name__ == "__main__":
                 'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
                 'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
                 'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
+                'upper_bound_accuracy': np.mean(m['upper_bound_accuracy']) if len(m['upper_bound_accuracy']) > 0 else 0,
+                'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
+                'cot_decoding_accuracy': np.mean(m['cot_decoding_accuracy']) if len(m['cot_decoding_accuracy']) > 0 else 0,
+                'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
+                'entropy_accuracy': np.mean(m['entropy_accuracy']) if len(m['entropy_accuracy']) > 0 else 0,
             }
 
         # Prepare final metrics

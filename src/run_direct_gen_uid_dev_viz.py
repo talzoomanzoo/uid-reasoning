@@ -36,7 +36,7 @@ def parse_args():
         '--dataset_name', 
         type=str,
         required=True, 
-        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt'],
+        choices=['gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo'],
         help="Name of the dataset to use."
     )
     
@@ -232,6 +232,8 @@ async def main(args):
         data_path = f'../data/OLYMPIADBENCH/{split}.json'
     elif dataset_name == 'hmmt':
         data_path = f'../data/HMMT/{split}.json'
+    elif dataset_name == 'brumo':
+        data_path = f'../data/BRUMO/{split}.json'
     elif dataset_name == 'amc':
         data_path = f'../data/AMC/{split}.json'
     elif dataset_name == 'livecode':
@@ -281,7 +283,7 @@ async def main(args):
 
     # if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
     if model_short_name in ['emdr2']:
-        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
+        if dataset_name in ['math500', 'gpqa', 'aime', 'amc', 'livecode', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
             output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
         else:
             output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct'
@@ -336,7 +338,7 @@ async def main(args):
             else:
                 user_prompt = get_task_instruction_openqa(question)
 
-        elif dataset_name in ['math500', 'aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
+        elif dataset_name in ['math500', 'aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() or 's1' in model_path.lower():
                 user_prompt = get_task_instruction_math(question, model_name='qwq')
             else:
@@ -374,7 +376,7 @@ async def main(args):
     # Set default max_tokens if not provided
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-            if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'mmlu', 'livecode', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt']:
+            if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'mmlu', 'livecode', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
                 max_tokens = 32768  
             else:
                 max_tokens = 32768 
