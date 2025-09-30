@@ -595,7 +595,6 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             os.makedirs(output_dir)
 
     # Save prediction results and metrics
-        import pdb;pdb.set_trace()
         with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
             json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
 
