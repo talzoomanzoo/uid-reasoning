@@ -152,18 +152,18 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         per_difficulty_count = {}
 
         #added code for medbullets, qwq-llama-distill
-        output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
+        # output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
         num_valid_answer = 0
         
         for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list)):
             num_valid_answer = 0
-            for i in range(len(data_limit)):
-                if type(result[i]) == str:
-                    item['Output'] = result[i]
-                elif type(result[i]) == tuple or type(result[i]) == list:
-                    item['Output'] = result[1][i][0].text
-                else:
-                    item['Output'] = result[i].outputs[0].text
+            for i in range(data_limit):
+                #if type(result[i]) == str:
+                #    item['Output'] = result.outputs[0].text
+                #elif type(result[i]) == tuple or type(result[i]) == list:
+                #    item['Output'] = result.outputs[0].text
+                #else:
+                item['Output'] = result.outputs[0].text
                 difficulty = item.get("difficulty", "Unknown")
                 difficulties.append(difficulty)
                 # Track metrics per domain
@@ -245,6 +245,21 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             'overall': overall_metrics,
             'per_domain': per_difficulty_metrics
         }
+        
+        # Save metrics to JSON file for LiveCodeBench
+        import time
+        t = time.localtime()
+        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.metrics.json'
+        
+        # Ensure the output directory exists
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        # Save the metrics
+        with open(os.path.join(output_dir, metrics_json_name), mode='w', encoding='utf-8') as json_file:
+            json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
+        
+        print(f"LiveCodeBench metrics saved to {os.path.join(output_dir, metrics_json_name)}")
         
     else:
         # Existing evaluation for other datasets
@@ -944,6 +959,11 @@ if __name__ == "__main__":
         # Estimate total_time (if available). Here, set to 0 as a placeholder.
         total_time = 0  # Modify if timing information is available
 
+        # Extract the directory from the output_path
+        output_dir = os.path.dirname(output_path)
+        if not output_dir:
+            output_dir = "."
+
         # Run evaluation
         run_evaluation(
             filtered_data=data,
@@ -951,7 +971,7 @@ if __name__ == "__main__":
             output_list=output_list,
             sample_limit=args.sample_limit,
             dataset_name=dataset_name,
-            output_dir=output_path,
+            output_dir=output_dir,  # Now it's a directory path
             total_time=total_time,
             split=split,
             self_certainty=self_certainty,

@@ -237,7 +237,7 @@ async def main(args):
     elif dataset_name == 'amc':
         data_path = f'../data/AMC/{split}.json'
     elif dataset_name == 'livecode':
-        data_path = f'./data/LiveCodeBench/{split}.json'
+        data_path = f'../data/LiveCodeBench/{split}.json'
     elif dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
         data_path = f"../data/medical/{dataset_name}_{split}.json"
     elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
