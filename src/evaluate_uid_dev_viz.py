@@ -155,19 +155,24 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         # output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
         num_valid_answer = 0
         
-        for item, input_prompt, result in tqdm(zip(filtered_data, input_list, output_list)):
+        for item_idx, (item, input_prompt) in enumerate(tqdm(zip(filtered_data, input_list))):
+            # Extract difficulty from item
             difficulty = item.get("difficulty", "Unknown")
             difficulties.append(difficulty)
             
             # Track metrics per domain
             if difficulty not in per_difficulty_count.keys():
                 per_difficulty_count[difficulty] = 0
-
+            
+            # Get the sample_limit generations for this question
+            start_idx = item_idx * sample_limit
+            end_idx = start_idx + sample_limit
+            question_results = output_list[start_idx:end_idx]
+            
             # Generate sample_limit generations for this sample
             sample_generations = []
-            for gen_idx in range(sample_limit):  # Generate sample_limit different generations
-                # For each generation, you would typically call the model again
-                # For now, using the same result (you'll need to modify this based on your setup)
+            for gen_idx in range(sample_limit):
+                result = question_results[gen_idx]  # Use the correct result
                 item['Output'] = result.outputs[0].text
                 pred_code = extract_answer(item['Output'], mode='codegen')
                 
@@ -272,6 +277,17 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 
                 lowest_entropy = calculate_lowest_entropy(per_output_entropy_summary)
                 item['lowest_entropy'] = lowest_entropy
+
+            # Calculate UID metrics for each generation
+            for gen_idx in range(sample_limit):
+                result = question_results[gen_idx]
+                metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
+                item[f"id_metrics_{gen_idx}_metrics"] = metrics
+                # Store vectors for later averaging
+                item[f"id_equal_{gen_idx}"] = uid_eq
+                item[f"id_lp_{gen_idx}"] = uid_lp
+                item[f"id_h_{gen_idx}"] = uid_h
+                item[f"id_d_{gen_idx}"] = uid_d
 
         # Call codegen_metrics with pass@k for different k values
         k_list = list(range(1, sample_limit + 1))  # [1, 2, 3, ..., sample_limit]
@@ -587,7 +603,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 elif dataset_name == 'gpqa':
                     domain = item.get("High-level domain", "Unknown")
                     if domain not in domain_metrics:
-                        domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
+                        domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'upper_bound_accuracy': [], 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
                     
                     # Add metrics for this output to the domain
                     domain_metrics[domain]['em'].append(metric['em'])
@@ -595,6 +611,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[domain]['f1'].append(metric['f1'])
                     domain_metrics[domain]['math_equal'].append(metric['math_equal'])
                     domain_metrics[domain]['total_num'] += 1
+                    domain_metrics[domain]['upper_bound_accuracy'].append(1 if metric['math_equal'] == True else 0)
                     domain_metrics[domain]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
                     domain_metrics[domain]['cot_decoding_accuracy'].append(1 if highest_cot_decoding['math_equal'] == True else 0)
                     domain_metrics[domain]['confidence_accuracy'].append(1 if highest_confidence['math_equal'] == True else 0)
@@ -627,7 +644,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 elif dataset_name == 'math500':
                     level = item.get("level", "Unknown")
                     if level not in domain_metrics:
-                        domain_metrics[level] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
+                        domain_metrics[level] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'upper_bound_accuracy': [], 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
                     
                     # Add metrics for this output to the level
                     domain_metrics[level]['em'].append(metric['em'])
@@ -635,6 +652,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[level]['f1'].append(metric['f1'])
                     domain_metrics[level]['math_equal'].append(metric['math_equal'])
                     domain_metrics[level]['total_num'] += 1
+                    domain_metrics[level]['upper_bound_accuracy'].append(1 if metric['math_equal'] == True else 0)
                     domain_metrics[level]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
                     domain_metrics[level]['cot_decoding_accuracy'].append(1 if highest_cot_decoding['math_equal'] == True else 0)
                     domain_metrics[level]['confidence_accuracy'].append(1 if highest_confidence['math_equal'] == True else 0)
