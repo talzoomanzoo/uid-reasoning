@@ -475,7 +475,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
         print(f"LiveCodeBench metrics saved to {os.path.join(output_dir, metrics_json_name)}")
     else:
         # Existing evaluation for other datasets
-        avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
+        avg_em, avg_acc, avg_f1, avg_math, avg_upper_bound, avg_self_certainty, avg_cot_decoding, avg_confidence, avg_entropy = [], [], [], [], [], [], [], [], []
 
         # If the dataset is GPQA or math500, track metrics per domain
         domain_metrics = {}
@@ -592,10 +592,15 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, title=f"ID Scores Across Steps for {dataset_name} {split}"
                     # )
                     # Store the original metrics for backward compatibility
+
                     if idx == 0:
                         item['Question'] = input_prompt
                     avg_math.append(metric['math_equal'])
-
+                    avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
+                    avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                    avg_cot_decoding.append(1 if highest_cot_decoding['math_equal'] == True else 0)
+                    avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
+                    avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
                     if is_valid:
                         num_valid_answer += 1
 
@@ -618,7 +623,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[domain]['entropy_accuracy'].append(1 if lowest_entropy['math_equal'] == True else 0)
                     if idx == 0:
                         item['Question'] = input_prompt
-                    
+                    avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
+                    avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                    avg_cot_decoding.append(1 if highest_cot_decoding['math_equal'] == True else 0)
+                    avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
+                    avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
                     if is_valid:
                         domain_metrics[domain]['num_valid_answer'] += 1
 
@@ -659,6 +668,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                     domain_metrics[level]['entropy_accuracy'].append(1 if lowest_entropy['math_equal'] == True else 0)
                     if idx == 0:
                         item['Question'] = input_prompt
+                    avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
+                    avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                    avg_cot_decoding.append(1 if highest_cot_decoding['math_equal'] == True else 0)
+                    avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
+                    avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
                     
                     if is_valid:
                         domain_metrics[level]['num_valid_answer'] += 1
@@ -1103,11 +1117,6 @@ if __name__ == "__main__":
                 avg_acc.append(metric['acc'])
                 avg_f1.append(metric['f1'])
                 avg_math.append(metric['math_equal'])
-                avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
-                avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
-                avg_cot_decoding.append(1 if highest_cot_decoding['math_equal'] == True else 0)
-                avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
-                avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
                 
             if my_method_valid:
                 num_valid_answer += 1
@@ -1121,11 +1130,6 @@ if __name__ == "__main__":
             'math_equal': np.mean(avg_math) if len(avg_math) > 0 else 0, 
             'num_valid_answer': f'{num_valid_answer} of {len(data)}',
             'query_latency': query_latency,
-            'upper_bound_accuracy': np.mean(avg_upper_bound) if len(avg_upper_bound) > 0 else 0,
-            'self_certainty_accuracy': np.mean(avg_self_certainty) if len(avg_self_certainty) > 0 else 0,
-            'cot_decoding_accuracy': np.mean(avg_cot_decoding) if len(avg_cot_decoding) > 0 else 0,
-            'confidence_accuracy': np.mean(avg_confidence) if len(avg_confidence) > 0 else 0,
-            'entropy_accuracy': np.mean(avg_entropy) if len(avg_entropy) > 0 else 0,
         }
         if args.apply_backoff:
             overall_metrics['original_num_valid_answer'] = original_num_valid_answer
@@ -1139,11 +1143,6 @@ if __name__ == "__main__":
                 'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
                 'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
                 'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
-                'upper_bound_accuracy': np.mean(m['upper_bound_accuracy']) if len(m['upper_bound_accuracy']) > 0 else 0,
-                'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
-                'cot_decoding_accuracy': np.mean(m['cot_decoding_accuracy']) if len(m['cot_decoding_accuracy']) > 0 else 0,
-                'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
-                'entropy_accuracy': np.mean(m['entropy_accuracy']) if len(m['entropy_accuracy']) > 0 else 0,
             }
 
         # Prepare final metrics
