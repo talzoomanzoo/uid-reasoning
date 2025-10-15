@@ -470,7 +470,7 @@ def analyze_uid_accuracy_by_level(data):
                     outputs.append({
                         'index': i,
                         'uid_metrics': problem[uid_metrics_key],
-                        'accuracy': problem[metrics_key].get('acc', 0),
+                        'accuracy': problem[metrics_key].get('math_equal', 0),
                         'exact_match': problem[metrics_key].get('em', 0),
                         'f1': problem[metrics_key].get('f1', 0)
                     })
@@ -952,6 +952,460 @@ def create_domain_boxplots(domain_summary, domain_results, outdir, filename_pref
     return combined_plot_file, plot_files
 
 
+def collect_all_differences(data):
+    """Collect all differences from all traces to calculate global thresholds"""
+    all_positive_diffs = []
+    all_negative_diffs = []
+    
+    for item in data:
+        i = 0
+        while True:
+            h_key = f"id_h_{i}"
+            if h_key not in item:
+                break
+                
+            id_h = item.get(h_key, [])
+            if len(id_h) >= 2:
+                prev = id_h[0]
+                for x in id_h[1:]:
+                    try:
+                        dx = float(x) - float(prev)
+                        if dx > 0:
+                            all_positive_diffs.append(dx)
+                        elif dx < 0:
+                            all_negative_diffs.append(dx)
+                    except Exception:
+                        pass
+                    prev = x
+            i += 1
+    
+    avg_positive = sum(all_positive_diffs) / len(all_positive_diffs) if all_positive_diffs else 0
+    avg_negative = sum(all_negative_diffs) / len(all_negative_diffs) if all_negative_diffs else 0
+    
+    return avg_positive, avg_negative
+
+
+def count_spikes_falls(arr, avg_positive, avg_negative):
+    """Count spikes and falls based on average thresholds"""
+    if not isinstance(arr, list) or len(arr) < 2:
+        return {"spikes": 0, "falls": 0, "zeros": 0}
+    
+    spikes = falls = zeros = 0
+    prev = arr[0]
+    
+    for x in arr[1:]:
+        try:
+            dx = float(x) - float(prev)
+            if dx > avg_positive:
+                spikes += 1
+            elif dx < avg_negative:
+                falls += 1
+            else:
+                zeros += 1
+        except Exception:
+            pass
+        prev = x
+    
+    return {"spikes": spikes, "falls": falls, "zeros": zeros}
+
+
+def analyze_spikes_falls_accuracy(data, avg_positive, avg_negative):
+    """
+    Analyze accuracy based on combined spike and fall counts.
+    For each problem, find outputs with highest and lowest combined spike+fall counts,
+    then calculate their accuracy.
+    """
+    
+    results = {
+        'highest_spikes_falls': defaultdict(list),
+        'lowest_spikes_falls': defaultdict(list)
+    }
+    
+    for problem in data:
+        problem_id = problem.get('id', 'unknown')
+        
+        # Find all outputs for this problem
+        outputs = []
+        i = 0
+        while f'Output_{i}' in problem:
+            output_key = f'Output_{i}'
+            metrics_key = f'Metrics_{i}'
+            id_h_key = f'id_h_{i}'
+            
+            if id_h_key in problem and metrics_key in problem:
+                id_h = problem[id_h_key]
+                metrics_data = problem[metrics_key]
+                
+                # Calculate spikes and falls for this output
+                spike_fall_counts = count_spikes_falls(id_h, avg_positive, avg_negative)
+                
+                outputs.append({
+                    'index': i,
+                    'spikes': spike_fall_counts['spikes'],
+                    'falls': spike_fall_counts['falls'],
+                    'zeros': spike_fall_counts['zeros'],
+                    'combined_count': spike_fall_counts['spikes'] + spike_fall_counts['falls'],
+                    'accuracy': metrics_data.get('math_equal', 0),
+                    'exact_match': metrics_data.get('em', 0),
+                    'f1': metrics_data.get('f1', 0)
+                })
+            i += 1
+        
+        if not outputs:
+            continue
+            
+        # Find output with highest combined spikes + falls
+        highest_combined_output = max(outputs, key=lambda x: x['combined_count'])
+        results['highest_spikes_falls']['combined'].append({
+            'problem_id': problem_id,
+            'output_index': highest_combined_output['index'],
+            'combined_count': highest_combined_output['combined_count'],
+            'spikes_count': highest_combined_output['spikes'],
+            'falls_count': highest_combined_output['falls'],
+            'accuracy': highest_combined_output['accuracy'],
+            'exact_match': highest_combined_output['exact_match'],
+            'f1': highest_combined_output['f1']
+        })
+        
+        # Find output with lowest combined spikes + falls
+        lowest_combined_output = min(outputs, key=lambda x: x['combined_count'])
+        results['lowest_spikes_falls']['combined'].append({
+            'problem_id': problem_id,
+            'output_index': lowest_combined_output['index'],
+            'combined_count': lowest_combined_output['combined_count'],
+            'spikes_count': lowest_combined_output['spikes'],
+            'falls_count': lowest_combined_output['falls'],
+            'accuracy': lowest_combined_output['accuracy'],
+            'exact_match': lowest_combined_output['exact_match'],
+            'f1': lowest_combined_output['f1']
+        })
+    
+    return results
+
+
+def calculate_spikes_falls_summary_stats(results):
+    """Calculate summary statistics for combined spike/fall results."""
+    summary = {}
+    
+    for analysis_type in ['highest_spikes_falls', 'lowest_spikes_falls']:
+        summary[analysis_type] = {}
+        
+        for metric in results[analysis_type]:
+            accuracies = [item['accuracy'] for item in results[analysis_type][metric]]
+            exact_matches = [item['exact_match'] for item in results[analysis_type][metric]]
+            f1_scores = [item['f1'] for item in results[analysis_type][metric]]
+            combined_counts = [item['combined_count'] for item in results[analysis_type][metric]]
+            spikes_counts = [item['spikes_count'] for item in results[analysis_type][metric]]
+            falls_counts = [item['falls_count'] for item in results[analysis_type][metric]]
+            
+            summary[analysis_type][metric] = {
+                'count': len(accuracies),
+                'mean_accuracy': np.mean(accuracies),
+                'std_accuracy': np.std(accuracies),
+                'mean_exact_match': np.mean(exact_matches),
+                'std_exact_match': np.std(exact_matches),
+                'mean_f1': np.mean(f1_scores),
+                'std_f1': np.std(f1_scores),
+                'mean_combined_count': np.mean(combined_counts),
+                'std_combined_count': np.std(combined_counts),
+                'mean_spikes_count': np.mean(spikes_counts),
+                'std_spikes_count': np.std(spikes_counts),
+                'mean_falls_count': np.mean(falls_counts),
+                'std_falls_count': np.std(falls_counts)
+            }
+    
+    return summary
+
+
+def create_spikes_falls_boxplots(spikes_falls_summary, outdir, filename_prefix, input_filename=None, overall_metrics=None):
+    """Create bar graphs for mean accuracy based on spike/fall analysis."""
+    # Set up the plotting style
+    plt.style.use('default')
+    sns.set_palette("husl")
+    
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+    if input_filename:
+        dataset_name = input_filename.split("/")[-2] if "/" in input_filename else input_filename.replace(".json", "")
+        fig.suptitle('Spike/Fall Analysis: Mean Accuracy by Analysis Type \n ' + dataset_name, fontsize=16, fontweight='bold')
+    else:
+        fig.suptitle('Spike/Fall Analysis: Mean Accuracy by Analysis Type \n ' + filename_prefix, fontsize=16, fontweight='bold')
+    
+    # Prepare data - now using the combined structure
+    analysis_types = ['highest_spikes_falls', 'lowest_spikes_falls']
+    type_labels = ['Highest Spikes+Falls', 'Lowest Spikes+Falls']
+    
+    mean_accuracies = []
+    for analysis_type in analysis_types:
+        if analysis_type in spikes_falls_summary:
+            for metric in spikes_falls_summary[analysis_type]:
+                mean_accuracies.append(spikes_falls_summary[analysis_type][metric]['mean_accuracy'])
+                break  # Only need one metric per analysis type
+    
+    x = np.arange(len(type_labels))
+    width = 0.6
+    
+    bars = ax.bar(x, mean_accuracies, width, color=['lightblue', 'lightcoral'], alpha=0.8)
+
+    # Add value labels on top of bars
+    for bar, value in zip(bars, mean_accuracies):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=10)
+
+    # Add dotted lines for overall metrics if provided
+    if overall_metrics:
+        overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
+        
+        if overall_accuracy is not None:
+            ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, 
+                       label=f'Overall Accuracy ({overall_accuracy:.3f})', alpha=0.8)
+
+    ax.set_title('Mean Accuracy by Spike/Fall Analysis Type')
+    ax.set_ylabel('Mean Accuracy')
+    ax.set_xticks(x)
+    ax.set_xticklabels(type_labels, rotation=45, ha='right')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(0, 1.1)
+    
+    # Save the plot
+    plot_file = os.path.join(outdir, f"{filename_prefix}_spikes_falls_analysis.png")
+    plt.savefig(plot_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    return plot_file
+
+
+def create_combined_analysis_plot(summary, spikes_falls_summary, spikes_falls_summary_2sigma, spikes_falls_summary_3sigma, outdir, filename_prefix, input_filename=None, overall_metrics=None):
+    """Create combined plot showing UID analysis and all three spike/fall threshold methods."""
+    # Set up the plotting style
+    plt.style.use('default')
+    sns.set_palette("husl")
+    
+    # Create figure with 4 subplots: 1 for UID, 3 for spike/fall methods
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(24, 12))
+    if input_filename:
+        dataset_name = input_filename.split("/")[-1].replace(".json", "")
+        fig.suptitle(f'UID and Spike/Fall Analysis (All Threshold Methods): {dataset_name}', fontsize=16, fontweight='bold')
+    else:
+        fig.suptitle('UID and Spike/Fall Analysis (All Threshold Methods)', fontsize=16, fontweight='bold')
+    
+    # Top-left plot: UID Analysis - Mean Accuracy by Metric
+    uid_metrics = list(summary['highest_uid'].keys())
+    metric_labels = [metric.replace('uid_', '').replace('_', ' ').title() for metric in uid_metrics]
+    
+    highest_mean_acc = [summary['highest_uid'][metric]['mean_accuracy'] for metric in uid_metrics]
+    lowest_mean_acc = [summary['lowest_uid'][metric]['mean_accuracy'] for metric in uid_metrics]
+    
+    x = np.arange(len(metric_labels))
+    width = 0.35
+    
+    bars_highest = ax1.bar(x - width/2, highest_mean_acc, width, label='Highest UID', color='lightblue', alpha=0.8)
+    bars_lowest = ax1.bar(x + width/2, lowest_mean_acc, width, label='Lowest UID', color='lightcoral', alpha=0.8)
+
+    # Add value labels on top of bars
+    for bar, value in zip(bars_highest, highest_mean_acc):
+        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=8)
+
+    for bar, value in zip(bars_lowest, lowest_mean_acc):
+        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=8)
+
+    # Add overall metrics as horizontal lines if available
+    if overall_metrics:
+        ax1.axhline(y=overall_metrics.get('overall_mean_accuracy', 0), color='red', linestyle='--', alpha=0.7, 
+                   label=f'Overall Accuracy ({overall_metrics.get("overall_mean_accuracy", 0):.4f})')
+        ax1.axhline(y=overall_metrics.get('overall_mean_self_certainty_accuracy', 0), color='blue', linestyle='--', alpha=0.7, 
+                   label=f'Self-Certainty Accuracy ({overall_metrics.get("overall_mean_self_certainty_accuracy", 0):.4f})')
+        ax1.axhline(y=overall_metrics.get('overall_mean_cot_decoding_accuracy', 0), color='green', linestyle='--', alpha=0.7, 
+                   label=f'Cot-Decoding Accuracy ({overall_metrics.get("overall_mean_cot_decoding_accuracy", 0):.4f})')
+        ax1.axhline(y=overall_metrics.get('overall_mean_confidence_accuracy', 0), color='yellow', linestyle='--', alpha=0.7, 
+                   label=f'Confidence Accuracy ({overall_metrics.get("overall_mean_confidence_accuracy", 0):.4f})')
+        ax1.axhline(y=overall_metrics.get('overall_mean_entropy_accuracy', 0), color='purple', linestyle='--', alpha=0.7, 
+                   label=f'Entropy Accuracy ({overall_metrics.get("overall_mean_entropy_accuracy", 0):.4f})')
+        ax1.axhline(y=overall_metrics.get('overall_mean_upper_bound_accuracy', 0), color='orange', linestyle='--', alpha=0.7, 
+                   label=f'Upper Bound Accuracy ({overall_metrics.get("overall_mean_upper_bound_accuracy", 0):.4f})')
+        ax1.legend()
+    
+    ax1.set_title('UID-based Accuracy Analysis', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('Mean Accuracy', fontsize=10)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(metric_labels, rotation=45, ha='right', fontsize=8)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    ax1.set_ylim(0, 1.1)
+    
+    # Helper function to create spike/fall plots - UPDATED for combined structure
+    def create_spike_fall_plot(ax, spikes_falls_summary, title, overall_metrics):
+        analysis_types = ['highest_spikes_falls', 'lowest_spikes_falls']
+        type_labels = ['Highest Spikes+Falls', 'Lowest Spikes+Falls']
+        
+        mean_accuracies = []
+        for analysis_type in analysis_types:
+            if analysis_type in spikes_falls_summary:
+                for metric in spikes_falls_summary[analysis_type]:
+                    mean_accuracies.append(spikes_falls_summary[analysis_type][metric]['mean_accuracy'])
+                    break  # Only need one metric per analysis type
+        
+        x = np.arange(len(type_labels))
+        width = 0.6
+        
+        bars = ax.bar(x, mean_accuracies, width, color=['lightblue', 'lightcoral'], alpha=0.8)
+
+        # Add value labels on top of bars
+        for bar, value in zip(bars, mean_accuracies):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, 
+                    f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=8)
+
+        # Add overall metrics as horizontal lines if available
+        if overall_metrics:
+            ax.axhline(y=overall_metrics.get('overall_mean_accuracy', 0), color='red', linestyle='--', alpha=0.7, 
+                      label=f'Overall Accuracy ({overall_metrics.get("overall_mean_accuracy", 0):.4f})')
+            ax.axhline(y=overall_metrics.get('overall_mean_self_certainty_accuracy', 0), color='blue', linestyle='--', alpha=0.7, 
+                      label=f'Self-Certainty Accuracy ({overall_metrics.get("overall_mean_self_certainty_accuracy", 0):.4f})')
+            ax.axhline(y=overall_metrics.get('overall_mean_cot_decoding_accuracy', 0), color='green', linestyle='--', alpha=0.7, 
+                      label=f'Cot-Decoding Accuracy ({overall_metrics.get("overall_mean_cot_decoding_accuracy", 0):.4f})')
+            ax.axhline(y=overall_metrics.get('overall_mean_upper_bound_accuracy', 0), color='orange', linestyle='--', alpha=0.7, 
+                      label=f'Upper Bound Accuracy ({overall_metrics.get("overall_mean_upper_bound_accuracy", 0):.4f})')
+            ax.axhline(y=overall_metrics.get('overall_mean_confidence_accuracy', 0), color='yellow', linestyle='--', alpha=0.7, 
+                      label=f'Confidence Accuracy ({overall_metrics.get("overall_mean_confidence_accuracy", 0):.4f})')
+            ax.axhline(y=overall_metrics.get('overall_mean_entropy_accuracy', 0), color='purple', linestyle='--', alpha=0.7, 
+                      label=f'Entropy Accuracy ({overall_metrics.get("overall_mean_entropy_accuracy", 0):.4f})')
+            ax.legend()
+        
+        ax.set_title(title, fontsize=12, fontweight='bold')
+        ax.set_ylabel('Mean Accuracy', fontsize=10)
+        ax.set_xticks(x)
+        ax.set_xticklabels(type_labels, rotation=45, ha='right', fontsize=8)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.set_ylim(0, 1.1)
+    
+    # Top-right plot: Average Thresholds
+    create_spike_fall_plot(ax2, spikes_falls_summary, 'Spike/Fall Analysis (Average Thresholds)', overall_metrics)
+    
+    # Bottom-left plot: 2-Sigma Thresholds
+    create_spike_fall_plot(ax3, spikes_falls_summary_2sigma, 'Spike/Fall Analysis (2-Sigma Thresholds)', overall_metrics)
+    
+    # Bottom-right plot: 3-Sigma Thresholds
+    create_spike_fall_plot(ax4, spikes_falls_summary_3sigma, 'Spike/Fall Analysis (3-Sigma Thresholds)', overall_metrics)
+    
+    plt.tight_layout()
+    
+    # Save the combined plot
+    plot_file = os.path.join(outdir, f"{filename_prefix}_combined_analysis.png")
+    plt.savefig(plot_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    return plot_file
+
+
+def analyze_spikes_falls_accuracy_by_level(data, avg_positive, avg_negative):
+    """
+    Group problems by 'level', then for each level compute spikes/falls analysis
+    using the same logic as analyze_spikes_falls_accuracy.
+    """
+    # Group problems by level
+    problems_by_level = defaultdict(list)
+    for problem in data:
+        level = problem.get('level', 'unknown')
+        problems_by_level[level].append(problem)
+
+    level_results = {}
+    for level, level_problems in problems_by_level.items():
+        level_results[level] = analyze_spikes_falls_accuracy(level_problems, avg_positive, avg_negative)
+    return level_results
+
+
+def create_spikes_falls_level_boxplots(level_spikes_falls_summary, outdir, filename_prefix, input_filename=None, overall_metrics=None):
+    """
+    For each level, plot mean accuracy for Highest Spikes+Falls vs Lowest Spikes+Falls.
+    Also produce a combined multi-level figure.
+    """
+    plt.style.use('default')
+    sns.set_palette("husl")
+
+    levels = sorted(level_spikes_falls_summary.keys(), key=lambda x: str(x))
+    fig, axes = plt.subplots(len(levels), 1, figsize=(16, 6 * max(len(levels), 1)))
+    if len(levels) == 1:
+        axes = [axes]
+
+    if input_filename:
+        dataset_name = input_filename.split("/")[-2] if "/" in input_filename else input_filename.replace(".json", "")
+        suptitle = 'Spike/Fall Analysis by Level: Mean Accuracy \n ' + dataset_name
+    else:
+        suptitle = 'Spike/Fall Analysis by Level: Mean Accuracy \n ' + filename_prefix
+    fig.suptitle(suptitle, fontsize=16, fontweight='bold')
+
+    combined_plot_files = []
+    for i, level in enumerate(levels):
+        ax = axes[i]
+        summary = level_spikes_falls_summary[level]
+
+        # Pull one metric representative (we only have 'combined')
+        def get_mean_acc(analysis_type):
+            if analysis_type in summary:
+                for metric in summary[analysis_type]:
+                    return summary[analysis_type][metric]['mean_accuracy']
+            return 0.0
+
+        labels = ['Highest Spikes+Falls', 'Lowest Spikes+Falls']
+        values = [get_mean_acc('highest_spikes_falls'), get_mean_acc('lowest_spikes_falls')]
+
+        x = np.arange(len(labels))
+        width = 0.6
+        bars = ax.bar(x, values, width, color=['lightblue', 'lightcoral'], alpha=0.8)
+
+        for bar, value in zip(bars, values):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        if overall_metrics and isinstance(overall_metrics, dict):
+            overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
+            if overall_accuracy is not None:
+                ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, label=f'Overall Acc ({overall_accuracy:.3f})', alpha=0.8)
+
+        ax.set_title(f'Level {level} - Mean Accuracy (Spikes/Falls)', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Mean Accuracy')
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, rotation=45, ha='right')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.set_ylim(0, 1.1)
+
+        # Individual per-level plot
+        plt.figure(figsize=(12, 8))
+        ind_ax = plt.gca()
+        ind_bars = ind_ax.bar(x, values, width, color=['lightblue', 'lightcoral'], alpha=0.8)
+        for bar, value in zip(ind_bars, values):
+            ind_ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.001, f'{value:.4f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+
+        if overall_metrics and isinstance(overall_metrics, dict):
+            overall_accuracy = overall_metrics.get('overall_mean_accuracy', None)
+            if overall_accuracy is not None:
+                ind_ax.axhline(y=overall_accuracy, color='red', linestyle='--', linewidth=2, label=f'Overall Acc ({overall_accuracy:.3f})', alpha=0.8)
+
+        ind_ax.set_title(f'Level {level} - Mean Accuracy (Spikes/Falls)')
+        ind_ax.set_ylabel('Mean Accuracy')
+        ind_ax.set_xticks(x)
+        ind_ax.set_xticklabels(labels, rotation=45, ha='right')
+        ind_ax.legend()
+        ind_ax.grid(True, alpha=0.3)
+        ind_ax.set_ylim(0, 1.1)
+
+        per_level_plot = os.path.join(outdir, f"{filename_prefix}_spikes_falls_level_{level}.png")
+        plt.savefig(per_level_plot, dpi=300, bbox_inches='tight')
+        plt.close()
+        combined_plot_files.append(per_level_plot)
+
+    plt.tight_layout()
+    combined_plot = os.path.join(outdir, f"{filename_prefix}_spikes_falls_analysis_by_level.png")
+    plt.savefig(combined_plot, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    return combined_plot, combined_plot_files
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=str, required=True)
@@ -1041,7 +1495,7 @@ def main():
         print(f"Mean UID Score Std: {stats['mean_uid_score_std']:.4f} ± {stats['std_uid_score_std']:.4f}")
     
     # Create boxplots
-    filename_prefix = args.input.split("/")[-2] if "/" in args.input else args.input.replace(".json", "")
+    filename_prefix = args.input.split("/")[-2].replace("outputs_old", "outputs") if "/" in args.input else args.input.replace(".json", "").replace("outputs_old", "outputs")
     plot_file = create_boxplots(summary, results, args.outdir, filename_prefix, args.input, overall_metrics)
     
     # Create correlation plots
@@ -1050,10 +1504,74 @@ def main():
     # Extract Shannon Equal outputs
     shannon_file = extract_shannon_equal_outputs(data, args.outdir, filename_prefix)
     
+    # Analyze spike/fall-based accuracy
+    print("\n" + "="*80)
+    print("SPIKE/FALL ANALYSIS")
+    print("="*80)
+    
+    # Calculate global thresholds
+    avg_positive, avg_negative = collect_all_differences(data)
+    print(f"Average positive difference: {avg_positive:.4f}")
+    print(f"Average negative difference: {avg_negative:.4f}")
+    
+    # Analyze spikes and falls
+    spikes_falls_results = analyze_spikes_falls_accuracy(data, avg_positive, avg_negative)
+    spikes_falls_results_2sigma = analyze_spikes_falls_accuracy(data, avg_positive + 2 * avg_negative, avg_negative - 2 * avg_positive)
+    spikes_falls_results_3sigma = analyze_spikes_falls_accuracy(data, avg_positive + 3 * avg_negative, avg_negative - 3 * avg_positive)
+    
+    # Calculate summary statistics for spikes/falls
+    spikes_falls_summary = calculate_spikes_falls_summary_stats(spikes_falls_results)
+    spikes_falls_summary_2sigma = calculate_spikes_falls_summary_stats(spikes_falls_results_2sigma)
+    spikes_falls_summary_3sigma = calculate_spikes_falls_summary_stats(spikes_falls_results_3sigma)
+    
+    # Print spike/fall results
+    print("\n" + "="*80)
+    print("ACCURACY ANALYSIS BASED ON COMBINED SPIKE/FALL COUNTS")
+    print("="*80)
+    
+    for analysis_type in ['highest_spikes_falls', 'lowest_spikes_falls']:
+        print(f"\n{analysis_type.upper().replace('_', ' ')}:")
+        print("-" * 60)
+        
+        for metric in spikes_falls_summary[analysis_type]:
+            stats = spikes_falls_summary[analysis_type][metric]
+            print(f"{metric:35} | Accuracy: {stats['mean_accuracy']:.4f} ± {stats['std_accuracy']:.4f} | "
+                  f"Exact Match: {stats['mean_exact_match']:.4f} ± {stats['std_exact_match']:.4f} | "
+                  f"F1: {stats['mean_f1']:.4f} ± {stats['std_f1']:.4f} | "
+                  f"Combined Count: {stats['mean_combined_count']:.2f} ± {stats['std_combined_count']:.2f} | "
+                  f"Spikes: {stats['mean_spikes_count']:.2f} ± {stats['std_spikes_count']:.2f} | "
+                  f"Falls: {stats['mean_falls_count']:.2f} ± {stats['std_falls_count']:.2f}")
+    
+    # Create spike/fall boxplots
+    spikes_falls_plot_file = create_spikes_falls_boxplots(spikes_falls_summary, args.outdir, filename_prefix, args.input, overall_metrics)
+    
+    # Save spike/fall results
+    spikes_falls_results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis.json")
+    with open(spikes_falls_results_file, "w") as f:
+        json.dump(spikes_falls_results, f, indent=2)
+    spikes_falls_results_file_2sigma = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_2sigma.json")
+    with open(spikes_falls_results_file_2sigma, "w") as f:
+        json.dump(spikes_falls_results_2sigma, f, indent=2)
+    spikes_falls_results_file_3sigma = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_3sigma.json")
+    with open(spikes_falls_results_file_3sigma, "w") as f:
+        json.dump(spikes_falls_results_3sigma, f, indent=2)
+    
+    # Save spike/fall summary
+    spikes_falls_summary_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary.json")
+    with open(spikes_falls_summary_file, "w") as f:
+        json.dump(spikes_falls_summary, f, indent=2)
+    spikes_falls_summary_file_2sigma = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_2sigma.json")
+    with open(spikes_falls_summary_file_2sigma, "w") as f:
+        json.dump(spikes_falls_summary_2sigma, f, indent=2)
+    spikes_falls_summary_file_3sigma = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_3sigma.json")
+    with open(spikes_falls_summary_file_3sigma, "w") as f:
+        json.dump(spikes_falls_summary_3sigma, f, indent=2)
+    
     # Save detailed results
     results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_analysis.json")
     with open(results_file, "w") as f:
         json.dump(results, f, indent=2)
+
     
     # Save summary
     summary_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_uid_summary.json")
@@ -1226,11 +1744,112 @@ def main():
     print(f"\nDetailed results saved to: {results_file}")
     print(f"Summary saved to: {summary_file}")
     print(f"Aggregated results saved to: {aggregated_file}")
-    print(f"Boxplots saved to: {plot_file}")
+    print(f"Combined analysis plot saved to: {plot_file}")
+    print(f"Spike/Fall analysis (average thresholds) saved to: {spikes_falls_results_file}")
+    print(f"Spike/Fall summary (average thresholds) saved to: {spikes_falls_summary_file}")
+    print(f"Spike/Fall analysis (2-sigma thresholds) saved to: {spikes_falls_results_file_2sigma}")
+    print(f"Spike/Fall summary (2-sigma thresholds) saved to: {spikes_falls_summary_file_2sigma}")
+    print(f"Spike/Fall analysis (3-sigma thresholds) saved to: {spikes_falls_results_file_3sigma}")
+    print(f"Spike/Fall summary (3-sigma thresholds) saved to: {spikes_falls_summary_file_3sigma}")
     if correlation_plot_file:
         print(f"Correlation plots saved to: {correlation_plot_file}")
     if shannon_file:
         print(f"Shannon Equal outputs saved to: {shannon_file}")
+    
+    # Create combined analysis plot
+    combined_plot_file = create_combined_analysis_plot(summary, spikes_falls_summary, spikes_falls_summary_2sigma, spikes_falls_summary_3sigma, args.outdir, filename_prefix, args.input, overall_metrics)
+    print(f"Combined analysis plot saved to: {combined_plot_file}")
+
+    # Per-level spikes/falls analysis
+    level_spikes_falls_results = analyze_spikes_falls_accuracy_by_level(data, avg_positive, avg_negative)
+
+    # Summaries per level
+    level_spikes_falls_summary = {}
+    for level, res in level_spikes_falls_results.items():
+        level_spikes_falls_summary[level] = calculate_spikes_falls_summary_stats(res)
+
+    # Plots per level
+    level_spikes_falls_plot, per_level_spikes_falls_plots = create_spikes_falls_level_boxplots(
+        level_spikes_falls_summary, args.outdir, filename_prefix, args.input, overall_metrics
+    )
+
+    # Save per-level spikes/falls results and summaries
+    spikes_falls_by_level_results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level.json")
+    with open(spikes_falls_by_level_results_file, "w") as f:
+        json.dump(level_spikes_falls_results, f, indent=2)
+
+    spikes_falls_by_level_summary_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level.json")
+    with open(spikes_falls_by_level_summary_file, "w") as f:
+        json.dump(level_spikes_falls_summary, f, indent=2)
+
+    print(f"Per-level spikes/falls analysis saved to: {spikes_falls_by_level_results_file}")
+    print(f"Per-level spikes/falls summary saved to: {spikes_falls_by_level_summary_file}")
+    print(f"Per-level spikes/falls combined plot saved to: {level_spikes_falls_plot}")
+    print("Individual per-level spikes/falls plots:")
+    for p in per_level_spikes_falls_plots:
+        print(f"  - {p}")
+
+    # Per-level spikes/falls analysis - 2σ thresholds
+    level_spikes_falls_results_2sigma = analyze_spikes_falls_accuracy_by_level(
+        data, avg_positive + 2 * avg_negative, avg_negative - 2 * avg_positive
+    )
+
+    level_spikes_falls_summary_2sigma = {}
+    for level, res in level_spikes_falls_results_2sigma.items():
+        level_spikes_falls_summary_2sigma[level] = calculate_spikes_falls_summary_stats(res)
+
+    level_spikes_falls_plot_2sigma, per_level_spikes_falls_plots_2sigma = create_spikes_falls_level_boxplots(
+        level_spikes_falls_summary_2sigma, args.outdir, filename_prefix + "_2sigma", args.input, overall_metrics
+    )
+
+    spikes_falls_by_level_results_file_2sigma = os.path.join(
+        args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level_2sigma.json"
+    )
+    with open(spikes_falls_by_level_results_file_2sigma, "w") as f:
+        json.dump(level_spikes_falls_results_2sigma, f, indent=2)
+
+    spikes_falls_by_level_summary_file_2sigma = os.path.join(
+        args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level_2sigma.json"
+    )
+    with open(spikes_falls_by_level_summary_file_2sigma, "w") as f:
+        json.dump(level_spikes_falls_summary_2sigma, f, indent=2)
+
+    print(f"Per-level spikes/falls (2σ) analysis saved to: {spikes_falls_by_level_results_file_2sigma}")
+    print(f"Per-level spikes/falls (2σ) summary saved to: {spikes_falls_by_level_summary_file_2sigma}")
+    print(f"Per-level spikes/falls (2σ) combined plot saved to: {level_spikes_falls_plot_2sigma}")
+    for p in per_level_spikes_falls_plots_2sigma:
+        print(f"  - {p}")
+
+    # Per-level spikes/falls analysis - 3σ thresholds
+    level_spikes_falls_results_3sigma = analyze_spikes_falls_accuracy_by_level(
+        data, avg_positive + 3 * avg_negative, avg_negative - 3 * avg_positive
+    )
+
+    level_spikes_falls_summary_3sigma = {}
+    for level, res in level_spikes_falls_results_3sigma.items():
+        level_spikes_falls_summary_3sigma[level] = calculate_spikes_falls_summary_stats(res)
+
+    level_spikes_falls_plot_3sigma, per_level_spikes_falls_plots_3sigma = create_spikes_falls_level_boxplots(
+        level_spikes_falls_summary_3sigma, args.outdir, filename_prefix + "_3sigma", args.input, overall_metrics
+    )
+
+    spikes_falls_by_level_results_file_3sigma = os.path.join(
+        args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level_3sigma.json"
+    )
+    with open(spikes_falls_by_level_results_file_3sigma, "w") as f:
+        json.dump(level_spikes_falls_results_3sigma, f, indent=2)
+
+    spikes_falls_by_level_summary_file_3sigma = os.path.join(
+        args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level_3sigma.json"
+    )
+    with open(spikes_falls_by_level_summary_file_3sigma, "w") as f:
+        json.dump(level_spikes_falls_summary_3sigma, f, indent=2)
+
+    print(f"Per-level spikes/falls (3σ) analysis saved to: {spikes_falls_by_level_results_file_3sigma}")
+    print(f"Per-level spikes/falls (3σ) summary saved to: {spikes_falls_by_level_summary_file_3sigma}")
+    print(f"Per-level spikes/falls (3σ) combined plot saved to: {level_spikes_falls_plot_3sigma}")
+    for p in per_level_spikes_falls_plots_3sigma:
+        print(f"  - {p}")
 
 
 if __name__ == "__main__":
