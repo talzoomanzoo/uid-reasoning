@@ -4,7 +4,7 @@ import json
 import numpy as np
 from collections import Counter
 import string
-import os, time
+import os
 from collections import defaultdict
 from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv
@@ -825,7 +825,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
             final_metrics['per_domain'] = domain_avg_metrics
         elif dataset_name == 'math500':
             final_metrics['per_domain'] = domain_avg_metrics
-
+        import time
         t = time.localtime()
         result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.json'
         metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.metrics.json'

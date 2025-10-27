@@ -6,7 +6,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from collections import defaultdict
-from scipy.stats import pearsonr
+try:
+    from scipy.stats import pearsonr
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    print("Warning: scipy not available. Correlation analysis will be skipped.")
 
 
 def analyze_uid_accuracy(data):
@@ -18,11 +23,11 @@ def analyze_uid_accuracy(data):
     
     # Define UID metrics to analyze
     uid_metrics = [
-        "uid_variance_equal", "uid_gini_equal", "uid_shannon_equal",
-        "uid_variance_logprob", "uid_gini_logprob", "uid_shannon_logprob", 
+        # "uid_variance_equal", "uid_gini_equal", "uid_shannon_equal",
+        # "uid_variance_logprob", "uid_gini_logprob", "uid_shannon_logprob", 
         "uid_variance_entropy", "uid_gini_entropy", "uid_shannon_entropy",
-        "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap",
-        "uid_l2_equal", "uid_l2_logprob", "uid_l2_entropy", "uid_l2_confidence_gap"
+        # "uid_variance_confidence_gap", "uid_gini_confidence_gap", "uid_shannon_confidence_gap",
+        # "uid_l2_equal", "uid_l2_logprob", "uid_l2_entropy", "uid_l2_confidence_gap"
     ]
     
     results = {
@@ -303,9 +308,15 @@ def create_correlation_plot(data, outdir, filename_prefix, input_filename=None):
     metric_names = []
     
     for metric in uid_metrics:
-        acc_corr, _ = pearsonr(df[metric], df['accuracy'])
-        em_corr, _ = pearsonr(df[metric], df['exact_match'])
-        f1_corr, _ = pearsonr(df[metric], df['f1'])
+        if SCIPY_AVAILABLE:
+            acc_corr, _ = pearsonr(df[metric], df['accuracy'])
+            em_corr, _ = pearsonr(df[metric], df['exact_match'])
+            f1_corr, _ = pearsonr(df[metric], df['f1'])
+        else:
+            # Use numpy correlation as fallback
+            acc_corr = np.corrcoef(df[metric], df['accuracy'])[0, 1]
+            em_corr = np.corrcoef(df[metric], df['exact_match'])[0, 1]
+            f1_corr = np.corrcoef(df[metric], df['f1'])[0, 1]
         
         correlation_data.append([acc_corr, em_corr, f1_corr])
         metric_names.append(metric.replace('uid_', '').replace('_equal', '').title())
@@ -342,14 +353,26 @@ def create_correlation_plot(data, outdir, filename_prefix, input_filename=None):
     print("="*80)
     
     for metric in uid_metrics:
-        acc_corr, acc_p = pearsonr(df[metric], df['accuracy'])
-        em_corr, em_p = pearsonr(df[metric], df['exact_match'])
-        f1_corr, f1_p = pearsonr(df[metric], df['f1'])
+        if SCIPY_AVAILABLE:
+            acc_corr, acc_p = pearsonr(df[metric], df['accuracy'])
+            em_corr, em_p = pearsonr(df[metric], df['exact_match'])
+            f1_corr, f1_p = pearsonr(df[metric], df['f1'])
+        else:
+            # Use numpy correlation as fallback (no p-values available)
+            acc_corr = np.corrcoef(df[metric], df['accuracy'])[0, 1]
+            em_corr = np.corrcoef(df[metric], df['exact_match'])[0, 1]
+            f1_corr = np.corrcoef(df[metric], df['f1'])[0, 1]
+            acc_p = em_p = f1_p = None
         
         print(f"\n{metric}:")
-        print(f"  vs Accuracy:     r = {acc_corr:.4f}, p = {acc_p:.4f}")
-        print(f"  vs Exact Match:  r = {em_corr:.4f}, p = {em_p:.4f}")
-        print(f"  vs F1 Score:     r = {f1_corr:.4f}, p = {f1_p:.4f}")
+        if SCIPY_AVAILABLE:
+            print(f"  vs Accuracy:     r = {acc_corr:.4f}, p = {acc_p:.4f}")
+            print(f"  vs Exact Match:  r = {em_corr:.4f}, p = {em_p:.4f}")
+            print(f"  vs F1 Score:     r = {f1_corr:.4f}, p = {f1_p:.4f}")
+        else:
+            print(f"  vs Accuracy:     r = {acc_corr:.4f}")
+            print(f"  vs Exact Match:  r = {em_corr:.4f}")
+            print(f"  vs F1 Score:     r = {f1_corr:.4f}")
     
     return plot_file
 
@@ -957,6 +980,8 @@ def collect_all_differences(data):
     all_positive_diffs = []
     all_negative_diffs = []
     
+    total_id_data_found = 0
+    
     for item in data:
         i = 0
         while True:
@@ -966,6 +991,7 @@ def collect_all_differences(data):
                 
             id_h = item.get(h_key, [])
             if len(id_h) >= 2:
+                total_id_data_found += 1
                 prev = id_h[0]
                 for x in id_h[1:]:
                     try:
@@ -979,10 +1005,64 @@ def collect_all_differences(data):
                     prev = x
             i += 1
     
+    print(f"Found {total_id_data_found} id_h arrays with sufficient data")
+    print(f"Collected {len(all_positive_diffs)} positive differences and {len(all_negative_diffs)} negative differences")
+    
     avg_positive = sum(all_positive_diffs) / len(all_positive_diffs) if all_positive_diffs else 0
     avg_negative = sum(all_negative_diffs) / len(all_negative_diffs) if all_negative_diffs else 0
     
     return avg_positive, avg_negative
+
+
+def calculate_sigma_thresholds(data):
+    """Calculate proper sigma-based thresholds for spike/fall detection"""
+    all_diffs = []
+    
+    for item in data:
+        i = 0
+        while True:
+            h_key = f"id_h_{i}"
+            if h_key not in item:
+                break
+                
+            id_h = item.get(h_key, [])
+            if len(id_h) >= 2:
+                prev = id_h[0]
+                for x in id_h[1:]:
+                    try:
+                        dx = float(x) - float(prev)
+                        all_diffs.append(dx)
+                    except Exception:
+                        pass
+                    prev = x
+            i += 1
+    
+    print(f"calculate_sigma_thresholds: Collected {len(all_diffs)} total differences")
+    
+    if not all_diffs:
+        print("calculate_sigma_thresholds: No differences found, returning zeros")
+        return 0, 0, 0, 0, 0, 0
+    
+    # Calculate mean and standard deviation
+    mean_diff = sum(all_diffs) / len(all_diffs)
+    variance = sum((x - mean_diff) ** 2 for x in all_diffs) / len(all_diffs)
+    std_diff = variance ** 0.5
+    
+    print(f"calculate_sigma_thresholds: Mean={mean_diff:.6f}, Std={std_diff:.6f}")
+    
+    # Calculate thresholds
+    avg_positive, avg_negative = collect_all_differences(data)
+    
+    # For sigma-based thresholds, use mean ± n*std
+    threshold_2sigma_pos = mean_diff + 2 * std_diff
+    threshold_2sigma_neg = mean_diff - 2 * std_diff
+    threshold_3sigma_pos = mean_diff + 3 * std_diff
+    threshold_3sigma_neg = mean_diff - 3 * std_diff
+    
+    print(f"calculate_sigma_thresholds: 2-sigma thresholds: pos={threshold_2sigma_pos:.6f}, neg={threshold_2sigma_neg:.6f}")
+    print(f"calculate_sigma_thresholds: 3-sigma thresholds: pos={threshold_3sigma_pos:.6f}, neg={threshold_3sigma_neg:.6f}")
+    
+    return avg_positive, avg_negative, threshold_2sigma_pos, threshold_2sigma_neg, threshold_3sigma_pos, threshold_3sigma_neg
 
 
 def count_spikes_falls(arr, avg_positive, avg_negative):
@@ -1021,6 +1101,9 @@ def analyze_spikes_falls_accuracy(data, avg_positive, avg_negative):
         'lowest_spikes_falls': defaultdict(list)
     }
     
+    problems_with_data = 0
+    total_problems = len(data)
+    
     for problem in data:
         problem_id = problem.get('id', 'unknown')
         
@@ -1036,19 +1119,22 @@ def analyze_spikes_falls_accuracy(data, avg_positive, avg_negative):
                 id_h = problem[id_h_key]
                 metrics_data = problem[metrics_key]
                 
-                # Calculate spikes and falls for this output
-                spike_fall_counts = count_spikes_falls(id_h, avg_positive, avg_negative)
-                
-                outputs.append({
-                    'index': i,
-                    'spikes': spike_fall_counts['spikes'],
-                    'falls': spike_fall_counts['falls'],
-                    'zeros': spike_fall_counts['zeros'],
-                    'combined_count': spike_fall_counts['spikes'] + spike_fall_counts['falls'],
-                    'accuracy': metrics_data.get('math_equal', 0),
-                    'exact_match': metrics_data.get('em', 0),
-                    'f1': metrics_data.get('f1', 0)
-                })
+                # Only process if id_h has valid values (not empty and has at least 2 elements)
+                if id_h and len(id_h) >= 2:
+                    # Calculate spikes and falls for this output
+                    spike_fall_counts = count_spikes_falls(id_h, avg_positive, avg_negative)
+                    
+                    outputs.append({
+                        'index': i,
+                        'spikes': spike_fall_counts['spikes'],
+                        'falls': spike_fall_counts['falls'],
+                        'zeros': spike_fall_counts['zeros'],
+                        'combined_count': spike_fall_counts['spikes'] + spike_fall_counts['falls'],
+                        'accuracy': metrics_data.get('math_equal', 0),
+                        'exact_match': metrics_data.get('em', 0),
+                        'f1': metrics_data.get('f1', 0)
+                    })
+                    problems_with_data += 1
             i += 1
         
         if not outputs:
@@ -1080,6 +1166,8 @@ def analyze_spikes_falls_accuracy(data, avg_positive, avg_negative):
             'f1': lowest_combined_output['f1']
         })
     
+    print(f"Found id_h data in {problems_with_data} outputs out of {total_problems} problems")
+    print(f"Spike/fall analysis results: {len(results['highest_spikes_falls']['combined'])} highest, {len(results['lowest_spikes_falls']['combined'])} lowest")
     return results
 
 
@@ -1098,20 +1186,23 @@ def calculate_spikes_falls_summary_stats(results):
             spikes_counts = [item['spikes_count'] for item in results[analysis_type][metric]]
             falls_counts = [item['falls_count'] for item in results[analysis_type][metric]]
             
+            # Convert boolean accuracies to float for proper statistics
+            accuracy_floats = [float(acc) for acc in accuracies]
+            
             summary[analysis_type][metric] = {
                 'count': len(accuracies),
-                'mean_accuracy': np.mean(accuracies),
-                'std_accuracy': np.std(accuracies),
-                'mean_exact_match': np.mean(exact_matches),
-                'std_exact_match': np.std(exact_matches),
-                'mean_f1': np.mean(f1_scores),
-                'std_f1': np.std(f1_scores),
-                'mean_combined_count': np.mean(combined_counts),
-                'std_combined_count': np.std(combined_counts),
-                'mean_spikes_count': np.mean(spikes_counts),
-                'std_spikes_count': np.std(spikes_counts),
-                'mean_falls_count': np.mean(falls_counts),
-                'std_falls_count': np.std(falls_counts)
+                'mean_accuracy': np.mean(accuracy_floats) if accuracy_floats else 0,
+                'std_accuracy': np.std(accuracy_floats) if accuracy_floats else 0,
+                'mean_exact_match': np.mean(exact_matches) if exact_matches else 0,
+                'std_exact_match': np.std(exact_matches) if exact_matches else 0,
+                'mean_f1': np.mean(f1_scores) if f1_scores else 0,
+                'std_f1': np.std(f1_scores) if f1_scores else 0,
+                'mean_combined_count': np.mean(combined_counts) if combined_counts else 0,
+                'std_combined_count': np.std(combined_counts) if combined_counts else 0,
+                'mean_spikes_count': np.mean(spikes_counts) if spikes_counts else 0,
+                'std_spikes_count': np.std(spikes_counts) if spikes_counts else 0,
+                'mean_falls_count': np.mean(falls_counts) if falls_counts else 0,
+                'std_falls_count': np.std(falls_counts) if falls_counts else 0
             }
     
     return summary
@@ -1142,7 +1233,23 @@ def create_spikes_falls_boxplots(spikes_falls_summary, outdir, filename_prefix, 
                 mean_accuracies.append(spikes_falls_summary[analysis_type][metric]['mean_accuracy'])
                 break  # Only need one metric per analysis type
     
-    x = np.arange(len(type_labels))
+    # Handle case where no spike/fall data is available
+    if not mean_accuracies:
+        ax.text(0.5, 0.5, 'No spike/fall data available\n(id_h data not found)', 
+                ha='center', va='center', transform=ax.transAxes, 
+                fontsize=14, bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray"))
+        ax.set_title('Spike/Fall Analysis: No Data Available')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        # Save the plot
+        plot_file = os.path.join(outdir, f"{filename_prefix}_spikes_falls_analysis.png")
+        plt.savefig(plot_file, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        return plot_file
+    
+    x = np.arange(len(mean_accuracies))
     width = 0.6
     
     bars = ax.bar(x, mean_accuracies, width, color=['lightblue', 'lightcoral'], alpha=0.8)
@@ -1163,7 +1270,7 @@ def create_spikes_falls_boxplots(spikes_falls_summary, outdir, filename_prefix, 
     ax.set_title('Mean Accuracy by Spike/Fall Analysis Type')
     ax.set_ylabel('Mean Accuracy')
     ax.set_xticks(x)
-    ax.set_xticklabels(type_labels, rotation=45, ha='right')
+    ax.set_xticklabels(type_labels[:len(mean_accuracies)], rotation=45, ha='right')
     ax.legend()
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 1.1)
@@ -1248,7 +1355,17 @@ def create_combined_analysis_plot(summary, spikes_falls_summary, spikes_falls_su
                     mean_accuracies.append(spikes_falls_summary[analysis_type][metric]['mean_accuracy'])
                     break  # Only need one metric per analysis type
         
-        x = np.arange(len(type_labels))
+        # Handle case where no spike/fall data is available
+        if not mean_accuracies:
+            ax.text(0.5, 0.5, 'No spike/fall data available\n(id_h data not found)', 
+                    ha='center', va='center', transform=ax.transAxes, 
+                    fontsize=10, bbox=dict(boxstyle="round,pad=0.3", facecolor="lightgray"))
+            ax.set_title(title + ' - No Data Available', fontsize=12, fontweight='bold')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            return
+        
+        x = np.arange(len(mean_accuracies))
         width = 0.6
         
         bars = ax.bar(x, mean_accuracies, width, color=['lightblue', 'lightcoral'], alpha=0.8)
@@ -1277,7 +1394,7 @@ def create_combined_analysis_plot(summary, spikes_falls_summary, spikes_falls_su
         ax.set_title(title, fontsize=12, fontweight='bold')
         ax.set_ylabel('Mean Accuracy', fontsize=10)
         ax.set_xticks(x)
-        ax.set_xticklabels(type_labels, rotation=45, ha='right', fontsize=8)
+        ax.set_xticklabels(type_labels[:len(mean_accuracies)], rotation=45, ha='right', fontsize=8)
         ax.legend()
         ax.grid(True, alpha=0.3)
         ax.set_ylim(0, 1.1)
@@ -1299,6 +1416,398 @@ def create_combined_analysis_plot(summary, spikes_falls_summary, spikes_falls_su
     plt.close()
     
     return plot_file
+
+
+def filter_traces_by_criteria(data, avg_positive=None, avg_negative=None):
+    """
+    Filter out traces based on specific criteria for each question:
+    1) Highest UID variance
+    2) Lowest UID variance  
+    3) Highest number of spikes and falls
+    4) Lowest number of spikes and falls
+    
+    Returns filtered data with the specified traces removed.
+    """
+    filtered_data = []
+    
+    for problem in data:
+        problem_id = problem.get('id', 'unknown')
+        
+        # Find all outputs for this problem
+        outputs = []
+        i = 0
+        while f'Output_{i}' in problem:
+            output_key = f'Output_{i}'
+            metrics_key = f'Metrics_{i}'
+            uid_metrics_key = f'id_metrics_{i}_metrics'
+            id_h_key = f'id_h_{i}'
+            
+            output_data = {
+                'index': i,
+                'output_key': output_key,
+                'metrics_key': metrics_key,
+                'uid_metrics_key': uid_metrics_key,
+                'id_h_key': id_h_key
+            }
+            
+            # Get UID metrics if available
+            if uid_metrics_key in problem:
+                output_data['uid_metrics'] = problem[uid_metrics_key]
+            
+            # Get spike/fall data if available
+            if id_h_key in problem and avg_positive is not None and avg_negative is not None:
+                id_h = problem[id_h_key]
+                spike_fall_counts = count_spikes_falls(id_h, avg_positive, avg_negative)
+                output_data['spikes'] = spike_fall_counts['spikes']
+                output_data['falls'] = spike_fall_counts['falls']
+                output_data['combined_count'] = spike_fall_counts['spikes'] + spike_fall_counts['falls']
+            
+            outputs.append(output_data)
+            i += 1
+        
+        if len(outputs) <= 1:
+            # If only one or no outputs, keep the problem as is
+            filtered_data.append(problem)
+            continue
+        
+        # Create a copy of the problem
+        filtered_problem = problem.copy()
+        
+        # Find traces to filter out
+        traces_to_remove = set()
+        
+        # 1) Filter out trace with highest UID variance
+        if any('uid_metrics' in output for output in outputs):
+            uid_variance_values = []
+            for output in outputs:
+                if 'uid_metrics' in output:
+                    uid_variance = output['uid_metrics'].get('uid_variance_equal', 0)
+                    uid_variance_values.append((output['index'], uid_variance))
+            
+            if uid_variance_values:
+                highest_variance_trace = max(uid_variance_values, key=lambda x: x[1])
+                traces_to_remove.add(highest_variance_trace[0])
+        
+        # 2) Filter out trace with lowest UID variance
+        if any('uid_metrics' in output for output in outputs):
+            uid_variance_values = []
+            for output in outputs:
+                if 'uid_metrics' in output:
+                    uid_variance = output['uid_metrics'].get('uid_variance_equal', 0)
+                    uid_variance_values.append((output['index'], uid_variance))
+            
+            if uid_variance_values:
+                lowest_variance_trace = min(uid_variance_values, key=lambda x: x[1])
+                traces_to_remove.add(lowest_variance_trace[0])
+        
+        # 3) Filter out trace with highest number of spikes and falls
+        if any('combined_count' in output for output in outputs):
+            spike_fall_values = []
+            for output in outputs:
+                if 'combined_count' in output:
+                    spike_fall_values.append((output['index'], output['combined_count']))
+            
+            if spike_fall_values:
+                highest_spike_fall_trace = max(spike_fall_values, key=lambda x: x[1])
+                traces_to_remove.add(highest_spike_fall_trace[0])
+        
+        # 4) Filter out trace with lowest number of spikes and falls
+        if any('combined_count' in output for output in outputs):
+            spike_fall_values = []
+            for output in outputs:
+                if 'combined_count' in output:
+                    spike_fall_values.append((output['index'], output['combined_count']))
+            
+            if spike_fall_values:
+                lowest_spike_fall_trace = min(spike_fall_values, key=lambda x: x[1])
+                traces_to_remove.add(lowest_spike_fall_trace[0])
+        
+        # Remove the identified traces from the filtered problem
+        for trace_index in traces_to_remove:
+            # Remove all fields associated with this trace
+            keys_to_remove = []
+            for key in filtered_problem.keys():
+                if key.endswith(f'_{trace_index}') or key == f'Output_{trace_index}' or key == f'Metrics_{trace_index}' or key == f'id_metrics_{trace_index}_metrics' or key == f'id_h_{trace_index}':
+                    keys_to_remove.append(key)
+            
+            for key in keys_to_remove:
+                del filtered_problem[key]
+        
+        # Only keep the problem if it still has at least one trace
+        remaining_traces = 0
+        i = 0
+        while f'Output_{i}' in filtered_problem:
+            remaining_traces += 1
+            i += 1
+        
+        if remaining_traces > 0:
+            filtered_data.append(filtered_problem)
+    
+    return filtered_data
+
+
+def select_traces_by_spikes_falls(data, threshold_pos, threshold_neg):
+    """
+    Select specific traces for each question based on spike/fall counts:
+    1) Highest combined spike+fall count
+    2) Lowest combined spike+fall count
+
+    Returns data with only the selected traces for each question, marked with selection reason.
+    """
+    selected_data = []
+
+    for problem in data:
+        problem_id = problem.get('id', 'unknown')
+
+        # Find all outputs for this problem
+        outputs = []
+        i = 0
+        while f'Output_{i}' in problem:
+            output_key = f'Output_{i}'
+            metrics_key = f'Metrics_{i}'
+            uid_metrics_key = f'id_metrics_{i}_metrics'
+            id_h_key = f'id_h_{i}'
+
+            output_data = {
+                'index': i,
+                'output_key': output_key,
+                'metrics_key': metrics_key,
+                'uid_metrics_key': uid_metrics_key,
+                'id_h_key': id_h_key
+            }
+
+            # Get UID metrics if available
+            if uid_metrics_key in problem:
+                output_data['uid_metrics'] = problem[uid_metrics_key]
+
+            # Get id_h data for spike/fall calculation
+            if id_h_key in problem:
+                output_data['id_h'] = problem[id_h_key]
+
+            outputs.append(output_data)
+            i += 1
+
+        if len(outputs) <= 1:
+            # If only one or no outputs, keep the problem as is
+            selected_data.append(problem)
+            continue
+
+        # Create a copy of the problem with only basic fields
+        selected_problem = {
+            'id': problem.get('id'),
+            'year': problem.get('year'),
+            'problem_number': problem.get('problem_number'),
+            'Question': problem.get('Question'),
+            'answer': problem.get('answer'),
+            'per_question_mean_accuracy': problem.get('per_question_mean_accuracy'),
+            'per_question_mean_validity': problem.get('per_question_mean_validity')
+        }
+
+        # Find traces to select based on spike/fall counts
+        traces_to_select = {}
+
+        # Collect spike/fall counts for each output
+        spike_fall_values = []
+        for output in outputs:
+            if 'id_h' in output and output['id_h'] and len(output['id_h']) >= 2:
+                spike_fall_counts = count_spikes_falls(output['id_h'], threshold_pos, threshold_neg)
+                combined_count = spike_fall_counts['spikes'] + spike_fall_counts['falls']
+                spike_fall_values.append((output['index'], combined_count, spike_fall_counts))
+
+        if spike_fall_values:
+            # Find highest combined spike+fall count
+            highest_spike_fall_trace = max(spike_fall_values, key=lambda x: x[1])
+            traces_to_select[highest_spike_fall_trace[0]] = {
+                'reason': 'highest_spikes_falls',
+                'value': highest_spike_fall_trace[1],
+                'spike_fall_counts': highest_spike_fall_trace[2]
+            }
+
+            # Find lowest combined spike+fall count
+            lowest_spike_fall_trace = min(spike_fall_values, key=lambda x: x[1])
+            traces_to_select[lowest_spike_fall_trace[0]] = {
+                'reason': 'lowest_spikes_falls',
+                'value': lowest_spike_fall_trace[1],
+                'spike_fall_counts': lowest_spike_fall_trace[2]
+            }
+
+        # Add only the selected traces to the selected problem with marking and renamed keys
+        for trace_index, selection_info in traces_to_select.items():
+            # Determine the new trace index based on selection reason
+            if selection_info['reason'] == 'highest_spikes_falls':
+                new_trace_index = 'highest'
+            else:  # lowest_spikes_falls
+                new_trace_index = 'lowest'
+
+            # Add all fields associated with this trace with renamed keys
+            for key in problem.keys():
+                if key.endswith(f'_{trace_index}') or key == f'Output_{trace_index}' or key == f'Metrics_{trace_index}' or key == f'id_metrics_{trace_index}_metrics' or key == f'id_h_{trace_index}':
+                    # Rename the key to use the new trace index
+                    if key == f'Output_{trace_index}':
+                        new_key = f'Output_{new_trace_index}'
+                    elif key == f'Metrics_{trace_index}':
+                        new_key = f'Metrics_{new_trace_index}'
+                    elif key == f'id_metrics_{trace_index}_metrics':
+                        new_key = f'id_metrics_{new_trace_index}_metrics'
+                    elif key == f'id_h_{trace_index}':
+                        new_key = f'id_h_{new_trace_index}'
+                    else:
+                        # For other keys ending with trace_index, replace with new_trace_index
+                        new_key = key.replace(f'_{trace_index}', f'_{new_trace_index}')
+
+                    selected_problem[new_key] = problem[key]
+
+        # Add selection metadata
+        selected_problem['selection_method'] = 'spikes_falls'
+        selected_problem['selection_threshold_pos'] = threshold_pos
+        selected_problem['selection_threshold_neg'] = threshold_neg
+
+        # Add selection details for each trace
+        for trace_index, selection_info in traces_to_select.items():
+            if selection_info['reason'] == 'highest_spikes_falls':
+                new_trace_index = 'highest'
+            else:
+                new_trace_index = 'lowest'
+
+            selected_problem[f'selection_reason_{new_trace_index}'] = selection_info['reason']
+            selected_problem[f'selection_value_{new_trace_index}'] = selection_info['value']
+            selected_problem[f'spikes_count_{new_trace_index}'] = selection_info['spike_fall_counts']['spikes']
+            selected_problem[f'falls_count_{new_trace_index}'] = selection_info['spike_fall_counts']['falls']
+
+        selected_data.append(selected_problem)
+
+    return selected_data
+
+
+def select_traces_by_criteria(data, avg_positive=None, avg_negative=None):
+    """
+    Select specific traces for each question based on uid_variance_entropy:
+    1) Highest uid_variance_entropy
+    2) Lowest uid_variance_entropy
+    
+    Returns data with only the selected traces for each question, marked with selection reason.
+    """
+    selected_data = []
+    
+    for problem in data:
+        problem_id = problem.get('id', 'unknown')
+        
+        # Find all outputs for this problem
+        outputs = []
+        i = 0
+        while f'Output_{i}' in problem:
+            output_key = f'Output_{i}'
+            metrics_key = f'Metrics_{i}'
+            uid_metrics_key = f'id_metrics_{i}_metrics'
+            
+            output_data = {
+                'index': i,
+                'output_key': output_key,
+                'metrics_key': metrics_key,
+                'uid_metrics_key': uid_metrics_key
+            }
+            
+            # Get UID metrics if available
+            if uid_metrics_key in problem:
+                output_data['uid_metrics'] = problem[uid_metrics_key]
+            
+            outputs.append(output_data)
+            i += 1
+        
+        if len(outputs) <= 1:
+            # If only one or no outputs, keep the problem as is
+            selected_data.append(problem)
+            continue
+        
+        # Create a copy of the problem with only basic fields
+        selected_problem = {
+            'id': problem.get('id'),
+            'year': problem.get('year'),
+            'problem_number': problem.get('problem_number'),
+            'Question': problem.get('Question'),
+            'answer': problem.get('answer'),
+            'per_question_mean_accuracy': problem.get('per_question_mean_accuracy'),
+            'per_question_mean_validity': problem.get('per_question_mean_validity')
+        }
+        
+        # Find traces to select based on uid_variance_entropy
+        traces_to_select = {}
+        
+        # Collect uid_variance_entropy values
+        if any('uid_metrics' in output for output in outputs):
+            uid_variance_entropy_values = []
+            for output in outputs:
+                if 'uid_metrics' in output:
+                    uid_variance_entropy = output['uid_metrics'].get('uid_variance_entropy', 0)
+                    uid_variance_entropy_values.append((output['index'], uid_variance_entropy))
+            
+            if uid_variance_entropy_values:
+                # Find highest uid_variance_entropy
+                highest_variance_entropy_trace = max(uid_variance_entropy_values, key=lambda x: x[1])
+                traces_to_select[highest_variance_entropy_trace[0]] = {
+                    'reason': 'highest_uid_variance_entropy',
+                    'value': highest_variance_entropy_trace[1]
+                }
+                
+                # Find lowest uid_variance_entropy
+                lowest_variance_entropy_trace = min(uid_variance_entropy_values, key=lambda x: x[1])
+                traces_to_select[lowest_variance_entropy_trace[0]] = {
+                    'reason': 'lowest_uid_variance_entropy',
+                    'value': lowest_variance_entropy_trace[1]
+                }
+        
+        # Add only the selected traces to the selected problem with marking and renamed keys
+        for trace_index, selection_info in traces_to_select.items():
+            # Determine the new trace index based on selection reason
+            if selection_info['reason'] == 'highest_uid_variance_entropy':
+                new_trace_index = 'highest'
+            else:  # lowest_uid_variance_entropy
+                new_trace_index = 'lowest'
+            
+            # Add all fields associated with this trace with renamed keys
+            for key in problem.keys():
+                if key.endswith(f'_{trace_index}') or key == f'Output_{trace_index}' or key == f'Metrics_{trace_index}' or key == f'id_metrics_{trace_index}_metrics' or key == f'id_h_{trace_index}':
+                    # Rename the key to use the new trace index
+                    if key == f'Output_{trace_index}':
+                        new_key = f'Output_{new_trace_index}'
+                    elif key == f'Metrics_{trace_index}':
+                        new_key = f'Metrics_{new_trace_index}'
+                    elif key == f'id_metrics_{trace_index}_metrics':
+                        new_key = f'id_metrics_{new_trace_index}_metrics'
+                    elif key == f'id_h_{trace_index}':
+                        new_key = f'id_h_{new_trace_index}'
+                    else:
+                        # For other keys ending with trace_index, replace with new_trace_index
+                        new_key = key.replace(f'_{trace_index}', f'_{new_trace_index}')
+                    
+                    selected_problem[new_key] = problem[key]
+            
+            # Add selection metadata with new trace index
+            selected_problem[f'selection_reason_{new_trace_index}'] = selection_info['reason']
+            selected_problem[f'uid_variance_entropy_value_{new_trace_index}'] = selection_info['value']
+        
+        # Add summary of selections for this problem
+        selected_problem['trace_selections'] = {
+            'highest' if info['reason'] == 'highest_uid_variance_entropy' else 'lowest': {
+                'reason': info['reason'],
+                'uid_variance_entropy': info['value'],
+                'original_trace_index': trace_idx
+            }
+            for trace_idx, info in traces_to_select.items()
+        }
+        
+        # Only keep the problem if it has at least one trace
+        remaining_traces = 0
+        # Check for both 'highest' and 'lowest' traces
+        if 'Output_highest' in selected_problem:
+            remaining_traces += 1
+        if 'Output_lowest' in selected_problem:
+            remaining_traces += 1
+        
+        if remaining_traces > 0:
+            selected_data.append(selected_problem)
+    
+    return selected_data
 
 
 def analyze_spikes_falls_accuracy_by_level(data, avg_positive, avg_negative):
@@ -1413,6 +1922,8 @@ def main():
     parser.add_argument("--outdir", default="analysis_out")
     parser.add_argument("--analysis_by_level", action='store_true', help="Enable analysis by difficulty level")
     parser.add_argument("--analysis_by_domain", action='store_true', help="Enable analysis by domain")
+    parser.add_argument("--select_traces", action='store_true', help="Select traces with highest/lowest uid_variance_entropy for each question")
+    parser.add_argument("--select_traces_by_spikes_falls", action='store_true', help="Select traces with highest/lowest spikes and falls for each question")
 
     args = parser.parse_args()
 
@@ -1438,6 +1949,103 @@ def main():
                 level_specific_metrics = metrics_data["per_domain"]
     
     print(f"Analyzing {len(data)} problems...")
+    
+    # Store original data for spike/fall analysis if both selections are requested
+    original_data = data.copy() if args.select_traces and args.select_traces_by_spikes_falls else None
+    
+    # Apply trace selection if requested
+    if args.select_traces:
+        print("\n" + "="*80)
+        print("APPLYING UID VARIANCE ENTROPY TRACE SELECTION")
+        print("="*80)
+        print("Selection criteria: Highest and lowest uid_variance_entropy for each question")
+        
+        # Apply selection (no need for spike/fall thresholds since we're only using UID metrics)
+        original_count = len(data)
+        data = select_traces_by_criteria(data)
+        selected_count = len(data)
+        
+        print(f"Original problems: {original_count}")
+        print(f"Problems after selection: {selected_count}")
+        
+        # Count traces after selection (now using 'highest' and 'lowest' naming)
+        selected_traces = 0
+        for problem in data:
+            if 'Output_highest' in problem:
+                selected_traces += 1
+            if 'Output_lowest' in problem:
+                selected_traces += 1
+        print(f"Total traces after selection: {selected_traces}")
+        
+        # Print selection summary
+        total_highest = 0
+        total_lowest = 0
+        for problem in data:
+            if 'trace_selections' in problem:
+                if 'highest' in problem['trace_selections']:
+                    total_highest += 1
+                if 'lowest' in problem['trace_selections']:
+                    total_lowest += 1
+        
+        print(f"Traces selected for highest uid_variance_entropy: {total_highest}")
+        print(f"Traces selected for lowest uid_variance_entropy: {total_lowest}")
+        
+        # Save selected data
+        selected_data_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_selected_data_uid.json")
+        with open(selected_data_file, "w") as f:
+            json.dump(data, f, indent=2)
+        print(f"UID-based selected data saved to: {selected_data_file}")
+    
+    if args.select_traces_by_spikes_falls:
+        print("\n" + "="*80)
+        print("APPLYING SPIKE/FALL TRACE SELECTION")
+        print("="*80)
+        print("Selection criteria: Highest and lowest combined spike+fall counts for each question")
+        print("Using 3-sigma thresholds for spike/fall detection")
+        
+        # Use original data if both selections are requested (to avoid field naming conflicts)
+        spike_fall_data = original_data if original_data is not None else data
+        
+        # Calculate thresholds first
+        avg_positive, avg_negative, threshold_2sigma_pos, threshold_2sigma_neg, threshold_3sigma_pos, threshold_3sigma_neg = calculate_sigma_thresholds(spike_fall_data)
+        
+        # Apply selection using 3-sigma thresholds
+        original_count = len(spike_fall_data)
+        spike_fall_selected_data = select_traces_by_spikes_falls(spike_fall_data, threshold_3sigma_pos, threshold_3sigma_neg)
+        selected_count = len(spike_fall_selected_data)
+        
+        print(f"Original problems: {original_count}")
+        print(f"Problems after selection: {selected_count}")
+        print(f"Using 3-sigma thresholds: pos={threshold_3sigma_pos:.4f}, neg={threshold_3sigma_neg:.4f}")
+        
+        # Count traces after selection (now using 'highest' and 'lowest' naming)
+        selected_traces = 0
+        for problem in spike_fall_selected_data:
+            if 'Output_highest' in problem:
+                selected_traces += 1
+            if 'Output_lowest' in problem:
+                selected_traces += 1
+        
+        print(f"Total selected traces: {selected_traces}")
+        
+        # Print selection summary
+        total_highest = 0
+        total_lowest = 0
+        for problem in spike_fall_selected_data:
+            if 'selection_reason_highest' in problem:
+                total_highest += 1
+            if 'selection_reason_lowest' in problem:
+                total_lowest += 1
+        
+        print(f"Traces selected for highest spikes+falls: {total_highest}")
+        print(f"Traces selected for lowest spikes+falls: {total_lowest}")
+        
+        # Save selected data
+        selected_data_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_selected_data_spikes_falls.json")
+        with open(selected_data_file, "w") as f:
+            json.dump(spike_fall_selected_data, f, indent=2)
+        print(f"Spike/fall-based selected data saved to: {selected_data_file}")
+        print("="*80)
     
     # Print overall metrics for debugging
     if overall_metrics:
@@ -1509,15 +2117,20 @@ def main():
     print("SPIKE/FALL ANALYSIS")
     print("="*80)
     
+    # Use original data for spike/fall analysis if both selections were requested
+    spike_fall_analysis_data = original_data if original_data is not None else data
+    
     # Calculate global thresholds
-    avg_positive, avg_negative = collect_all_differences(data)
+    avg_positive, avg_negative, threshold_2sigma_pos, threshold_2sigma_neg, threshold_3sigma_pos, threshold_3sigma_neg = calculate_sigma_thresholds(spike_fall_analysis_data)
     print(f"Average positive difference: {avg_positive:.4f}")
     print(f"Average negative difference: {avg_negative:.4f}")
+    print(f"2-sigma thresholds: pos={threshold_2sigma_pos:.4f}, neg={threshold_2sigma_neg:.4f}")
+    print(f"3-sigma thresholds: pos={threshold_3sigma_pos:.4f}, neg={threshold_3sigma_neg:.4f}")
     
     # Analyze spikes and falls
-    spikes_falls_results = analyze_spikes_falls_accuracy(data, avg_positive, avg_negative)
-    spikes_falls_results_2sigma = analyze_spikes_falls_accuracy(data, avg_positive + 2 * avg_negative, avg_negative - 2 * avg_positive)
-    spikes_falls_results_3sigma = analyze_spikes_falls_accuracy(data, avg_positive + 3 * avg_negative, avg_negative - 3 * avg_positive)
+    spikes_falls_results = analyze_spikes_falls_accuracy(spike_fall_analysis_data, avg_positive, avg_negative)
+    spikes_falls_results_2sigma = analyze_spikes_falls_accuracy(spike_fall_analysis_data, threshold_2sigma_pos, threshold_2sigma_neg)
+    spikes_falls_results_3sigma = analyze_spikes_falls_accuracy(spike_fall_analysis_data, threshold_3sigma_pos, threshold_3sigma_neg)
     
     # Calculate summary statistics for spikes/falls
     spikes_falls_summary = calculate_spikes_falls_summary_stats(spikes_falls_results)
@@ -1760,96 +2373,98 @@ def main():
     combined_plot_file = create_combined_analysis_plot(summary, spikes_falls_summary, spikes_falls_summary_2sigma, spikes_falls_summary_3sigma, args.outdir, filename_prefix, args.input, overall_metrics)
     print(f"Combined analysis plot saved to: {combined_plot_file}")
 
-    # Per-level spikes/falls analysis
-    level_spikes_falls_results = analyze_spikes_falls_accuracy_by_level(data, avg_positive, avg_negative)
+    # Analysis by level if requested
+    if args.analysis_by_level:
+        # Per-level spikes/falls analysis
+        level_spikes_falls_results = analyze_spikes_falls_accuracy_by_level(data, avg_positive, avg_negative)
 
-    # Summaries per level
-    level_spikes_falls_summary = {}
-    for level, res in level_spikes_falls_results.items():
-        level_spikes_falls_summary[level] = calculate_spikes_falls_summary_stats(res)
+        # Summaries per level
+        level_spikes_falls_summary = {}
+        for level, res in level_spikes_falls_results.items():
+            level_spikes_falls_summary[level] = calculate_spikes_falls_summary_stats(res)
 
-    # Plots per level
-    level_spikes_falls_plot, per_level_spikes_falls_plots = create_spikes_falls_level_boxplots(
-        level_spikes_falls_summary, args.outdir, filename_prefix, args.input, overall_metrics
-    )
+        # Plots per level
+        level_spikes_falls_plot, per_level_spikes_falls_plots = create_spikes_falls_level_boxplots(
+            level_spikes_falls_summary, args.outdir, filename_prefix, args.input, overall_metrics
+        )
 
-    # Save per-level spikes/falls results and summaries
-    spikes_falls_by_level_results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level.json")
-    with open(spikes_falls_by_level_results_file, "w") as f:
-        json.dump(level_spikes_falls_results, f, indent=2)
+        # Save per-level spikes/falls results and summaries
+        spikes_falls_by_level_results_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level.json")
+        with open(spikes_falls_by_level_results_file, "w") as f:
+            json.dump(level_spikes_falls_results, f, indent=2)
 
-    spikes_falls_by_level_summary_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level.json")
-    with open(spikes_falls_by_level_summary_file, "w") as f:
-        json.dump(level_spikes_falls_summary, f, indent=2)
+        spikes_falls_by_level_summary_file = os.path.join(args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level.json")
+        with open(spikes_falls_by_level_summary_file, "w") as f:
+            json.dump(level_spikes_falls_summary, f, indent=2)
 
-    print(f"Per-level spikes/falls analysis saved to: {spikes_falls_by_level_results_file}")
-    print(f"Per-level spikes/falls summary saved to: {spikes_falls_by_level_summary_file}")
-    print(f"Per-level spikes/falls combined plot saved to: {level_spikes_falls_plot}")
-    print("Individual per-level spikes/falls plots:")
-    for p in per_level_spikes_falls_plots:
-        print(f"  - {p}")
+        print(f"Per-level spikes/falls analysis saved to: {spikes_falls_by_level_results_file}")
+        print(f"Per-level spikes/falls summary saved to: {spikes_falls_by_level_summary_file}")
+        print(f"Per-level spikes/falls combined plot saved to: {level_spikes_falls_plot}")
+        print("Individual per-level spikes/falls plots:")
+        for p in per_level_spikes_falls_plots:
+            print(f"  - {p}")
 
-    # Per-level spikes/falls analysis - 2σ thresholds
-    level_spikes_falls_results_2sigma = analyze_spikes_falls_accuracy_by_level(
-        data, avg_positive + 2 * avg_negative, avg_negative - 2 * avg_positive
-    )
+        # Per-level spikes/falls analysis - 2σ thresholds
+        level_spikes_falls_results_2sigma = analyze_spikes_falls_accuracy_by_level(
+            data, avg_positive + 2 * avg_negative, avg_negative - 2 * avg_positive
+        )
 
-    level_spikes_falls_summary_2sigma = {}
-    for level, res in level_spikes_falls_results_2sigma.items():
-        level_spikes_falls_summary_2sigma[level] = calculate_spikes_falls_summary_stats(res)
+        level_spikes_falls_summary_2sigma = {}
+        for level, res in level_spikes_falls_results_2sigma.items():
+            level_spikes_falls_summary_2sigma[level] = calculate_spikes_falls_summary_stats(res)
 
-    level_spikes_falls_plot_2sigma, per_level_spikes_falls_plots_2sigma = create_spikes_falls_level_boxplots(
-        level_spikes_falls_summary_2sigma, args.outdir, filename_prefix + "_2sigma", args.input, overall_metrics
-    )
+        level_spikes_falls_plot_2sigma, per_level_spikes_falls_plots_2sigma = create_spikes_falls_level_boxplots(
+            level_spikes_falls_summary_2sigma, args.outdir, filename_prefix + "_2sigma", args.input, overall_metrics
+        )
 
-    spikes_falls_by_level_results_file_2sigma = os.path.join(
-        args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level_2sigma.json"
-    )
-    with open(spikes_falls_by_level_results_file_2sigma, "w") as f:
-        json.dump(level_spikes_falls_results_2sigma, f, indent=2)
+        spikes_falls_by_level_results_file_2sigma = os.path.join(
+            args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level_2sigma.json"
+        )
+        with open(spikes_falls_by_level_results_file_2sigma, "w") as f:
+            json.dump(level_spikes_falls_results_2sigma, f, indent=2)
 
-    spikes_falls_by_level_summary_file_2sigma = os.path.join(
-        args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level_2sigma.json"
-    )
-    with open(spikes_falls_by_level_summary_file_2sigma, "w") as f:
-        json.dump(level_spikes_falls_summary_2sigma, f, indent=2)
+        spikes_falls_by_level_summary_file_2sigma = os.path.join(
+            args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level_2sigma.json"
+        )
+        with open(spikes_falls_by_level_summary_file_2sigma, "w") as f:
+            json.dump(level_spikes_falls_summary_2sigma, f, indent=2)
 
-    print(f"Per-level spikes/falls (2σ) analysis saved to: {spikes_falls_by_level_results_file_2sigma}")
-    print(f"Per-level spikes/falls (2σ) summary saved to: {spikes_falls_by_level_summary_file_2sigma}")
-    print(f"Per-level spikes/falls (2σ) combined plot saved to: {level_spikes_falls_plot_2sigma}")
-    for p in per_level_spikes_falls_plots_2sigma:
-        print(f"  - {p}")
+        print(f"Per-level spikes/falls (2σ) analysis saved to: {spikes_falls_by_level_results_file_2sigma}")
+        print(f"Per-level spikes/falls (2σ) summary saved to: {spikes_falls_by_level_summary_file_2sigma}")
+        print(f"Per-level spikes/falls (2σ) combined plot saved to: {level_spikes_falls_plot_2sigma}")
+        for p in per_level_spikes_falls_plots_2sigma:
+            print(f"  - {p}")
 
-    # Per-level spikes/falls analysis - 3σ thresholds
-    level_spikes_falls_results_3sigma = analyze_spikes_falls_accuracy_by_level(
-        data, avg_positive + 3 * avg_negative, avg_negative - 3 * avg_positive
-    )
+        # Per-level spikes/falls analysis - 3σ thresholds
+        level_spikes_falls_results_3sigma = analyze_spikes_falls_accuracy_by_level(
+            data, avg_positive + 3 * avg_negative, avg_negative - 3 * avg_positive
+        )
 
-    level_spikes_falls_summary_3sigma = {}
-    for level, res in level_spikes_falls_results_3sigma.items():
-        level_spikes_falls_summary_3sigma[level] = calculate_spikes_falls_summary_stats(res)
+        level_spikes_falls_summary_3sigma = {}
+        for level, res in level_spikes_falls_results_3sigma.items():
+            level_spikes_falls_summary_3sigma[level] = calculate_spikes_falls_summary_stats(res)
 
-    level_spikes_falls_plot_3sigma, per_level_spikes_falls_plots_3sigma = create_spikes_falls_level_boxplots(
-        level_spikes_falls_summary_3sigma, args.outdir, filename_prefix + "_3sigma", args.input, overall_metrics
-    )
+        level_spikes_falls_plot_3sigma, per_level_spikes_falls_plots_3sigma = create_spikes_falls_level_boxplots(
+            level_spikes_falls_summary_3sigma, args.outdir, filename_prefix + "_3sigma", args.input, overall_metrics
+        )
 
-    spikes_falls_by_level_results_file_3sigma = os.path.join(
-        args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level_3sigma.json"
-    )
-    with open(spikes_falls_by_level_results_file_3sigma, "w") as f:
-        json.dump(level_spikes_falls_results_3sigma, f, indent=2)
+        spikes_falls_by_level_results_file_3sigma = os.path.join(
+            args.outdir, args.input.split("/")[-2] + "_spikes_falls_analysis_by_level_3sigma.json"
+        )
+        with open(spikes_falls_by_level_results_file_3sigma, "w") as f:
+            json.dump(level_spikes_falls_results_3sigma, f, indent=2)
 
-    spikes_falls_by_level_summary_file_3sigma = os.path.join(
-        args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level_3sigma.json"
-    )
-    with open(spikes_falls_by_level_summary_file_3sigma, "w") as f:
-        json.dump(level_spikes_falls_summary_3sigma, f, indent=2)
+        spikes_falls_by_level_summary_file_3sigma = os.path.join(
+            args.outdir, args.input.split("/")[-2] + "_spikes_falls_summary_by_level_3sigma.json"
+        )
+        with open(spikes_falls_by_level_summary_file_3sigma, "w") as f:
+            json.dump(level_spikes_falls_summary_3sigma, f, indent=2)
 
-    print(f"Per-level spikes/falls (3σ) analysis saved to: {spikes_falls_by_level_results_file_3sigma}")
-    print(f"Per-level spikes/falls (3σ) summary saved to: {spikes_falls_by_level_summary_file_3sigma}")
-    print(f"Per-level spikes/falls (3σ) combined plot saved to: {level_spikes_falls_plot_3sigma}")
-    for p in per_level_spikes_falls_plots_3sigma:
-        print(f"  - {p}")
+        print(f"Per-level spikes/falls (3σ) analysis saved to: {spikes_falls_by_level_results_file_3sigma}")
+        print(f"Per-level spikes/falls (3σ) summary saved to: {spikes_falls_by_level_summary_file_3sigma}")
+        print(f"Per-level spikes/falls (3σ) combined plot saved to: {level_spikes_falls_plot_3sigma}")
+        for p in per_level_spikes_falls_plots_3sigma:
+            print(f"  - {p}")
 
 
 if __name__ == "__main__":
