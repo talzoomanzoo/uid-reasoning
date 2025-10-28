@@ -14,6 +14,62 @@ except ImportError:
     print("Warning: scipy not available. Correlation analysis will be skipped.")
 
 
+def analyze_selected_uid_accuracy(data):
+    """
+    Analyze accuracy for selected traces (highest and lowest uid_variance_entropy).
+    This function handles the data structure after trace selection.
+    """
+    # Define UID metrics to analyze
+    uid_metrics = [
+        "uid_variance_entropy", "uid_gini_entropy", "uid_shannon_entropy",
+    ]
+    
+    results = {
+        'highest_uid': {metric: [] for metric in uid_metrics},
+        'lowest_uid': {metric: [] for metric in uid_metrics}
+    }
+    
+    for problem in data:
+        problem_id = problem.get('id', 'unknown')
+        
+        # Check if this problem has selected traces
+        if 'Output_highest' in problem and 'id_metrics_highest_metrics' in problem:
+            highest_metrics = problem['id_metrics_highest_metrics']
+            highest_accuracy = problem['Metrics_highest'].get('acc', 0)
+            highest_exact_match = problem['Metrics_highest'].get('em', 0)
+            highest_f1 = problem['Metrics_highest'].get('f1', 0)
+            
+            for metric in uid_metrics:
+                uid_score = highest_metrics.get(metric, 0)
+                results['highest_uid'][metric].append({
+                    'problem_id': problem_id,
+                    'output_index': 'highest',
+                    'uid_score': uid_score,
+                    'accuracy': highest_accuracy,
+                    'exact_match': highest_exact_match,
+                    'f1': highest_f1
+                })
+        
+        if 'Output_lowest' in problem and 'id_metrics_lowest_metrics' in problem:
+            lowest_metrics = problem['id_metrics_lowest_metrics']
+            lowest_accuracy = problem['Metrics_lowest'].get('acc', 0)
+            lowest_exact_match = problem['Metrics_lowest'].get('em', 0)
+            lowest_f1 = problem['Metrics_lowest'].get('f1', 0)
+            
+            for metric in uid_metrics:
+                uid_score = lowest_metrics.get(metric, 0)
+                results['lowest_uid'][metric].append({
+                    'problem_id': problem_id,
+                    'output_index': 'lowest',
+                    'uid_score': uid_score,
+                    'accuracy': lowest_accuracy,
+                    'exact_match': lowest_exact_match,
+                    'f1': lowest_f1
+                })
+    
+    return results
+
+
 def analyze_uid_accuracy(data):
     """
     Analyze accuracy based on UID scores.
@@ -1736,10 +1792,18 @@ def select_traces_by_criteria(data, avg_positive=None, avg_negative=None):
         # Collect uid_variance_entropy values
         if any('uid_metrics' in output for output in outputs):
             uid_variance_entropy_values = []
+            nan_count = 0
             for output in outputs:
                 if 'uid_metrics' in output:
                     uid_variance_entropy = output['uid_metrics'].get('uid_variance_entropy', 0)
-                    uid_variance_entropy_values.append((output['index'], uid_variance_entropy))
+                    # Skip NaN values
+                    if isinstance(uid_variance_entropy, float) and np.isnan(uid_variance_entropy):
+                        nan_count += 1
+                    else:
+                        uid_variance_entropy_values.append((output['index'], uid_variance_entropy))
+            
+            if nan_count > 0:
+                print(f"Warning: Found {nan_count} NaN uid_variance_entropy values for problem {problem_id}")
             
             if uid_variance_entropy_values:
                 # Find highest uid_variance_entropy
@@ -1755,6 +1819,8 @@ def select_traces_by_criteria(data, avg_positive=None, avg_negative=None):
                     'reason': 'lowest_uid_variance_entropy',
                     'value': lowest_variance_entropy_trace[1]
                 }
+            else:
+                print(f"Warning: No valid uid_variance_entropy values found for problem {problem_id}")
         
         # Add only the selected traces to the selected problem with marking and renamed keys
         for trace_index, selection_info in traces_to_select.items():
@@ -2060,7 +2126,12 @@ def main():
         print(f"Level-specific metrics loaded: {level_specific_metrics}")
     
     # Analyze UID-based accuracy
-    results = analyze_uid_accuracy(data)
+    if args.select_traces:
+        # Use the new function for selected data
+        results = analyze_selected_uid_accuracy(data)
+    else:
+        # Use the original function for unselected data
+        results = analyze_uid_accuracy(data)
     
     # Calculate summary statistics
     summary = calculate_summary_stats(results)
