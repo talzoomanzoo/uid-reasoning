@@ -21,6 +21,7 @@ run_script() {
 }
 
 # Run scripts sequentially
+run_script "high_spikes_falls_sft_ds.sh"
 run_script "low_spikes_falls_sft_ds.sh"
 run_script "high_uid_variance_sft_ds.sh"
 run_script "low_uid_variance_sft_ds.sh"

@@ -11,10 +11,10 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --dataset=talzoomanzoo/DS_QWEN_LOWEST_SPIKES_FALLS \
    --input_key=Question \
    --output_key=Output_lowest \
-   --train_batch_size=32 \
+   --train_batch_size=4 \
    --micro_train_batch_size=1 \
-   --pretrain=deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
-   --save_path=./checkpoint/deepseek-1.5b-lowest-spikes-falls-ds-1.5b-fft \
+   --pretrain=Qwen/Qwen2.5-Math-1.5B \
+   --save_path=./checkpoint/qwen2.5-math-1.5b-lowest-spikes-falls-ds-1.5b-fft \
    --packing_samples \
    --flash_attn \
    --logging_steps=1 \
@@ -27,4 +27,4 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --use_wandb=True \
    --wandb_org=mjgwak \
    --wandb_project=spikes_falls_sft \
-   --wandb_run_name=deepseek-1.5b-lowest-spikes-falls-ds-1.5b-fft-$(date +%m%d%H%M)
+   --wandb_run_name=qwen2.5-math-1.5b-lowest-spikes-falls-fft-$(date +%m%d%H%M)
