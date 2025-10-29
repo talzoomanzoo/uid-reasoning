@@ -11,8 +11,8 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --dataset=talzoomanzoo/QWEN3_HIGHEST_VARIANCE \
    --input_key=Question \
    --output_key=Output_highest \
-   --train_batch_size=8 \
-   --micro_train_batch_size=2 \
+   --train_batch_size=32 \
+   --micro_train_batch_size=1 \
    --pretrain=Qwen/Qwen3-0.6B \
    --save_path=./checkpoint/qwen3-0.6b-highest-uid-variance-fft \
    --packing_samples \
@@ -20,8 +20,8 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --logging_steps=1 \
    --eval_steps=-1 \
    --zero_stage=2 \
-   --max_epochs=3 \
-   --learning_rate=5e-6 \
+   --max_epochs=10 \
+   --learning_rate=4e-5 \
    --gradient_checkpointing \
    --bf16 \
    --use_wandb=True \

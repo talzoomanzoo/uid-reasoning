@@ -11,20 +11,20 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --dataset=talzoomanzoo/lowest_uid_variance_sft_qwen \
    --input_key=Question \
    --output_key=text \
-   --train_batch_size=16 \
+   --train_batch_size=32 \
    --micro_train_batch_size=1 \
-   --pretrain=Qwen/Qwen3-1.7B \
-   --save_path=./checkpoint/qwen3-1.7b-lowest-uid-variance-fft \
+   --pretrain=Qwen/Qwen3-0.6B \
+   --save_path=./checkpoint/qwen3-0.6b-lowest-uid-variance-fft \
    --packing_samples \
    --flash_attn \
    --logging_steps=1 \
    --eval_steps=-1 \
    --zero_stage=2 \
    --max_epochs=10 \
-   --learning_rate=5e-6 \
+   --learning_rate=4e-5 \
    --gradient_checkpointing \
    --bf16 \
    --use_wandb=True \
    --wandb_org=mjgwak \
    --wandb_project=uid_variance_sft_qwen\
-   --wandb_run_name=qwen3-1.7b-lowest-uid-variance-fft-$(date +%m%d%H%M)
+   --wandb_run_name=qwen3-0.6b-lowest-uid-variance-fft-$(date +%m%d%H%M)

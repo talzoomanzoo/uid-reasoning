@@ -21,7 +21,7 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --eval_steps=-1 \
    --zero_stage=2 \
    --max_epochs=10 \
-   --learning_rate=5e-6 \
+   --learning_rate=4e-5 \
    --gradient_checkpointing \
    --bf16 \
    --use_wandb=True \

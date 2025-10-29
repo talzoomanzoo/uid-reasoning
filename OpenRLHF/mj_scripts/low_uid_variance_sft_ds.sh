@@ -11,16 +11,17 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --dataset=talzoomanzoo/DS_QWEN_LOWEST_VARIANCE \
    --input_key=Question \
    --output_key=Output_lowest \
-   --train_batch_size=8 \
-   --micro_train_batch_size=2 \
+   --train_batch_size=32 \
+   --micro_train_batch_size=1 \
    --pretrain=deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
    --save_path=./checkpoint/deepseek-1.5b-lowest-uid-variance-ds-1.5b-fft \
    --packing_samples \
+   --flash_attn \
    --logging_steps=1 \
    --eval_steps=-1 \
    --zero_stage=2 \
-   --max_epochs=3 \
-   --learning_rate=5e-6 \
+   --max_epochs=10 \
+   --learning_rate=4e-5 \
    --gradient_checkpointing \
    --bf16 \
    --use_wandb=True \

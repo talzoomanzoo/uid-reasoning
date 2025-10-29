@@ -8,13 +8,13 @@ export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128,expandable_segments:True
 
 deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --max_len=32768 \
-   --dataset=talzoomanzoo/DS_QWEN_HIGHEST_SPIKES_FALLS \
+   --dataset=talzoomanzoo/QWEN3_HIGHEST_SPIKES_FALLS \
    --input_key=Question \
    --output_key=Output_highest \
    --train_batch_size=32 \
    --micro_train_batch_size=1 \
-   --pretrain=deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B \
-   --save_path=./checkpoint/deepseek-1.5b-highest-spikes-falls-ds-1.5b-fft \
+   --pretrain=Qwen/Qwen3-0.6B \
+   --save_path=./checkpoint/qwen3-0.6b-highest-spikes-falls-fft \
    --packing_samples \
    --flash_attn \
    --logging_steps=1 \
@@ -27,4 +27,4 @@ deepspeed --num_gpus 4 --module openrlhf.cli.train_sft \
    --use_wandb=True \
    --wandb_org=mjgwak \
    --wandb_project=spikes_falls_sft \
-   --wandb_run_name=deepseek-1.5b-highest-spikes-falls-ds-1.5b-fft-$(date +%m%d%H%M)
+   --wandb_run_name=qwen3-0.6b-highest-spikes-falls-fft-$(date +%m%d%H%M)
