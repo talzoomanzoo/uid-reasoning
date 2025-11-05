@@ -508,7 +508,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
 
                     
-                if dataset_name in ['gpqa', 'medmcqa']:
+                if dataset_name in ['gpqa', 'medmcqa', 'mmlu']:
                     labeled_answer = item["Correct Choice"]
                     mode = 'choose'
                 elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:

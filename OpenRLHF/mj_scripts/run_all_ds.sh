@@ -1,11 +1,20 @@
 #!/bin/bash
 set -e  # Exit on any error
 
+# Pick a unique master port for each sub-run
+pick_port() {
+    echo $(shuf -i 20000-65000 -n 1)
+}
+
 # Function to run script with logging
 run_script() {
     local script_name=$1
+    export MASTER_ADDR=127.0.0.1
+    export MASTER_PORT=$(pick_port)
+
     echo "=========================================="
     echo "Starting $script_name at $(date)"
+    echo "MASTER_ADDR=$MASTER_ADDR MASTER_PORT=$MASTER_PORT"
     echo "=========================================="
     
     if bash "$script_name"; then
