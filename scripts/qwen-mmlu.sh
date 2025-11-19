@@ -1,4 +1,4 @@
-python ../src/run_direct_gen_uid_dev_viz.py --model_path deepseek-ai/DeepSeek-R1-Distill-Qwen-7B \
+python ../src/run_direct_gen_uid_dev_viz.py --model_path Qwen/Qwen3-8B \
    --dataset_name mmlu \
    --split test \
    --batch_size 1000 \

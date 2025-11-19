@@ -246,7 +246,7 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                             f'output_{gen_idx}': item[f'Cot_Decoding_{gen_idx}'].get('confidence_score', float('nan')),
                             'math_equal': code_passed,  # Use actual code execution result
                         })
-                
+
                 highest_cot_decoding = calculate_highest_cot_decoding(per_output_cot_decoding_summary)
                 item['highest_cot_decoding'] = highest_cot_decoding
 
@@ -346,21 +346,24 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                 else:
                     difficulty_pass_at_k[f'pass@{k}'] = 0.0
             
+            denom = len(difficulty_indices)*sample_limit
+
             num_valid_answer = per_difficulty_count[difficulty]
             per_difficulty_metrics[difficulty] = {
                 **difficulty_pass_at_k,  # Include all pass@k values
-                'num_valid_answer': f'{num_valid_answer} of {len(difficulty_indices)*sample_limit}'
+                'num_valid_answer': f'{num_valid_answer} of {len(difficulty_indices)*sample_limit}',
+                'validity': (num_valid_answer / denom) if denom > 0 else 0.0
             }
 
         # Calculate proxy pass@k using actual metrics
         def calculate_proxy_pass_at_k_with_actual_metrics(filtered_data, difficulties, k_list):
             """
-            Calculate pass@k using actual proxy metrics from the evaluation.
+            Calculate pass@k using actual proxy metrics from the evaluation,
+            grouped by difficulty first.
             """
-            proxy_pass_at_k = {}
+            proxy_by_difficulty = {}
             
             for k in k_list:
-                proxy_pass_at_k[f'pass@{k}'] = {}
                 
                 for difficulty in set(difficulties):
                     # Get indices for this difficulty
@@ -387,9 +390,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                             if selected_output.startswith('output_'):
                                 score = item['borda_voting_self_cert'][selected_output]
                                 # Check if the selected output actually passed
+                                num_valid_answer = item.get('num_valid_answer', 0)
                                 gen_idx = int(selected_output.split('_')[1])
                                 code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                                question_data['self_certainty'].append((score, code_passed))
+                                validity = num_valid_answer / len(item.get('Results', [[]])[0])
+                                question_data['self_certainty'].append((score, code_passed, validity))
                         
                         if 'highest_cot_decoding' in item and item['highest_cot_decoding']:
                             # Get the cot_decoding score from the selected output
@@ -421,14 +426,17 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                                 code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
                                 question_data['entropy'].append((score, code_passed))
                     
-                    # Calculate pass@k for each proxy metric
+                    # Initialize difficulty bucket
+                    if difficulty not in proxy_by_difficulty:
+                        proxy_by_difficulty[difficulty] = {
+                            'self_certainty': {},
+                            'cot_decoding': {},
+                            'confidence': {},
+                            'entropy': {}
+                        }
+                    
+                    # Calculate pass@k for each proxy metric and store under difficulty
                     for proxy_type in ['self_certainty', 'cot_decoding', 'confidence', 'entropy']:
-                        if proxy_type not in proxy_pass_at_k:
-                            proxy_pass_at_k[proxy_type] = {}
-                        
-                        if f'pass@{k}' not in proxy_pass_at_k[proxy_type]:
-                            proxy_pass_at_k[proxy_type][f'pass@{k}'] = {}
-                        
                         if len(question_data[proxy_type]) >= k:
                             # Sort by score (descending for self_certainty, cot_decoding, confidence; ascending for entropy)
                             if proxy_type == 'entropy':
@@ -439,11 +447,11 @@ def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_
                             top_k_data = sorted_data[:k]
                             
                             # For pass@k, we need to check if at least one of the top k actually passed
-                            proxy_pass_at_k[proxy_type][f'pass@{k}'][difficulty] = 1.0 if any(result for _, result in top_k_data) else 0.0
+                            proxy_by_difficulty[difficulty][proxy_type][f'pass@{k}'] = 1.0 if any(x[1] for x in top_k_data) else 0.0
                         else:
-                            proxy_pass_at_k[proxy_type][f'pass@{k}'][difficulty] = 0.0
+                            proxy_by_difficulty[difficulty][proxy_type][f'pass@{k}'] = 0.0
             
-            return proxy_pass_at_k
+            return proxy_by_difficulty
 
         # Calculate proxy pass@k using actual metrics
         proxy_metrics = calculate_proxy_pass_at_k_with_actual_metrics(filtered_data, difficulties, k_list)
@@ -1187,10 +1195,10 @@ if __name__ == "__main__":
             output_dir=output_dir,  # Now it's a directory path
             total_time=total_time,
             split=split,
-            self_certainty=self_certainty,
-            cot_decoding=cot_decoding,
-            confidence=confidence,
-            entropy=entropy,
+            self_certainty=True,
+            cot_decoding=True,
+            confidence=True,
+            entropy=True,
             apply_backoff=True,
         )
         # run_evaluation handles saving the metrics for livecode

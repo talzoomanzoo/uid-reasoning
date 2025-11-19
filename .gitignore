@@ -1,5 +1,6 @@
 data/medical/*
 **/outputs/*
+**/outputs_prev/*
 **/checkpoint/*
 **/ckpt/*
 OpenRLHF/checkpoint/*
