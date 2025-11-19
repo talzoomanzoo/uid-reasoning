@@ -1,0 +1,13 @@
+{
+    "overall": {
+        "total_time": "34 s",
+        "overall_mean_accuracy": 1.0,
+        "overall_mean_upper_bound_accuracy": 1.0,
+        "overall_mean_validity": 1.0,
+        "overall_mean_self_certainty_accuracy": 1.0,
+        "overall_mean_cot_decoding_accuracy": 1.0,
+        "overall_mean_confidence_accuracy": 1.0,
+        "overall_mean_entropy_accuracy": 1.0,
+        "overall_mean_majority_voting_accuracy": 1.0
+    }
+}
