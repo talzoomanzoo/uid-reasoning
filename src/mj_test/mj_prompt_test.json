@@ -1,4 +1,0 @@
-{
-    "instruction": "Please answer the following math question",
-    "template": "{instruction}\n\nYou should provide your final answer in the format \\boxed{{answer}}.\n\nQuestion:\n{question}\n\n"
-}

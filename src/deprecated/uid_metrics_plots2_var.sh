@@ -1,1 +1,0 @@
-python uid_metrics_plots2.py --input /scratch/hojinkim/uid-reasoning/src/outputs/runs.baselines/aime.qwen3-4b.direct/train.8.20,22:53-1.json --uid_metric variance

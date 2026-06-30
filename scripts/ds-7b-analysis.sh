@@ -1,1 +1,0 @@
-python ../src/analysis_by_uid.py --input /scratch/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/aime.deepseek-r1-distill-qwen-7b.direct/test.8.26,18:35-5.json --outdir ../src/analysis_out

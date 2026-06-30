@@ -8,20 +8,32 @@ import numpy as np
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 from evaluate_uid_dev_viz import run_evaluation
-from evaluate_uid_dev_viz_self_certainty import run_evaluation_self_certainty
-# from evaluate_uid_dev_viz_usc import run_evaluation_usc
 from prompts import (
-    get_task_instruction_openqa, 
     get_task_instruction_math, 
     get_task_instruction_multi_choice, 
-    get_task_instruction_code, 
-    get_task_instruction_medical,
 )
 from tqdm import tqdm
 import argparse
 import asyncio
 
-#configured medical
+def format_question_with_choices(item):
+    question = item['Question']
+    choices = item.get('Choices')
+    if not choices:
+        return question
+
+    choice_lines = []
+    if isinstance(choices, dict):
+        for label, text in choices.items():
+            choice_lines.append(f"{label}. {text}")
+    else:
+        for idx, choice in enumerate(choices):
+            label = chr(ord('A') + idx)
+            text = choice[1] if isinstance(choice, (list, tuple)) and len(choice) > 1 else choice
+            choice_lines.append(f"{label}. {text}")
+
+    return f"{question}\n\nChoices:\n" + "\n".join(choice_lines)
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run direct generation for various datasets and models.")
 
@@ -36,7 +48,7 @@ def parse_args():
         '--dataset_name', 
         type=str,
         required=True, 
-        choices=['mmlu','gpqa', 'math500', 'aime', 'amc', 'livecode', 'nq', 'triviaqa', 'hotpotqa', '2wiki', 'musique', 'bamboogle', 'medmcqa', 'pubhealth', 'medbullets', 'medqa', 'jama_full', 'medxpertqa', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo'],
+        choices=['aime', 'brumo', 'hmmt', 'minervamath', 'gpqa', 'lsat_ar', 'lsat_lr'],
         help="Name of the dataset to use."
     )
     
@@ -139,41 +151,12 @@ def parse_args():
     )
     
     parser.add_argument(
-        '--thinkseg',
-        type=bool,
-        default=False,
-        help="Whether to use thinkseg. Defaults to False if not specified."
-    )
-
-    parser.add_argument(
         '--self-certainty',
         type=bool,
         default=True,
         help="Whether to use self-certainty. Defaults to True if not specified."
     )
 
-    parser.add_argument(
-        '--usc',
-        type=bool,
-        default=False,
-        help="Whether to use usc. Defaults to False if not specified."
-    )
-
-    parser.add_argument(
-        '--step-limit',
-        type=int,
-        default=50,
-        required=False,
-        help="Number of steps to limit. Defaults to 50 if not specified."
-    )
-    
-    parser.add_argument(
-        '--cot_decoding',
-        type=bool,
-        default=False,
-        help="Whether to use cot decoding. Defaults to False if not specified."
-    )
-    
     parser.add_argument(
         '--confidence',
         type=bool,
@@ -205,45 +188,27 @@ async def main(args):
     sample_limit = args.sample_limit
     skip_special_tokens = args.skip_special_tokens
     use_beam_search = args.use_beam_search
-    thinkseg = args.thinkseg
     self_certainty = args.self_certainty
-    usc = args.usc
-    step_limit = args.step_limit
-    cot_decoding = args.cot_decoding
     confidence = args.confidence
     entropy = args.entropy
-    # Set default repetition_penalty if not provided
-    # if repetition_penalty is None:
-    #     repetition_penalty = 1.05 
-        #if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() else 1.0
-    
-    # Paths to datasets
-    if dataset_name == 'math500':
-        data_path = f'../data/MATH500/{split}.json'
-    elif dataset_name == 'gpqa':
-        data_path = f'../data/GPQA/{split}.json'
-    elif dataset_name == 'aime':
+
+    # Paths to supported datasets
+    if dataset_name == 'aime':
         data_path = f'../data/AIME/{split}.json'
-    elif dataset_name == 'gsm8k':
-        data_path = f'../data/GSM8K/{split}.json'
-    elif dataset_name == 'minervamath':
-        data_path = f'../data/MINERVA_MATH/{split}.json'
-    elif dataset_name == 'olympiadbench':
-        data_path = f'../data/OLYMPIADBENCH/{split}.json'
-    elif dataset_name == 'hmmt':
-        data_path = f'../data/HMMT/{split}.json'
     elif dataset_name == 'brumo':
         data_path = f'../data/BRUMO/{split}.json'
-    elif dataset_name == 'amc':
-        data_path = f'../data/AMC/{split}.json'
-    elif dataset_name == 'livecode':
-        data_path = f'../data/LiveCodeBench/{split}.json'
-    elif dataset_name == 'mmlu':
-        data_path = f'../data/MMLU_PRO/{split}.json'
-    elif dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
-        data_path = f"../data/medical/{dataset_name}_{split}.json"
-    elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki', 'medmcqa', 'pubhealth']:
-        data_path = f'./data/QA_Datasets/{dataset_name}.json'
+    elif dataset_name == 'hmmt':
+        data_path = f'../data/HMMT/{split}.json'
+    elif dataset_name == 'minervamath':
+        data_path = f'../data/MINERVA_MATH/{split}.json'
+    elif dataset_name == 'gpqa':
+        if split != 'diamond':
+            raise ValueError("Only the GPQA diamond split is supported. Use --split diamond.")
+        data_path = '../data/GPQA_DIAMOND_RAW/test.json'
+    elif dataset_name == 'lsat_ar':
+        data_path = f'../data/LSAT_AR/{split}.json'
+    elif dataset_name == 'lsat_lr':
+        data_path = f'../data/LSAT_LR/{split}.json'
     else:
         raise ValueError(f"Unsupported dataset_name: {dataset_name}")
     
@@ -264,28 +229,12 @@ async def main(args):
         model_short_name = 'qwen3-1.7b'
     elif model_path.lower() == 'deepseek-r1-distill-qwen-7b-awq':
         model_short_name = 'ds-qwen-7b-awq'
-    elif 'sft-gt' in model_path.lower():
-        model_short_name = 'ds-qwen-7b-sft-gt'
-    elif 'rft-y-lora-y-true' in model_path.lower():
-        model_short_name = 'ds-qwen-7b-rft-y-lora-y-true'
-    elif 'rft-z-lora-y-true' in model_path.lower():
-        model_short_name = 'ds-qwen-7b-rft-z-lora-y-true'
-    elif 'rft-z-lora-z-threshold' in model_path.lower():
-        model_short_name = 'ds-qwen-7b-rft-z-lora-z-threshold'
-    elif 'dpo-y-lora-y-true' in model_path.lower():
-        model_short_name = 'ds-qwen-7b-dpo-y-lora-y-true'
-    elif 'dpo-zy-lora-y-true' in model_path.lower():
-        model_short_name = 'ds-qwen-7b-dpo-zy-lora-y-true'
-    elif 'dpo-zy-lora-z-threshold' in model_path.lower():
-        model_short_name = 'ds-qwen-7b-dpo-zy-lora-z-threshold'
-    elif 'sky-t1' in model_path.lower():
-        model_short_name = 'sky-t1'
     else:
         model_short_name = model_path.split('/')[-1].lower().replace('-instruct', '')
 
     # if model_short_name in ['qwq', 'ds-qwen-14b', 'ds-qwen-7b', 'ds-qwen-1.5b', 'sky-t1']:
     if model_short_name in ['emdr2']:
-        if dataset_name in ['mmlu', 'math500', 'gpqa', 'aime', 'amc', 'livecode', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
+        if dataset_name in ['aime', 'brumo', 'hmmt', 'minervamath', 'gpqa', 'lsat_ar', 'lsat_lr']:
             output_dir = f'./outputs/{dataset_name}.{model_short_name}.direct'
         else:
             output_dir = f'./outputs/runs.qa/{dataset_name}.{model_short_name}.direct'
@@ -325,43 +274,22 @@ async def main(args):
     input_list = []
     for item in filtered_data:
         question = item['Question']
-        # options = [item['opa'], item['opb'], item['opc'], item['opd']] only for medical
-        if dataset_name in ['medbullets', 'medqa', 'jama_full', 'medxpertqa']:
-            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-                user_prompt = get_task_instruction_medical(question, options, model_name='qwq')
-            elif 'llama' in model_path.lower():
-                user_prompt = get_task_instruction_medical(question, model_name='llama')
-            else:
-                user_prompt = get_task_instruction_medical(question)
-
-        elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
-            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-                user_prompt = get_task_instruction_openqa(question, model_name='qwq')
-            else:
-                user_prompt = get_task_instruction_openqa(question)
-
-        elif dataset_name in ['mmlu', 'math500', 'aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
+        if dataset_name in ['aime', 'brumo', 'hmmt', 'minervamath']:
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower() or 's1' in model_path.lower():
                 user_prompt = get_task_instruction_math(question, model_name='qwq')
             else:
                 user_prompt = get_task_instruction_math(question)
 
-        elif dataset_name in ['gpqa']:
+        elif dataset_name in ['gpqa', 'lsat_ar', 'lsat_lr']:
+            question = format_question_with_choices(item)
             if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
                 user_prompt = get_task_instruction_multi_choice(question, model_name='qwq')
             elif 'llama' in model_path.lower():
                 user_prompt = get_task_instruction_multi_choice(question, model_name='llama')
             else:
                 user_prompt = get_task_instruction_multi_choice(question)
-            
-        elif dataset_name == 'livecode':
-            question_title = item.get('question_title', '')
-            if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-                user_prompt = get_task_instruction_code(question, question_title=question_title, model_name='qwq')
-            else:
-                user_prompt = get_task_instruction_code(question)
         else:
-            user_prompt = ""  # Default to empty if dataset not matched
+            raise ValueError(f"Unsupported dataset_name: {dataset_name}")
 
         if "free" in model_path.lower():
             prompt = [{"role": "user", "content": user_prompt}]
@@ -378,12 +306,13 @@ async def main(args):
     # Set default max_tokens if not provided
     if max_tokens is None:
         if 'qwq' in model_path.lower() or 'deepseek' in model_path.lower() or 'sky-t1' in model_path.lower():
-            if dataset_name in ['aime', 'amc', 'math500', 'gpqa', 'mmlu', 'livecode', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
+            if dataset_name in ['aime', 'brumo', 'hmmt', 'minervamath', 'gpqa', 'lsat_ar', 'lsat_lr']:
                 max_tokens = 32768  
             else:
                 max_tokens = 32768 
         else:
             max_tokens = 32768
+
     # Adjust max_tokens to fit within the model's context length
     max_tokens = min(max_tokens, 32768 - 243)  # Ensure total tokens do not exceed 32768
 
@@ -392,56 +321,23 @@ async def main(args):
         if len(input_batches) > batch_size:
             for start_index in tqdm(range(0, len(input_batches), batch_size)):
                 cur_input_list = input_batches[start_index:start_index + batch_size]
+
                 # Generate sample_limit outputs for each input in the batch
                 for _ in range(sample_limit):  # Generate sample_limit times for each input
                     batch_output = await (asyncio.to_thread(llm.generate, cur_input_list, sampling_params=sampling_params))
                     output_list.extend(batch_output)
         else:
+
             # Generate sample_limit outputs for each input
             for _ in tqdm(range(sample_limit)):  # Generate sample_limit times for each input
                 batch_output = await (asyncio.to_thread(llm.generate, input_batches, sampling_params=sampling_params))
                 output_list.extend(batch_output)
         return output_list
-        #     batch_output = await llm.completions.create(
-        #         model=model_path,
-        #         prompt=input_list,
-        #         max_tokens=max_tokens,
-        #         temperature=temperature,
-        #         top_p=top_p,
-        # )
+
     t_start = time.time()
     output_list = await generate_outputs(llm, input_list, model_path, max_tokens, sample_limit, temperature, top_p, batch_size)
     total_time = time.time() - t_start
 
-    # run_evaluation_self_certainty(
-    #         filtered_data,
-    #         input_list,
-    #         output_list,
-    #         dataset_name,
-    #         output_dir,
-    #         total_time,
-    #         split,
-    #         data_limit,
-    #         sample_limit,
-    #         model_path,
-    #         self_certainty,
-    #         tokenizer,
-    #         apply_backoff=False
-    #     )
-    # run_evaluation_usc(
-    #         filtered_data,
-    #         input_list,
-    #         output_list,
-    #         dataset_name,
-    #         output_dir,
-    #         total_time,
-    #         split,
-    #         data_limit,
-    #         sample_limit,
-    #         model_path,
-    #         usc,
-    #         apply_backoff=False
-    #     )
     run_evaluation(
             filtered_data, 
             input_list, 
@@ -453,10 +349,7 @@ async def main(args):
             data_limit,
             sample_limit,
             model_path,
-            thinkseg,
-            step_limit,
             self_certainty,
-            cot_decoding,
             confidence,
             entropy,
             apply_backoff=False

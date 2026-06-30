@@ -6,16 +6,12 @@ from collections import Counter
 import string
 import os
 from collections import defaultdict
-from lcb_runner.evaluation import codegen_metrics
 from utils.math_equivalence import is_equiv, _strip_string
-from utils.calculate_uid_rev_viz import calculate_id_metrics_with_vectors, visualize_id_vectors, visualize_average_id_vectors, visualize_average_step_counts
+from utils.calculate_uid_rev_viz import calculate_id_metrics_with_vectors
 from utils.calculate_uid_rev_viz_self_certainty import calculate_self_certainty, calculate_borda_voting_self_certainty
-from utils.calculate_uid_rev_viz_cot_decoding import calculate_cot_decoding, calculate_highest_cot_decoding
 from utils.calculate_uid_rev_viz_baselines import calculate_confidence, calculate_entropy, calculate_highest_confidence, calculate_lowest_entropy
 from utils.calculate_uid_rev_viz_majority_voting import calculate_majority_voting
 from tqdm import tqdm
-from langchain_core.outputs.chat_generation import ChatGeneration
-from vllm import RequestOutput
 
 def extract_answer(output, mode='gen'):
     extracted_text = ''
@@ -142,742 +138,281 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
-def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, thinkseg, step_limit, self_certainty, cot_decoding, confidence, entropy, apply_backoff=False):
-    if dataset_name == 'livecode':
-        # Prepare samples and generations for codegen_metrics
-        samples_list = []
-        generations_list = []
+def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, self_certainty, confidence, entropy, apply_backoff=False):
+    # Existing evaluation for other datasets
+    avg_em, avg_acc, avg_f1, avg_math, avg_upper_bound, avg_self_certainty, avg_confidence, avg_entropy, avg_majority_voting = [], [], [], [], [], [], [], [], []
 
-        # Collect difficulty levels for per-domain metrics
-        difficulties = []
-        per_difficulty_count = {}
+    # GPQA tracks metrics per high-level domain.
+    domain_metrics = {}
 
-        #added code for medbullets, qwq-llama-distill
-        # output_list = [output_list.choices[i].__dict__.get('text') for i in range(len(output_list))]
-        num_valid_answer = 0
-        
-        for item_idx, (item, input_prompt) in enumerate(tqdm(zip(filtered_data, input_list))):
-            # Extract difficulty from item
-            difficulty = item.get("difficulty", "Unknown")
-            difficulties.append(difficulty)
+    # Track math_equal accuracy and validity per question
+    question_math_equal_scores = defaultdict(list)
+    question_validity_scores = defaultdict(list)
+    question_self_certainty_scores = defaultdict(list)
+    question_confidence_scores = defaultdict(list)
+    question_entropy_scores = defaultdict(list)
+    question_majority_voting_scores = defaultdict(list)
+    for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
+        # Get all samples for this question
+        question_samples = []
+        for i in range(question_idx, len(output_list), len(input_list)):
+            question_samples.append(output_list[i])
+            num_valid_answer = 0
+
+        per_output_self_cert_summary = []
+        per_output_confidence_summary = []
+        per_output_entropy_summary = []
+        per_output_majority_voting_summary = []
+        # Process each output and its metrics
+        for idx in range(len(question_samples)):
+            result = question_samples[idx]
+            # if isinstance(result, str):
+            #     item[f'Output_{idx}'] = result
+            # elif isinstance(result, (tuple, list, ChatGeneration, RequestOutput)):
+            item[f'Output_{idx}'] = result.outputs[0].text
+            item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
+
+                
+            if dataset_name in ['gpqa', 'lsat_ar', 'lsat_lr']:
+                labeled_answer = item["Correct Choice"]
+                mode = 'choose'
+            elif dataset_name in ['aime', 'brumo', 'hmmt', 'minervamath']:
+                labeled_answer = item["answer"]
+                mode = 'gen'
+            else:
+                raise ValueError(f"Unknown dataset_name: {dataset_name}")
+
+            metric, pred_answer = evaluate_predictions(output=item[f'Output_{idx}'], labeled_answer=labeled_answer, mode=mode)
             
-            # Track metrics per domain
-            if difficulty not in per_difficulty_count.keys():
-                per_difficulty_count[difficulty] = 0
+            # Store metrics for this specific generation
+            item[f'Pred_Answer_{idx}'] = pred_answer
+            item[f'Metrics_{idx}'] = metric
+
+            sc_obj = calculate_self_certainty(result.outputs[0].logprobs)
+            item[f'Self_Certainty_{idx}'] = sc_obj
+
+
+            confidence_obj = calculate_confidence(result.outputs[0].logprobs)
+            item[f'Confidence_{idx}'] = confidence_obj
+
+            entropy_obj = calculate_entropy(result.outputs[0].logprobs)
+            item[f'Entropy_{idx}'] = entropy_obj
             
-            # Get the sample_limit generations for this question
-            start_idx = item_idx * sample_limit
-            end_idx = start_idx + sample_limit
-            question_results = output_list[start_idx:end_idx]
-            
-            # Generate sample_limit generations for this sample
-            sample_generations = []
-            for gen_idx in range(sample_limit):
-                result = question_results[gen_idx]  # Use the correct result
-                item['Output'] = result.outputs[0].text
-                pred_code = extract_answer(item['Output'], mode='codegen')
-                
-                if pred_code != '':
-                    num_valid_answer += 1
-                    per_difficulty_count[difficulty] += 1
-                
-                sample_generations.append(pred_code)
+            majority_voting_obj = normalize_answer(extract_answer(item[f'Output_{idx}'], mode=mode))
+            item[f'Majority_Voting_{idx}'] = majority_voting_obj
 
-            # Assuming each item has 'input_output' with 'inputs' and 'outputs'
-            public_test_cases = json.loads(item.get("public_test_cases", "{}"))
+            per_output_majority_voting_summary.append({
+                f'output_{idx}': majority_voting_obj,
+                'math_equal': bool(is_equiv(majority_voting_obj, labeled_answer)),
+            })
 
-            inputs, outputs = [], []
-            for case in public_test_cases:
-                inputs.append(case["input"])
-                outputs.append(case["output"])
+            per_output_self_cert_summary.append({
+                f'output_{idx}': sc_obj.get('self_certainty', float('nan')),
+                'math_equal': bool(metric.get('math_equal', False)),
+            })
 
-            sample = {
-                "input_output": json.dumps({
-                    "inputs": inputs,
-                    "outputs": outputs
-                }),
-            }
 
-            samples_list.append(sample)
-            generations_list.append(sample_generations)  # Add all sample_limit generations
-            item['Pred_Answer'] = sample_generations[0]  # Use first generation as main answer
-            item['Question'] = input_prompt
+            per_output_confidence_summary.append({
+                f'output_{idx}': confidence_obj.get('calculate_confidence', float('nan')),
+                'math_equal': bool(metric.get('math_equal', False)),
+            })
 
-            # Calculate proxy metrics for each generation
-            for gen_idx in range(sample_limit):
-                # Calculate self_certainty, cot_decoding, confidence, entropy for each generation
-                if self_certainty:
-                    sc_obj = calculate_self_certainty(result.outputs[0].logprobs)
-                    item[f'Self_Certainty_{gen_idx}'] = sc_obj
-                
-                if cot_decoding:
-                    cot_decoding_obj = calculate_cot_decoding(result.outputs[0].logprobs)
-                    item[f'Cot_Decoding_{gen_idx}'] = cot_decoding_obj
-                
-                if confidence:
-                    confidence_obj = calculate_confidence(result.outputs[0].logprobs)
-                    item[f'Confidence_{gen_idx}'] = confidence_obj
-                
-                if entropy:
-                    entropy_obj = calculate_entropy(result.outputs[0].logprobs)
-                    item[f'Entropy_{gen_idx}'] = entropy_obj
+            per_output_entropy_summary.append({
+                f'output_{idx}': entropy_obj.get('calculate_entropy', float('nan')),
+                'math_equal': bool(metric.get('math_equal', False)),
+            })
 
-            # Calculate aggregated proxy metrics
-            if self_certainty:
-                per_output_self_cert_summary = []
-                for gen_idx in range(sample_limit):
-                    if f'Self_Certainty_{gen_idx}' in item:
-                        # Check if the code execution passed (true) or failed (false)
-                        code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                        per_output_self_cert_summary.append({
-                            f'output_{gen_idx}': item[f'Self_Certainty_{gen_idx}'].get('self_certainty', float('nan')),
-                            'math_equal': code_passed,  # Use actual code execution result
-                        })
-                
-                borda_voting_self_cert = calculate_borda_voting_self_certainty(per_output_self_cert_summary)
-                item['borda_voting_self_cert'] = borda_voting_self_cert
 
-            if cot_decoding:
-                per_output_cot_decoding_summary = []
-                for gen_idx in range(sample_limit):
-                    if f'Cot_Decoding_{gen_idx}' in item:
-                        # Check if the code execution passed (true) or failed (false)
-                        code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                        per_output_cot_decoding_summary.append({
-                            f'output_{gen_idx}': item[f'Cot_Decoding_{gen_idx}'].get('confidence_score', float('nan')),
-                            'math_equal': code_passed,  # Use actual code execution result
-                        })
+            borda_voting_self_cert = calculate_borda_voting_self_certainty(per_output_self_cert_summary)
+            highest_confidence = calculate_highest_confidence(per_output_confidence_summary)
+            lowest_entropy = calculate_lowest_entropy(per_output_entropy_summary)
+            majority_voting = calculate_majority_voting(per_output_majority_voting_summary)
 
-                highest_cot_decoding = calculate_highest_cot_decoding(per_output_cot_decoding_summary)
-                item['highest_cot_decoding'] = highest_cot_decoding
+            is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
 
-            if confidence:
-                per_output_confidence_summary = []
-                for gen_idx in range(sample_limit):
-                    if f'Confidence_{gen_idx}' in item:
-                        # Check if the code execution passed (true) or failed (false)
-                        code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                        per_output_confidence_summary.append({
-                            f'output_{gen_idx}': item[f'Confidence_{gen_idx}'].get('calculate_confidence', float('nan')),
-                            'math_equal': code_passed,  # Use actual code execution result
-                        })
-                
-                highest_confidence = calculate_highest_confidence(per_output_confidence_summary)
-                item['highest_confidence'] = highest_confidence
-
-            if entropy:
-                per_output_entropy_summary = []
-                for gen_idx in range(sample_limit):
-                    if f'Entropy_{gen_idx}' in item:
-                        # Check if the code execution passed (true) or failed (false)
-                        code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                        per_output_entropy_summary.append({
-                            f'output_{gen_idx}': item[f'Entropy_{gen_idx}'].get('calculate_entropy', float('nan')),
-                            'math_equal': code_passed,  # Use actual code execution result
-                        })
-                
-                lowest_entropy = calculate_lowest_entropy(per_output_entropy_summary)
-                item['lowest_entropy'] = lowest_entropy
-
-            # Calculate UID metrics for each generation
-            for gen_idx in range(sample_limit):
-                result = question_results[gen_idx]
-                metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                item[f"id_metrics_{gen_idx}_metrics"] = metrics
+            # Track scores for this question
+            if dataset_name != 'gpqa':
+                question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
+                question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
+                metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, False)
+                item[f"id_metrics_{idx}_metrics"] = metrics
                 # Store vectors for later averaging
-                item[f"id_equal_{gen_idx}"] = uid_eq
-                item[f"id_lp_{gen_idx}"] = uid_lp
-                item[f"id_h_{gen_idx}"] = uid_h
-                item[f"id_d_{gen_idx}"] = uid_d
+                item[f"id_equal_{idx}"] = uid_eq
+                item[f"id_lp_{idx}"] = uid_lp
+                item[f"id_h_{idx}"] = uid_h
+                item[f"id_d_{idx}"] = uid_d
 
-        # Call codegen_metrics with pass@k for different k values
-        k_list = list(range(1, sample_limit + 1))  # [1, 2, 3, ..., sample_limit]
-        metrics, results, final_metadata = codegen_metrics(
-            samples_list,
-            generations_list,
-            k_list=k_list,  # Evaluate pass@1, pass@2, ..., pass@k
-            num_process_evaluate=2,   # Parallel evaluation
-            timeout=10,  # Set timeout to 10 seconds
-            debug=False,  # Enable debug mode
-        )
+                if idx == 0:
+                    item['Question'] = input_prompt
+                avg_math.append(metric['math_equal'])
+                avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
+                avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
+                avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
+                avg_majority_voting.append(1 if majority_voting['math_equal'] == True else 0)
+                if is_valid:
+                    num_valid_answer += 1
 
-        # Extract pass@k for each k value
-        pass_at_k_results = {}
-        for k in k_list:
-            pass_at_k_results[f'pass@{k}'] = metrics.get(f'pass@{k}', 0.0)
-
-        # For individual results, use pass@1 (the most detailed)
-        detail_pass_at_1 = metrics['detail']['pass@1']
-
-        for item, pass1, res, meta in zip(filtered_data, detail_pass_at_1.values(), results.values(), final_metadata):
-            item['Metrics'] = {'pass@1': pass1}
-            item['Results'] = res
-            item['Final_metadata'] = meta
-
-        # Initialize per-difficulty metrics for each k
-        difficulty_metrics = defaultdict(lambda: defaultdict(list))
-        for idx, difficulty in enumerate(difficulties):
-            # For per-difficulty metrics, we'll use pass@1 as the base
-            pass1 = detail_pass_at_1[idx]
-            difficulty_metrics[difficulty]['pass@1'].append(pass1)
-
-        # Compute overall metrics for each k
-        overall_metrics = {}
-        for k in k_list:
-            overall_metrics[f'pass@{k}'] = pass_at_k_results[f'pass@{k}']
-
-        overall_metrics['num_valid_answer'] = f'{num_valid_answer} of {len(input_list)*sample_limit}'
-        overall_metrics['query_latency'] = f'{(total_time / (len(input_list) * sample_limit) * 1000):.0f} s'
-
-        # Compute per-difficulty pass@k for each k
-        per_difficulty_metrics = {}
-        for difficulty, passes in difficulty_metrics.items():
-            # For each difficulty, we need to compute pass@k for each k
-            difficulty_pass_at_k = {}
-            
-            # We need to get the individual results for this difficulty
-            difficulty_indices = [i for i, d in enumerate(difficulties) if d == difficulty]
-            
-            for k in k_list:
-                # Extract pass@k for this difficulty
-                if f'pass@{k}' in metrics['detail']:
-                    detail_pass_at_k = metrics['detail'][f'pass@{k}']
-                    difficulty_pass_at_k_values = [detail_pass_at_k[i] for i in difficulty_indices]
-                    difficulty_pass_at_k[f'pass@{k}'] = np.mean(difficulty_pass_at_k_values) if len(difficulty_pass_at_k_values) > 0 else 0.0
-                else:
-                    difficulty_pass_at_k[f'pass@{k}'] = 0.0
-            
-            denom = len(difficulty_indices)*sample_limit
-
-            num_valid_answer = per_difficulty_count[difficulty]
-            per_difficulty_metrics[difficulty] = {
-                **difficulty_pass_at_k,  # Include all pass@k values
-                'num_valid_answer': f'{num_valid_answer} of {len(difficulty_indices)*sample_limit}',
-                'validity': (num_valid_answer / denom) if denom > 0 else 0.0
-            }
-
-        # Calculate proxy pass@k using actual metrics
-        def calculate_proxy_pass_at_k_with_actual_metrics(filtered_data, difficulties, k_list):
-            """
-            Calculate pass@k using actual proxy metrics from the evaluation,
-            grouped by difficulty first.
-            """
-            proxy_by_difficulty = {}
-            
-            for k in k_list:
+            # If the dataset is GPQA, track metrics per domain
+            elif dataset_name == 'gpqa':
+                domain = item.get("High-level domain", "Unknown")
+                if domain not in domain_metrics:
+                    domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'upper_bound_accuracy': [], 'self_certainty_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
                 
-                for difficulty in set(difficulties):
-                    # Get indices for this difficulty
-                    difficulty_indices = [i for i, d in enumerate(difficulties) if d == difficulty]
-                    
-                    if len(difficulty_indices) == 0:
-                        continue
-                        
-                    # For each question in this difficulty, get the proxy scores and results
-                    question_data = {
-                        'self_certainty': [],
-                        'cot_decoding': [],
-                        'confidence': [],
-                        'entropy': []
-                    }
-                    
-                    for idx in difficulty_indices:
-                        item = filtered_data[idx]
-                        
-                        # Extract proxy scores and results for this question
-                        if 'borda_voting_self_cert' in item and item['borda_voting_self_cert']:
-                            # Get the self_certainty score from the selected output
-                            selected_output = list(item['borda_voting_self_cert'].keys())[0]
-                            if selected_output.startswith('output_'):
-                                score = item['borda_voting_self_cert'][selected_output]
-                                # Check if the selected output actually passed
-                                num_valid_answer = item.get('num_valid_answer', 0)
-                                gen_idx = int(selected_output.split('_')[1])
-                                code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                                validity = num_valid_answer / len(item.get('Results', [[]])[0])
-                                question_data['self_certainty'].append((score, code_passed, validity))
-                        
-                        if 'highest_cot_decoding' in item and item['highest_cot_decoding']:
-                            # Get the cot_decoding score from the selected output
-                            selected_output = list(item['highest_cot_decoding'].keys())[0]
-                            if selected_output.startswith('output_'):
-                                score = item['highest_cot_decoding'][selected_output]
-                                # Check if the selected output actually passed
-                                gen_idx = int(selected_output.split('_')[1])
-                                code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                                question_data['cot_decoding'].append((score, code_passed))
-                        
-                        if 'highest_confidence' in item and item['highest_confidence']:
-                            # Get the confidence score from the selected output
-                            selected_output = list(item['highest_confidence'].keys())[0]
-                            if selected_output.startswith('output_'):
-                                score = item['highest_confidence'][selected_output]
-                                # Check if the selected output actually passed
-                                gen_idx = int(selected_output.split('_')[1])
-                                code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                                question_data['confidence'].append((score, code_passed))
-                        
-                        if 'lowest_entropy' in item and item['lowest_entropy']:
-                            # Get the entropy score from the selected output
-                            selected_output = list(item['lowest_entropy'].keys())[0]
-                            if selected_output.startswith('output_'):
-                                score = item['lowest_entropy'][selected_output]
-                                # Check if the selected output actually passed
-                                gen_idx = int(selected_output.split('_')[1])
-                                code_passed = bool(item.get('Results', [[]])[0][gen_idx] if item.get('Results') and len(item.get('Results', [[]])[0]) > gen_idx else False)
-                                question_data['entropy'].append((score, code_passed))
-                    
-                    # Initialize difficulty bucket
-                    if difficulty not in proxy_by_difficulty:
-                        proxy_by_difficulty[difficulty] = {
-                            'self_certainty': {},
-                            'cot_decoding': {},
-                            'confidence': {},
-                            'entropy': {}
-                        }
-                    
-                    # Calculate pass@k for each proxy metric and store under difficulty
-                    for proxy_type in ['self_certainty', 'cot_decoding', 'confidence', 'entropy']:
-                        if len(question_data[proxy_type]) >= k:
-                            # Sort by score (descending for self_certainty, cot_decoding, confidence; ascending for entropy)
-                            if proxy_type == 'entropy':
-                                sorted_data = sorted(question_data[proxy_type], key=lambda x: x[0])  # ascending for entropy
-                            else:
-                                sorted_data = sorted(question_data[proxy_type], key=lambda x: x[0], reverse=True)  # descending for others
-                            
-                            top_k_data = sorted_data[:k]
-                            
-                            # For pass@k, we need to check if at least one of the top k actually passed
-                            proxy_by_difficulty[difficulty][proxy_type][f'pass@{k}'] = 1.0 if any(x[1] for x in top_k_data) else 0.0
-                        else:
-                            proxy_by_difficulty[difficulty][proxy_type][f'pass@{k}'] = 0.0
-            
-            return proxy_by_difficulty
+                # Add metrics for this output to the domain
+                domain_metrics[domain]['em'].append(metric['em'])
+                domain_metrics[domain]['acc'].append(metric['acc'])
+                domain_metrics[domain]['f1'].append(metric['f1'])
+                domain_metrics[domain]['math_equal'].append(metric['math_equal'])
+                domain_metrics[domain]['total_num'] += 1
+                domain_metrics[domain]['upper_bound_accuracy'].append(1 if metric['math_equal'] == True else 0)
+                domain_metrics[domain]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                domain_metrics[domain]['confidence_accuracy'].append(1 if highest_confidence['math_equal'] == True else 0)
+                domain_metrics[domain]['entropy_accuracy'].append(1 if lowest_entropy['math_equal'] == True else 0)
+                if idx == 0:
+                    item['Question'] = input_prompt
+                avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
+                avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+                avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
+                avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
+                avg_majority_voting.append(1 if majority_voting['math_equal'] == True else 0)
+                if is_valid:
+                    domain_metrics[domain]['num_valid_answer'] += 1
 
-        # Calculate proxy pass@k using actual metrics
-        proxy_metrics = calculate_proxy_pass_at_k_with_actual_metrics(filtered_data, difficulties, k_list)
-
-        # Add proxy metrics to the final metrics
-        final_metrics = {
-            'overall': overall_metrics,
-            'per_domain': per_difficulty_metrics,
-            'proxy_metrics': proxy_metrics
-        }
-        
-        # Save metrics to JSON file for LiveCodeBench
-        import time
-        t = time.localtime()
-        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.json'
-        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.metrics.json'
-        
-        # Ensure the output directory exists
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-            
-        # Save the metrics
-        with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
-            json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
-
-        with open(os.path.join(output_dir, metrics_json_name), mode='w', encoding='utf-8') as json_file:
-            json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
-        
-        print(f"LiveCodeBench metrics saved to {os.path.join(output_dir, metrics_json_name)}")
+                question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
+                question_validity_scores[question_idx].append(1 if is_valid else 0)
+                metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, False)
+                item[f"id_metrics_{idx}_metrics"] = metrics
+                # Store vectors for later averaging
+                item[f"id_equal_{idx}"] = uid_eq
+                item[f"id_lp_{idx}"] = uid_lp
+                item[f"id_h_{idx}"] = uid_h
+                item[f"id_d_{idx}"] = uid_d
+                
+        item['self_certainty_by_output '] = per_output_self_cert_summary
+        item['borda_voting_self_cert'] = borda_voting_self_cert
+        question_self_certainty_scores[question_idx].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
+        question_confidence_scores[question_idx].append(1 if highest_confidence['math_equal'] == True else 0)
+        question_entropy_scores[question_idx].append(1 if lowest_entropy['math_equal'] == True else 0)
+        question_majority_voting_scores[question_idx].append(1 if majority_voting['math_equal'] == True else 0)
+    # Compute mean accuracy and validity per question
+    if dataset_name != 'gpqa':
+        question_mean_accuracies = {}
+        question_upper_bound = {}
+        question_mean_validities = {}
+        question_self_certainty_accuracy = {}
+        question_confidence_accuracy = {}
+        question_entropy_accuracy = {}
+        question_majority_voting_accuracy = {}
+        for question_idx in question_math_equal_scores.keys():
+            question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
+            question_upper_bound[f'question_{question_idx}'] = float(np.max(question_math_equal_scores[question_idx]))
+            question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+            question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
+            question_confidence_accuracy[f'question_{question_idx}'] = np.mean(question_confidence_scores[question_idx])
+            question_entropy_accuracy[f'question_{question_idx}'] = np.mean(question_entropy_scores[question_idx])
+            question_majority_voting_accuracy[f'question_{question_idx}'] = np.mean(question_majority_voting_scores[question_idx])
+            # Add per-question metrics to each item in filtered_data
+        for i in range(len(filtered_data)):
+            filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
+            filtered_data[i]['per_question_upper_bound_accuracy'] = question_upper_bound[f'question_{i}']
+            filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+            filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
+            filtered_data[i]['per_question_mean_confidence_accuracy'] = question_confidence_accuracy[f'question_{i}']
+            filtered_data[i]['per_question_mean_entropy_accuracy'] = question_entropy_accuracy[f'question_{i}']
+            filtered_data[i]['per_question_majority_voting_accuracy'] = question_majority_voting_accuracy[f'question_{i}']
+        # Compute overall mean accuracy and validity across all questions
+        overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
+        overall_mean_upper_bound = np.mean([ub for ub in question_upper_bound.values()])
+        overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
+        overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
+        overall_mean_confidence_accuracy = np.mean([acc for acc in question_confidence_accuracy.values()])
+        overall_mean_entropy_accuracy = np.mean([acc for acc in question_entropy_accuracy.values()])
+        overall_mean_majority_voting_accuracy = np.mean([acc for acc in question_majority_voting_accuracy.values()])
     else:
-        # Existing evaluation for other datasets
-        avg_em, avg_acc, avg_f1, avg_math, avg_upper_bound, avg_self_certainty, avg_cot_decoding, avg_confidence, avg_entropy, avg_majority_voting = [], [], [], [], [], [], [], [], [], []
+        question_mean_accuracies = {}
+        question_upper_bound = {}
+        question_mean_validities = {}
+        question_self_certainty_accuracy = {}
+        question_confidence_accuracy = {}
+        question_entropy_accuracy = {}
+        question_majority_voting_accuracy = {}
+        for question_idx in question_math_equal_scores.keys():
+            question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
+            question_upper_bound[f'question_{question_idx}'] = float(np.max(question_math_equal_scores[question_idx]))
+            question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
+            question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
+            question_confidence_accuracy[f'question_{question_idx}'] = np.mean(question_confidence_scores[question_idx])
+            question_entropy_accuracy[f'question_{question_idx}'] = np.mean(question_entropy_scores[question_idx])
+            question_majority_voting_accuracy[f'question_{question_idx}'] = np.mean(question_majority_voting_scores[question_idx])
+        for i in range(len(filtered_data)):
+            filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
+            filtered_data[i]['per_question_upper_bound_accuracy'] = question_upper_bound[f'question_{i}']
+            filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
+            filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
+            filtered_data[i]['per_question_mean_confidence_accuracy'] = question_confidence_accuracy[f'question_{i}']
+            filtered_data[i]['per_question_mean_entropy_accuracy'] = question_entropy_accuracy[f'question_{i}']
+            filtered_data[i]['per_question_majority_voting_accuracy'] = question_majority_voting_accuracy[f'question_{i}']
+        overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
+        overall_mean_upper_bound = np.mean([ub for ub in question_upper_bound.values()])
+        overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
+        overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
+        overall_mean_confidence_accuracy = np.mean([acc for acc in question_confidence_accuracy.values()])
+        overall_mean_entropy_accuracy = np.mean([acc for acc in question_entropy_accuracy.values()])
+        overall_mean_majority_voting_accuracy = np.mean([acc for acc in question_majority_voting_accuracy.values()])
+    # Compute overall metrics
+    overall_results = {
+        'total_time': f'{total_time:.0f} s',
+        'overall_mean_accuracy': overall_mean_accuracy,  # Mean of per-question accuracies
+        'overall_mean_upper_bound_accuracy': overall_mean_upper_bound,   # Mean of per-question upper bound accuracies
+        'overall_mean_validity': overall_mean_validity,   # Mean of per-question validities
+        'overall_mean_self_certainty_accuracy': overall_mean_self_certainty_accuracy,   # Mean of per-question self-certainty accuracy
+        'overall_mean_confidence_accuracy': overall_mean_confidence_accuracy,   # Mean of per-question confidence accuracy
+        'overall_mean_entropy_accuracy': overall_mean_entropy_accuracy,   # Mean of per-question entropy accuracy
+        'overall_mean_majority_voting_accuracy': overall_mean_majority_voting_accuracy,   # Mean of per-question majority voting accuracy
+        'overall_mean_majority_voting_accuracy': overall_mean_majority_voting_accuracy,   # Mean of per-question majority voting accuracy
+    }
 
-        # If the dataset is GPQA or math500, track metrics per domain
-        domain_metrics = {}
+    # If the dataset is GPQA, output average metrics per domain
+    domain_avg_metrics = {}
+    if dataset_name == 'gpqa':
+        for dm, m in domain_metrics.items():
+            domain_avg_metrics[dm] = {
+                'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
+                'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
+                'upper_bound_accuracy': np.mean(m['upper_bound_accuracy']) if len(m['upper_bound_accuracy']) > 0 else 0,
+                'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
+                'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
+                'entropy_accuracy': np.mean(m['entropy_accuracy']) if len(m['entropy_accuracy']) > 0 else 0,
+                'majority_voting_accuracy': np.mean(m['majority_voting_accuracy']) if len(m['majority_voting_accuracy']) > 0 else 0,
+                'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
+                'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
+                'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
+                'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
+                'total_time': f'{total_time:.0f} s',
+            }
+            
+    final_metrics = {'overall': overall_results}
+    if dataset_name == 'gpqa':
+        final_metrics['per_domain'] = domain_avg_metrics
+    import time
+    t = time.localtime()
+    result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}.json'
+    metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}.metrics.json'
+    if apply_backoff:
+        result_json_name = output_dir.replace('.json', f'.backoff.{sample_limit}.json')
+        metrics_json_name = output_dir.replace('.json', f'.metrics.backoff.{sample_limit}.json')
 
-        # Track math_equal accuracy and validity per question
-        question_math_equal_scores = defaultdict(list)
-        question_validity_scores = defaultdict(list)
-        question_self_certainty_scores = defaultdict(list)
-        question_cot_decoding_scores = defaultdict(list)
-        question_confidence_scores = defaultdict(list)
-        question_entropy_scores = defaultdict(list)
-        question_majority_voting_scores = defaultdict(list)
-        for question_idx, (item, input_prompt) in enumerate(zip(filtered_data, input_list)):
-            # Get all samples for this question
-            question_samples = []
-            for i in range(question_idx, len(output_list), len(input_list)):
-                question_samples.append(output_list[i])
-                num_valid_answer = 0
+# Ensure the output directory exists
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-            per_output_self_cert_summary = []
-            per_output_cot_decoding_summary = []
-            per_output_confidence_summary = []
-            per_output_entropy_summary = []
-            per_output_majority_voting_summary = []
-            # Process each output and its metrics
-            for idx in range(len(question_samples)):
-                result = question_samples[idx]
-                # if isinstance(result, str):
-                #     item[f'Output_{idx}'] = result
-                # elif isinstance(result, (tuple, list, ChatGeneration, RequestOutput)):
-                item[f'Output_{idx}'] = result.outputs[0].text
-                item[f"output_tokens_{idx}"] = len(result.outputs[0].token_ids)
+# Save prediction results and metrics
+    with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
+        json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
 
-                    
-                if dataset_name in ['gpqa', 'medmcqa', 'mmlu']:
-                    labeled_answer = item["Correct Choice"]
-                    mode = 'choose'
-                elif dataset_name in ['math500', 'aime', 'amc', 'hendrycks', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
-                    labeled_answer = item["answer"]
-                    mode = 'gen'
-                elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
-                    labeled_answer = item["answer"]
-                    mode = 'qa'
-                elif dataset_name in ['pubhealth']:
-                    labeled_answer = item["answer"]
-                    mode = 'choose'
-                elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
-                    labeled_answer = item["answer"]
-                    mode = 'choose'
-                else:
-                    raise ValueError(f"Unknown dataset_name: {dataset_name}")
-
-                metric, pred_answer = evaluate_predictions(output=item[f'Output_{idx}'], labeled_answer=labeled_answer, mode=mode)
-                
-                # Store metrics for this specific generation
-                item[f'Pred_Answer_{idx}'] = pred_answer
-                item[f'Metrics_{idx}'] = metric
-
-                sc_obj = calculate_self_certainty(result.outputs[0].logprobs)
-                item[f'Self_Certainty_{idx}'] = sc_obj
-
-                cot_decoding_obj = calculate_cot_decoding(result.outputs[0].logprobs)
-                item[f'Cot_Decoding_{idx}'] = cot_decoding_obj
-
-                confidence_obj = calculate_confidence(result.outputs[0].logprobs)
-                item[f'Confidence_{idx}'] = confidence_obj
-
-                entropy_obj = calculate_entropy(result.outputs[0].logprobs)
-                item[f'Entropy_{idx}'] = entropy_obj
-                
-                majority_voting_obj = normalize_answer(extract_answer(item[f'Output_{idx}'], mode=mode))
-                item[f'Majority_Voting_{idx}'] = majority_voting_obj
-
-                per_output_majority_voting_summary.append({
-                    f'output_{idx}': majority_voting_obj,
-                    'math_equal': bool(is_equiv(majority_voting_obj, labeled_answer)),
-                })
-
-                per_output_self_cert_summary.append({
-                    f'output_{idx}': sc_obj.get('self_certainty', float('nan')),
-                    'math_equal': bool(metric.get('math_equal', False)),
-                })
-
-                per_output_cot_decoding_summary.append({
-                    f'output_{idx}': cot_decoding_obj.get('confidence_score', float('nan')),
-                    'math_equal': bool(metric.get('math_equal', False)),
-                })
-
-                per_output_confidence_summary.append({
-                    f'output_{idx}': confidence_obj.get('calculate_confidence', float('nan')),
-                    'math_equal': bool(metric.get('math_equal', False)),
-                })
-
-                per_output_entropy_summary.append({
-                    f'output_{idx}': entropy_obj.get('calculate_entropy', float('nan')),
-                    'math_equal': bool(metric.get('math_equal', False)),
-                })
-
-
-                borda_voting_self_cert = calculate_borda_voting_self_certainty(per_output_self_cert_summary)
-                highest_cot_decoding = calculate_highest_cot_decoding(per_output_cot_decoding_summary)
-                highest_confidence = calculate_highest_confidence(per_output_confidence_summary)
-                lowest_entropy = calculate_lowest_entropy(per_output_entropy_summary)
-                majority_voting = calculate_majority_voting(per_output_majority_voting_summary)
-
-                is_valid = (pred_answer != '' and not (mode == 'choose' and dataset_name == 'gpqa' and len(pred_answer) > 1))
-
-                # Track scores for this question
-                if dataset_name != 'gpqa' and dataset_name != 'math500':
-                    question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
-                    question_validity_scores[question_idx].append(1 if metric['is_valid_answer'] == True else 0)
-                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    item[f"id_metrics_{idx}_metrics"] = metrics
-                    # Store vectors for later averaging
-                    item[f"id_equal_{idx}"] = uid_eq
-                    item[f"id_lp_{idx}"] = uid_lp
-                    item[f"id_h_{idx}"] = uid_h
-                    item[f"id_d_{idx}"] = uid_d
-                    
-                    # Individual visualization (optional)
-                    # visualize_id_vectors(
-                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, 
-                    #     title=f"{model_path} : ID Scores Across Steps for {dataset_name} {split}"
-                    # )
-                    # visualize_id_vectors(
-                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, title=f"ID Scores Across Steps for {dataset_name} {split}"
-                    # )
-                    # Store the original metrics for backward compatibility
-
-                    if idx == 0:
-                        item['Question'] = input_prompt
-                    avg_math.append(metric['math_equal'])
-                    avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
-                    avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
-                    avg_cot_decoding.append(1 if highest_cot_decoding['math_equal'] == True else 0)
-                    avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
-                    avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
-                    avg_majority_voting.append(1 if majority_voting['math_equal'] == True else 0)
-                    if is_valid:
-                        num_valid_answer += 1
-
-                # If the dataset is GPQA, track metrics per domain
-                elif dataset_name == 'gpqa':
-                    domain = item.get("High-level domain", "Unknown")
-                    if domain not in domain_metrics:
-                        domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'upper_bound_accuracy': [], 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
-                    
-                    # Add metrics for this output to the domain
-                    domain_metrics[domain]['em'].append(metric['em'])
-                    domain_metrics[domain]['acc'].append(metric['acc'])
-                    domain_metrics[domain]['f1'].append(metric['f1'])
-                    domain_metrics[domain]['math_equal'].append(metric['math_equal'])
-                    domain_metrics[domain]['total_num'] += 1
-                    domain_metrics[domain]['upper_bound_accuracy'].append(1 if metric['math_equal'] == True else 0)
-                    domain_metrics[domain]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
-                    domain_metrics[domain]['cot_decoding_accuracy'].append(1 if highest_cot_decoding['math_equal'] == True else 0)
-                    domain_metrics[domain]['confidence_accuracy'].append(1 if highest_confidence['math_equal'] == True else 0)
-                    domain_metrics[domain]['entropy_accuracy'].append(1 if lowest_entropy['math_equal'] == True else 0)
-                    if idx == 0:
-                        item['Question'] = input_prompt
-                    avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
-                    avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
-                    avg_cot_decoding.append(1 if highest_cot_decoding['math_equal'] == True else 0)
-                    avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
-                    avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
-                    avg_majority_voting.append(1 if majority_voting['math_equal'] == True else 0)
-                    if is_valid:
-                        domain_metrics[domain]['num_valid_answer'] += 1
-
-                    question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
-                    question_validity_scores[question_idx].append(1 if is_valid else 0)
-                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    item[f"id_metrics_{idx}_metrics"] = metrics
-                    # Store vectors for later averaging
-                    item[f"id_equal_{idx}"] = uid_eq
-                    item[f"id_lp_{idx}"] = uid_lp
-                    item[f"id_h_{idx}"] = uid_h
-                    item[f"id_d_{idx}"] = uid_d
-                    
-                    # Individual visualization (optional)
-                    # visualize_id_vectors(
-                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, 
-                    #     title=f"{model_path} : ID Scores Across Steps for {dataset_name} {split}"
-                    # )
-                    # visualize_id_vectors(
-                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, title=f"ID Scores Across Steps for {dataset_name} {split}"
-                    # )
-                
-                elif dataset_name == 'math500':
-                    level = item.get("level", "Unknown")
-                    if level not in domain_metrics:
-                        domain_metrics[level] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'upper_bound_accuracy': [], 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
-                    
-                    # Add metrics for this output to the level
-                    domain_metrics[level]['em'].append(metric['em'])
-                    domain_metrics[level]['acc'].append(metric['acc'])
-                    domain_metrics[level]['f1'].append(metric['f1'])
-                    domain_metrics[level]['math_equal'].append(metric['math_equal'])
-                    domain_metrics[level]['total_num'] += 1
-                    domain_metrics[level]['upper_bound_accuracy'].append(1 if metric['math_equal'] == True else 0)
-                    domain_metrics[level]['self_certainty_accuracy'].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
-                    domain_metrics[level]['cot_decoding_accuracy'].append(1 if highest_cot_decoding['math_equal'] == True else 0)
-                    domain_metrics[level]['confidence_accuracy'].append(1 if highest_confidence['math_equal'] == True else 0)
-                    domain_metrics[level]['entropy_accuracy'].append(1 if lowest_entropy['math_equal'] == True else 0)
-                    if idx == 0:
-                        item['Question'] = input_prompt
-                    avg_upper_bound.append(1 if metric['math_equal'] == True else 0)
-                    avg_self_certainty.append(1 if borda_voting_self_cert['math_equal'] == True else 0)
-                    avg_cot_decoding.append(1 if highest_cot_decoding['math_equal'] == True else 0)
-                    avg_confidence.append(1 if highest_confidence['math_equal'] == True else 0)
-                    avg_entropy.append(1 if lowest_entropy['math_equal'] == True else 0)
-                    avg_majority_voting.append(1 if majority_voting['math_equal'] == True else 0)                    
-                    if is_valid:
-                        domain_metrics[level]['num_valid_answer'] += 1
-                        
-                    question_math_equal_scores[question_idx].append(1 if metric['math_equal'] == True else 0)
-                    question_validity_scores[question_idx].append(1 if is_valid else 0)
-                    metrics, uid_eq, uid_lp, uid_h, uid_d = calculate_id_metrics_with_vectors(result.outputs[0].logprobs, thinkseg=thinkseg)
-                    item[f"id_metrics_{idx}_metrics"] = metrics
-                    # Store vectors for later averaging
-                    item[f"id_equal_{idx}"] = uid_eq
-                    item[f"id_lp_{idx}"] = uid_lp
-                    item[f"id_h_{idx}"] = uid_h
-                    item[f"id_d_{idx}"] = uid_d
-                    
-                    # Individual visualization (optional)
-                    # visualize_id_vectors(
-                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, 
-                    #     title=f"{model_path} : ID Scores Across Steps for {dataset_name} {split}"
-                    # )
-                    # visualize_id_vectors(
-                    #     uid_eq, uid_lp, uid_h, uid_d, dataset_name, model_path, split, title=f"{model_path} : ID Scores Across Steps for {dataset_name} {split}"
-                    # )
-                    # Visualize average ID vectors
-                    # visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg)
-            item['self_certainty_by_output '] = per_output_self_cert_summary
-            item['borda_voting_self_cert'] = borda_voting_self_cert
-            item['highest_cot_decoding'] = highest_cot_decoding
-            question_self_certainty_scores[question_idx].append(1 if borda_voting_self_cert['math_equal'] == True else 0)
-            question_cot_decoding_scores[question_idx].append(1 if highest_cot_decoding['math_equal'] == True else 0)
-            question_confidence_scores[question_idx].append(1 if highest_confidence['math_equal'] == True else 0)
-            question_entropy_scores[question_idx].append(1 if lowest_entropy['math_equal'] == True else 0)
-            question_majority_voting_scores[question_idx].append(1 if majority_voting['math_equal'] == True else 0)
-        # Compute mean accuracy and validity per question
-        if dataset_name != 'gpqa' and dataset_name != 'math500':
-            question_mean_accuracies = {}
-            question_upper_bound = {}
-            question_mean_validities = {}
-            question_self_certainty_accuracy = {}
-            question_cot_decoding_accuracy = {}
-            question_confidence_accuracy = {}
-            question_entropy_accuracy = {}
-            question_majority_voting_accuracy = {}
-            for question_idx in question_math_equal_scores.keys():
-                question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
-                question_upper_bound[f'question_{question_idx}'] = float(np.max(question_math_equal_scores[question_idx]))
-                question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
-                question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
-                question_cot_decoding_accuracy[f'question_{question_idx}'] = np.mean(question_cot_decoding_scores[question_idx])
-                question_confidence_accuracy[f'question_{question_idx}'] = np.mean(question_confidence_scores[question_idx])
-                question_entropy_accuracy[f'question_{question_idx}'] = np.mean(question_entropy_scores[question_idx])
-                question_majority_voting_accuracy[f'question_{question_idx}'] = np.mean(question_majority_voting_scores[question_idx])
-                # Add per-question metrics to each item in filtered_data
-            for i in range(len(filtered_data)):
-                filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
-                filtered_data[i]['per_question_upper_bound_accuracy'] = question_upper_bound[f'question_{i}']
-                filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
-                filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
-                filtered_data[i]['per_question_mean_cot_decoding_accuracy'] = question_cot_decoding_accuracy[f'question_{i}']
-                filtered_data[i]['per_question_mean_confidence_accuracy'] = question_confidence_accuracy[f'question_{i}']
-                filtered_data[i]['per_question_mean_entropy_accuracy'] = question_entropy_accuracy[f'question_{i}']
-                filtered_data[i]['per_question_majority_voting_accuracy'] = question_majority_voting_accuracy[f'question_{i}']
-            # Compute overall mean accuracy and validity across all questions
-            overall_mean_accuracy = np.mean([acc for acc in question_mean_accuracies.values()])
-            overall_mean_upper_bound = np.mean([ub for ub in question_upper_bound.values()])
-            overall_mean_validity = np.mean([val for val in question_mean_validities.values()])
-            overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
-            overall_mean_cot_decoding_accuracy = np.mean([acc for acc in question_cot_decoding_accuracy.values()])
-            overall_mean_confidence_accuracy = np.mean([acc for acc in question_confidence_accuracy.values()])
-            overall_mean_entropy_accuracy = np.mean([acc for acc in question_entropy_accuracy.values()])
-            overall_mean_majority_voting_accuracy = np.mean([acc for acc in question_majority_voting_accuracy.values()])
-        else:
-            question_mean_accuracies = {}
-            question_upper_bound = {}
-            question_mean_validities = {}
-            question_self_certainty_accuracy = {}
-            question_cot_decoding_accuracy = {}
-            question_confidence_accuracy = {}
-            question_entropy_accuracy = {}
-            question_majority_voting_accuracy = {}
-            for question_idx in question_math_equal_scores.keys():
-                question_mean_accuracies[f'question_{question_idx}'] = np.mean(question_math_equal_scores[question_idx])
-                question_upper_bound[f'question_{question_idx}'] = float(np.max(question_math_equal_scores[question_idx]))
-                question_mean_validities[f'question_{question_idx}'] = np.mean(question_validity_scores[question_idx])
-                question_self_certainty_accuracy[f'question_{question_idx}'] = np.mean(question_self_certainty_scores[question_idx])
-                question_cot_decoding_accuracy[f'question_{question_idx}'] = np.mean(question_cot_decoding_scores[question_idx])
-                question_confidence_accuracy[f'question_{question_idx}'] = np.mean(question_confidence_scores[question_idx])
-                question_entropy_accuracy[f'question_{question_idx}'] = np.mean(question_entropy_scores[question_idx])
-                question_majority_voting_accuracy[f'question_{question_idx}'] = np.mean(question_majority_voting_scores[question_idx])
-            for i in range(len(filtered_data)):
-                filtered_data[i]['per_question_mean_accuracy'] = question_mean_accuracies[f'question_{i}']
-                filtered_data[i]['per_question_upper_bound_accuracy'] = question_upper_bound[f'question_{i}']
-                filtered_data[i]['per_question_mean_validity'] = question_mean_validities[f'question_{i}']
-                filtered_data[i]['per_question_mean_self_certainty_accuracy'] = question_self_certainty_accuracy[f'question_{i}']
-                filtered_data[i]['per_question_mean_cot_decoding_accuracy'] = question_cot_decoding_accuracy[f'question_{i}']
-                filtered_data[i]['per_question_mean_confidence_accuracy'] = question_confidence_accuracy[f'question_{i}']
-                filtered_data[i]['per_question_mean_entropy_accuracy'] = question_entropy_accuracy[f'question_{i}']
-                filtered_data[i]['per_question_majority_voting_accuracy'] = question_majority_voting_accuracy[f'question_{i}']
-            overall_mean_accuracy = np.mean([acc for acc in question_math_equal_scores.values()])
-            overall_mean_upper_bound = np.mean([ub for ub in question_upper_bound.values()])
-            overall_mean_validity = np.mean([val for val in question_validity_scores.values()])
-            overall_mean_self_certainty_accuracy = np.mean([acc for acc in question_self_certainty_accuracy.values()])
-            overall_mean_cot_decoding_accuracy = np.mean([acc for acc in question_cot_decoding_accuracy.values()])
-            overall_mean_confidence_accuracy = np.mean([acc for acc in question_confidence_accuracy.values()])
-            overall_mean_entropy_accuracy = np.mean([acc for acc in question_entropy_accuracy.values()])
-            overall_mean_majority_voting_accuracy = np.mean([acc for acc in question_majority_voting_accuracy.values()])
-        # Visualize average ID vectors across all samples
-        visualize_average_id_vectors(filtered_data, dataset_name, model_path, split, thinkseg, step_limit)
-        # Also visualize average step counts
-        visualize_average_step_counts(filtered_data, dataset_name, model_path, split, thinkseg)
-
-        # Compute overall metrics
-        overall_results = {
-            'total_time': f'{total_time:.0f} s',
-            'overall_mean_accuracy': overall_mean_accuracy,  # Mean of per-question accuracies
-            'overall_mean_upper_bound_accuracy': overall_mean_upper_bound,   # Mean of per-question upper bound accuracies
-            'overall_mean_validity': overall_mean_validity,   # Mean of per-question validities
-            'overall_mean_self_certainty_accuracy': overall_mean_self_certainty_accuracy,   # Mean of per-question self-certainty accuracy
-            'overall_mean_cot_decoding_accuracy': overall_mean_cot_decoding_accuracy,   # Mean of per-question cot-decoding accuracy
-            'overall_mean_confidence_accuracy': overall_mean_confidence_accuracy,   # Mean of per-question confidence accuracy
-            'overall_mean_entropy_accuracy': overall_mean_entropy_accuracy,   # Mean of per-question entropy accuracy
-            'overall_mean_majority_voting_accuracy': overall_mean_majority_voting_accuracy,   # Mean of per-question majority voting accuracy
-            'overall_mean_majority_voting_accuracy': overall_mean_majority_voting_accuracy,   # Mean of per-question majority voting accuracy
-        }
-
-        # If the dataset is GPQA, output average metrics per domain
-        domain_avg_metrics = {}
-        if dataset_name == 'gpqa':
-            for dm, m in domain_metrics.items():
-                domain_avg_metrics[dm] = {
-                    'em': np.mean(m['em']) if len(m['em']) > 0 else 0,
-                    'acc': np.mean(m['acc']) if len(m['acc']) > 0 else 0,
-                    'upper_bound_accuracy': np.mean(m['upper_bound_accuracy']) if len(m['upper_bound_accuracy']) > 0 else 0,
-                    'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
-                    'cot_decoding_accuracy': np.mean(m['cot_decoding_accuracy']) if len(m['cot_decoding_accuracy']) > 0 else 0,
-                    'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
-                    'entropy_accuracy': np.mean(m['entropy_accuracy']) if len(m['entropy_accuracy']) > 0 else 0,
-                    'majority_voting_accuracy': np.mean(m['majority_voting_accuracy']) if len(m['majority_voting_accuracy']) > 0 else 0,
-                    'f1': np.mean(m['f1']) if len(m['f1']) > 0 else 0,
-                    'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
-                    'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
-                    'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
-                    'total_time': f'{total_time:.0f} s',
-                }
-                
-        elif dataset_name == 'math500':
-            for dm, m in domain_metrics.items():
-                domain_avg_metrics[dm] = {
-                    'upper_bound_accuracy': np.mean(m['upper_bound_accuracy']) if len(m['upper_bound_accuracy']) > 0 else 0,
-                    'self_certainty_accuracy': np.mean(m['self_certainty_accuracy']) if len(m['self_certainty_accuracy']) > 0 else 0,
-                    'cot_decoding_accuracy': np.mean(m['cot_decoding_accuracy']) if len(m['cot_decoding_accuracy']) > 0 else 0,
-                    'confidence_accuracy': np.mean(m['confidence_accuracy']) if len(m['confidence_accuracy']) > 0 else 0,
-                    'entropy_accuracy': np.mean(m['entropy_accuracy']) if len(m['entropy_accuracy']) > 0 else 0,
-                    'majority_voting_accuracy': np.mean(m['majority_voting_accuracy']) if len(m['majority_voting_accuracy']) > 0 else 0,
-                    'math_equal': np.mean(m['math_equal']) if len(m['math_equal']) > 0 else 0,
-                    'num_valid_answer': f'{m["num_valid_answer"]} of {m["total_num"]}',
-                    'domain_mean_validity': m["num_valid_answer"] / m["total_num"],
-                    'total_time': f'{total_time:.0f} s',
-                }
-
-        final_metrics = {'overall': overall_results}
-        if dataset_name == 'gpqa':
-            final_metrics['per_domain'] = domain_avg_metrics
-        elif dataset_name == 'math500':
-            final_metrics['per_domain'] = domain_avg_metrics
-        import time
-        t = time.localtime()
-        result_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.json'
-        metrics_json_name = f'{split}.{t.tm_mon}.{t.tm_mday},{t.tm_hour}:{t.tm_min}-{sample_limit}-thinkseg{thinkseg}-step{step_limit}.metrics.json'
-        if apply_backoff:
-            result_json_name = output_dir.replace('.json', f'.backoff.{sample_limit}-thinkseg{thinkseg}-step{step_limit}.json')
-            metrics_json_name = output_dir.replace('.json', f'.metrics.backoff.{sample_limit}-thinkseg{thinkseg}-step{step_limit}.json')
-
-    # Ensure the output directory exists
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-    # Save prediction results and metrics
-        with open(os.path.join(output_dir, result_json_name), mode='w', encoding='utf-8') as json_file:
-            json.dump(filtered_data, json_file, indent=4, ensure_ascii=False)
-
-        with open(os.path.join(output_dir, metrics_json_name), mode='w', encoding='utf-8') as json_file:
-            json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
+    with open(os.path.join(output_dir, metrics_json_name), mode='w', encoding='utf-8') as json_file:
+        json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
 
 
 if __name__ == "__main__":
@@ -897,126 +432,43 @@ if __name__ == "__main__":
     else:
         output_metrics_path = output_path.replace('.json', '.metrics.json')
 
-    # Determine dataset name based on the output path
-    # NOTE: To apply back off strategy for retrieval-augmented reasoning methods, please replace normal_output_path with your actual path for results with run_direct_gen.
+    # Determine dataset name based on the output path.
+    # Backoff baselines are only kept for the supported datasets below.
     if 'gpqa' in output_path:
+        if 'diamond' not in output_path:
+            raise ValueError("Only GPQA diamond outputs are supported.")
         dataset_name = 'gpqa'
         normal_output_path = './outputs/gpqa.qwq.direct/diamond.12.13,18:23.json'
-        if 'extended' in output_path:
-            normal_output_path = './outputs/gpqa.qwq.direct/extended.12.28,15:44.json'
         if 'qwq' not in output_path:
             normal_output_path = './outputs/runs.baselines/gpqa.qwen2.5-32b-instruct.direct/diamond.12.14,20:34.json'
-    elif 'math500' in output_path:
-        dataset_name = 'math500'
-        normal_output_path = './outputs/math500.qwq.direct/test.12.13,18:26.json'
-        if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/math500.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
-    elif 'hendrycks' in output_path:
-        dataset_name = 'hendrycks'
-        normal_output_path = './outputs/runs.baselines/hendrycks.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
-        if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/hendrycks.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
     elif 'aime' in output_path:
         dataset_name = 'aime'
         normal_output_path = './outputs/aime.qwq.direct/2024.12.13,19:36.json'
         if 'qwq' not in output_path:
             normal_output_path = './outputs/runs.baselines/aime.qwen2.5-32b-instruct.direct/test.12.14,20:28.json'
-    elif 'amc' in output_path:
-        dataset_name = 'amc'
-        normal_output_path = './outputs/amc.qwq.direct/test.12.14,14:31.json'
-        if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/amc.qwen2.5-32b-instruct.direct/test.12.14,20:26.json'
-    elif 'gsm8k' in output_path:
-        dataset_name = 'gsm8k'
-        normal_output_path = './outputs/gsm8k.qwq.direct/test.12.13,18:26.json'
-        if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/gsm8k.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
-    elif 'minervamath' in output_path:
-        dataset_name = 'minervamath'
-        normal_output_path = './outputs/minervamath.qwq.direct/test.12.13,18:26.json'
-        if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/minervamath.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
-    elif 'olympiadbench' in output_path:
-        dataset_name = 'olympiadbench'
-        normal_output_path = './outputs/olympiadbench.qwq.direct/test.12.13,18:26.json'
-        if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/olympiadbench.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
-    elif 'hmmt' in output_path:
-        dataset_name = 'hmmt'
-        normal_output_path = './outputs/hmmt.qwq.direct/test.12.13,18:26.json'
-        if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/hmmt.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
     elif 'brumo' in output_path:
         dataset_name = 'brumo'
         normal_output_path = './outputs/brumo.qwq.direct/test.12.13,18:26.json'
         if 'qwq' not in output_path:
             normal_output_path = './outputs/runs.baselines/brumo.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
-    elif 'livecode' in output_path:
-        dataset_name = 'livecode'
-        normal_output_path = './outputs/livecode.qwq.direct/test.12.13,21:24.json'
+    elif 'hmmt' in output_path:
+        dataset_name = 'hmmt'
+        normal_output_path = './outputs/hmmt.qwq.direct/test.12.13,18:26.json'
         if 'qwq' not in output_path:
-            normal_output_path = './outputs/runs.baselines/livecode.qwen2.5-32b-instruct.direct/test.12.14,20:32.json'
-    elif 'nq' in output_path:
-        dataset_name = 'nq'
-        normal_output_path = './outputs/runs.qa/nq.qwq.direct/test.12.15,14:50.json'
+            normal_output_path = './outputs/runs.baselines/hmmt.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
+    elif 'minervamath' in output_path:
+        dataset_name = 'minervamath'
+        normal_output_path = './outputs/minervamath.qwq.direct/test.12.13,18:26.json'
         if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif 'triviaqa' in output_path:
-        dataset_name = 'triviaqa'
-        normal_output_path = './outputs/runs.qa/triviaqa.qwq.direct/test.12.15,15:35.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif 'hotpotqa' in output_path:
-        dataset_name = 'hotpotqa'
-        normal_output_path = './outputs/runs.qa/hotpotqa.qwq.direct/test.12.15,14:52.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif 'musique' in output_path:
-        dataset_name = 'musique'
-        normal_output_path = './outputs/runs.qa/musique.qwq.direct/test.12.27,16:44.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif 'bamboogle' in output_path:
-        dataset_name = 'bamboogle'
-        normal_output_path = './outputs/runs.qa/bamboogle.qwq.direct/test.12.28,9:51.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif '2wiki' in output_path:
-        dataset_name = '2wiki'
-        normal_output_path = './outputs/runs.qa/2wiki.qwq.direct/test.12.15,15:32.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif 'medmcqa' in output_path:
-        dataset_name = 'medmcqa'
-        normal_output_path = './outputs/runs.qa/medmcqa.qwq.direct/test.12.15,16:57.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif 'pubhealth' in output_path:
-        dataset_name = 'pubhealth'
-        normal_output_path = './outputs/runs.qa/pubhealth.qwq.direct/test.12.15,20:32.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    #medical datasets
-    elif "medbullets" in output_path:
-        dataset_name = 'medbullets'
-        normal_output_path = './outputs/runs.qa/medbullets.qwq.direct/test.12.15,20:32.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif "jama_full" in output_path:
-        dataset_name = 'jama_full'
-        normal_output_path = './outputs/runs.qa/jama_full.qwq.direct/test.12.15,20:32.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif "medqa" in output_path:
-        dataset_name = 'medqa'
-        normal_output_path = './outputs/runs.qa/medqa.qwq.direct/test.12.15,20:32.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
-    elif "medxpertqa" in output_path:
-        dataset_name = 'medxpertqa'
-        normal_output_path = './outputs/runs.qa/medxpertqa.qwq.direct/test.12.15,20:32.json'
-        if 'qwq' not in output_path:
-            normal_output_path = ''
+            normal_output_path = './outputs/runs.baselines/minervamath.qwen2.5-32b-instruct.direct/test.12.15,10:43.json'
+    elif 'lsat_ar' in output_path:
+        dataset_name = 'lsat_ar'
+        normal_output_path = ''
+    elif 'lsat_lr' in output_path:
+        dataset_name = 'lsat_lr'
+        normal_output_path = ''
+    else:
+        raise ValueError(f"Unsupported dataset output path: {output_path}")
 
     # Load main output data
     with open(output_path, mode='r', encoding='utf-8') as file:
@@ -1042,8 +494,8 @@ if __name__ == "__main__":
         with open(normal_output_path, mode='r', encoding='utf-8') as file:
             normal_data = json.load(file)
 
-    if dataset_name != 'livecode':
-        # Existing evaluation for non-livecode datasets
+    if True:
+        # Existing evaluation for supported datasets
         avg_em, avg_acc, avg_f1, avg_math = [], [], [], []
         num_valid_answer = 0
 
@@ -1051,29 +503,13 @@ if __name__ == "__main__":
         domain_metrics = {}
 
         for i, item in enumerate(data):
-            if dataset_name in ['gpqa', 'medmcqa']:
+            if dataset_name in ['gpqa', 'lsat_ar', 'lsat_lr']:
                 labeled_answer = item["Correct Choice"]
                 domain = item.get("High-level domain", "Unknown")
                 mode = 'choose'
-            elif dataset_name in ['math500', 'hendrycks']:
-                labeled_answer = item["answer"]
-                domain = item.get("level", "Unknown")
-                mode = 'gen'
-            elif dataset_name in ['aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
+            elif dataset_name in ['aime', 'brumo', 'hmmt', 'minervamath']:
                 labeled_answer = item["answer"]
                 mode = 'gen'
-                domain = 'Unknown'
-            elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
-                labeled_answer = item["answer"]
-                mode = 'qa'
-                domain = 'Unknown'
-            elif dataset_name in ['pubhealth']:
-                labeled_answer = item["answer"]
-                mode = 'choose'
-                domain = 'Unknown'
-            elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
-                labeled_answer = item["answer"]
-                mode = 'choose' #prompt should consider to "choose"
                 domain = 'Unknown'
             else:
                 raise ValueError(f"Unsupported dataset: {dataset_name}")
@@ -1102,24 +538,12 @@ if __name__ == "__main__":
             # If invalid and backoff is enabled, use normal method's output
             if args.apply_backoff and not my_method_valid and normal_data is not None:
                 normal_item = normal_data[i]
-                if dataset_name in ['gpqa', 'medmcqa']:
+                if dataset_name in ['gpqa', 'lsat_ar', 'lsat_lr']:
                     normal_labeled_answer = normal_item["Correct Choice"]
                     normal_mode = 'choose'
-                elif dataset_name in ['math500', 'hendrycks']:
+                elif dataset_name in ['aime', 'brumo', 'hmmt', 'minervamath']:
                     normal_labeled_answer = normal_item["answer"]
                     normal_mode = 'gen'
-                elif dataset_name in ['aime', 'amc', 'gsm8k', 'minervamath', 'olympiadbench', 'hmmt', 'brumo']:
-                    normal_labeled_answer = normal_item["answer"]
-                    normal_mode = 'gen'
-                elif dataset_name in ['nq', 'triviaqa', 'hotpotqa', 'musique', 'bamboogle', '2wiki']:
-                    normal_labeled_answer = normal_item["answer"]
-                    normal_mode = 'qa'
-                elif dataset_name in ['pubhealth']:
-                    normal_labeled_answer = normal_item["answer"]
-                    normal_mode = 'choose'
-                elif dataset_name in ['medbullets', 'jama_full', 'medqa', 'medxpertqa']:
-                    normal_labeled_answer = normal_item["answer"]
-                    normal_mode = 'choose'
                 else:
                     raise ValueError(f"Unsupported dataset for backoff: {dataset_name}")
 
@@ -1145,7 +569,7 @@ if __name__ == "__main__":
 
             # Track metrics per domain
             if domain not in domain_metrics:
-                domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': [], 'upper_bound_accuracy': [], 'self_certainty_accuracy': [], 'cot_decoding_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
+                domain_metrics[domain] = {'em': [], 'acc': [], 'f1': [], 'math_equal': [], 'num_valid_answer': 0, 'total_num': 0, 'query_latency': [], 'upper_bound_accuracy': [], 'self_certainty_accuracy': [], 'confidence_accuracy': [], 'entropy_accuracy': []}
                 domain_metrics[domain]['total_num'] += 1
                 domain_metrics[domain]['query_latency'].append(item['query_latency'])
                 avg_em.append(metric['em'])
@@ -1185,57 +609,9 @@ if __name__ == "__main__":
         if dataset_name == 'gpqa':
             final_metrics['per_domain'] = domain_avg_metrics
 
-    else:
-        # Evaluation and backoff for livecode dataset
-        split = 'test'  # Modify as needed or extract from output_path
-
-        if args.apply_backoff and normal_data is not None:
-            # Apply backoff by replacing invalid outputs with normal outputs
-            for i, item in enumerate(data):
-                # Extract Pred_Answer from main output
-                pred_answer = item['Pred_Answer']
-
-                # Check if Pred_Answer is invalid
-                if pred_answer == '':
-                    # Replace Output with normal output
-                    item['Output'] = normal_data[i]['Output']
-
-        # Prepare input_list and output_list for run_evaluation
-        input_list = [item['Question'] for item in data]
-        output_list = [item['Output'] for item in data]
-
-        # Estimate total_time (if available). Here, set to 0 as a placeholder.
-        total_time = 0  # Modify if timing information is available
-
-        # Extract the directory from the output_path
-        output_dir = os.path.dirname(output_path)
-        if not output_dir:
-            output_dir = "."
-
-        # Run evaluation
-        run_evaluation(
-            filtered_data=data,
-            input_list=input_list,
-            output_list=output_list,
-            sample_limit=args.sample_limit,
-            dataset_name=dataset_name,
-            output_dir=output_dir,  # Now it's a directory path
-            total_time=total_time,
-            split=split,
-            self_certainty=True,
-            cot_decoding=True,
-            confidence=True,
-            entropy=True,
-            apply_backoff=True,
-        )
-        # run_evaluation handles saving the metrics for livecode
-
-    # Save metrics for non-livecode datasets
-    if dataset_name != 'livecode' or not args.apply_backoff:
-        # If dataset is livecode and backoff was applied, metrics are already saved by run_evaluation
-        if args.apply_backoff:
-            output_metrics_path = output_metrics_path.replace('.json', '.backoff-thinkseg{thinkseg}.json')
-        with open(output_metrics_path, mode='w', encoding='utf-8') as json_file:
-            json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
+    if args.apply_backoff:
+        output_metrics_path = output_metrics_path.replace('.json', '.backoff.json')
+    with open(output_metrics_path, mode='w', encoding='utf-8') as json_file:
+        json.dump(final_metrics, json_file, indent=4, ensure_ascii=False)
 
     print(f"Evaluation completed. Metrics saved to {output_metrics_path}")

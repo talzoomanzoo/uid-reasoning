@@ -1,1 +1,0 @@
-python uid_metrics_plots.py --input --outdir plots_out_math500-qwen-1.7b --savefigs --savefigs --no-show --separate-analysis

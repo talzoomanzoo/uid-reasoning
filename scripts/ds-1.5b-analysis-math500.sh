@@ -1,1 +1,0 @@
-python ../src/analysis_by_uid.py --input /scratch2/mjgwak/uid-reasoning/scripts/outputs/runs.baselines/gpqa.deepseek-r1-distill-qwen-1.5b.direct/diamond.9.7,11:2-5-thinksegTrue.json --outdir ../src/analysis_out --analysis_by_level True
