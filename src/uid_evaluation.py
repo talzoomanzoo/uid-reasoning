@@ -138,7 +138,46 @@ def evaluate_predictions(output, labeled_answer, mode='gen'):
 
 
 
+class UIDEvaluator:
+    def run(self, filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, self_certainty, confidence, entropy, apply_backoff=False):
+        return _run_evaluation(
+            filtered_data,
+            input_list,
+            output_list,
+            dataset_name,
+            output_dir,
+            total_time,
+            split,
+            data_limit,
+            sample_limit,
+            model_path,
+            self_certainty,
+            confidence,
+            entropy,
+            apply_backoff=apply_backoff,
+        )
+
+
 def run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, self_certainty, confidence, entropy, apply_backoff=False):
+    return UIDEvaluator().run(
+        filtered_data,
+        input_list,
+        output_list,
+        dataset_name,
+        output_dir,
+        total_time,
+        split,
+        data_limit,
+        sample_limit,
+        model_path,
+        self_certainty,
+        confidence,
+        entropy,
+        apply_backoff=apply_backoff,
+    )
+
+
+def _run_evaluation(filtered_data, input_list, output_list, dataset_name, output_dir, total_time, split, data_limit, sample_limit, model_path, self_certainty, confidence, entropy, apply_backoff=False):
     # Existing evaluation for other datasets
     avg_em, avg_acc, avg_f1, avg_math, avg_upper_bound, avg_self_certainty, avg_confidence, avg_entropy, avg_majority_voting = [], [], [], [], [], [], [], [], []
 
