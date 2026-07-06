@@ -7,10 +7,10 @@ import string
 import os
 from collections import defaultdict
 from utils.math_equivalence import is_equiv, _strip_string
-from utils.calculate_uid_rev_viz import calculate_id_metrics_with_vectors
-from utils.calculate_uid_rev_viz_self_certainty import calculate_self_certainty, calculate_borda_voting_self_certainty
-from utils.calculate_uid_rev_viz_baselines import calculate_confidence, calculate_entropy, calculate_highest_confidence, calculate_lowest_entropy
-from utils.calculate_uid_rev_viz_majority_voting import calculate_majority_voting
+from utils.calculate_uid import calculate_id_metrics_with_vectors
+from utils.calculate_uid_self_certainty import calculate_self_certainty, calculate_borda_voting_self_certainty
+from utils.calculate_uid_baselines import calculate_confidence, calculate_entropy, calculate_highest_confidence, calculate_lowest_entropy
+from utils.calculate_uid_majority_voting import calculate_majority_voting
 from tqdm import tqdm
 
 def extract_answer(output, mode='gen'):
