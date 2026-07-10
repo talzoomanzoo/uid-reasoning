@@ -17,6 +17,12 @@ The analysis focuses on two complementary UID signals:
 
 Together, these metrics test whether strong reasoning traces are locally smooth while still using information non-uniformly at the global trajectory level.
 
+## Checklist
+
+- [x] Local and global uniformity implementation
+- [ ] Joint detection implementation
+- [ ] Robustness to different segmentations
+
 ## Running Inference
 
 Use the scripts under `scripts/` to generate model outputs. For example:
