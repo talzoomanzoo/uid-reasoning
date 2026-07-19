@@ -17,6 +17,23 @@ The analysis focuses on two complementary UID signals:
 
 Together, these metrics test whether strong reasoning traces are locally smooth while still using information non-uniformly at the global trajectory level.
 
+### Conjunction Metric
+
+The conjunction metric selects traces that are both locally uniform AND globally
+non-uniform. It is calculated as:
+
+```text
+U_local  = 1 / (1 + 0.5 * spikes + 0.5 * falls)
+G_nonuni = 1 - uid_shannon_entropy
+S_AND    = U_local * G_nonuni
+```
+
+Here, `spikes` and `falls` are detected using the same 3-sigma thresholds as the
+local UID analysis. `uid_shannon_entropy` is Shannon evenness in `[0, 1]`, so
+`G_nonuni` is its complement. A high `S_AND` therefore requires both few local
+spikes/falls and high global non-uniformity. The analysis compares the accuracy
+of the outputs with the highest and lowest `S_AND` for each problem.
+
 ## Checklist
 
 - [x] Local and global uniformity implementation
@@ -56,6 +73,7 @@ The analysis outputs include:
 
 - Global UID plots for `uid_variance_entropy`
 - Local UID plots for `spikes_and_falls_3sigma`
+- Conjunction plots and JSON summaries for `S_AND`
 - Combined global/local UID plots
 - JSON summaries for UID accuracy and spike/fall accuracy
 - Filtered overall metrics copied from each run's metrics file
