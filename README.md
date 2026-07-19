@@ -19,8 +19,8 @@ Together, these metrics test whether strong reasoning traces are locally smooth 
 
 ### Conjunction Metric
 
-The conjunction metric selects traces that are both locally uniform AND globally
-non-uniform. It is calculated as:
+The conjunction metric selects traces that are **both locally uniform AND globally
+non-uniform.** It is calculated as:
 
 ```text
 U_local  = 1 / (1 + 0.5 * spikes + 0.5 * falls)
