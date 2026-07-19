@@ -14,6 +14,9 @@ EXCLUDED_OVERALL_METRICS = {
     "overall_mean_validity",
 }
 
+CONJUNCTION_ALPHA = 0.5
+CONJUNCTION_BETA = 0.5
+
 
 def filter_recorded_overall_metrics(overall_metrics):
     """Keep metrics that should be copied into analysis outputs."""
@@ -459,6 +462,160 @@ def calculate_spikes_falls_summary_stats(results):
     return summary
 
 
+def analyze_conjunction_accuracy(
+    data,
+    threshold_pos,
+    threshold_neg,
+    alpha=CONJUNCTION_ALPHA,
+    beta=CONJUNCTION_BETA,
+):
+    """
+    Analyze the conjunction of local uniformity and global non-uniformity.
+
+    U_local = 1 / (1 + alpha * spikes + beta * falls)
+    G_nonuni = 1 - uid_shannon_entropy
+    S_AND = U_local * G_nonuni
+    """
+    results = {
+        "highest_conjunction": defaultdict(list),
+        "lowest_conjunction": defaultdict(list),
+    }
+
+    for problem in data:
+        problem_id = problem.get("id", "unknown")
+        outputs = []
+        i = 0
+
+        while f"Output_{i}" in problem:
+            metrics_key = f"Metrics_{i}"
+            uid_metrics_key = f"id_metrics_{i}_metrics"
+            id_h_key = f"id_h_{i}"
+
+            if (
+                metrics_key in problem
+                and uid_metrics_key in problem
+                and id_h_key in problem
+            ):
+                id_h = problem[id_h_key]
+                uid_metrics = problem[uid_metrics_key]
+
+                if (
+                    isinstance(id_h, list)
+                    and len(id_h) >= 2
+                    and "uid_shannon_entropy" in uid_metrics
+                ):
+                    counts = count_spikes_falls(
+                        id_h, threshold_pos, threshold_neg
+                    )
+                    g_uni = float(uid_metrics["uid_shannon_entropy"])
+                    if not np.isfinite(g_uni):
+                        i += 1
+                        continue
+
+                    g_uni = float(np.clip(g_uni, 0.0, 1.0))
+                    u_local = 1.0 / (
+                        1.0
+                        + alpha * counts["spikes"]
+                        + beta * counts["falls"]
+                    )
+                    g_nonuni = 1.0 - g_uni
+                    s_and = u_local * g_nonuni
+                    metrics_data = problem[metrics_key]
+
+                    outputs.append({
+                        "index": i,
+                        "s_and": s_and,
+                        "u_local": u_local,
+                        "g_uni": g_uni,
+                        "g_nonuni": g_nonuni,
+                        "spikes": counts["spikes"],
+                        "falls": counts["falls"],
+                        "accuracy": metrics_data.get("math_equal", 0),
+                        "exact_match": metrics_data.get("em", 0),
+                        "f1": metrics_data.get("f1", 0),
+                    })
+            i += 1
+
+        if not outputs:
+            continue
+
+        highest_output = max(outputs, key=lambda output: output["s_and"])
+        lowest_output = min(outputs, key=lambda output: output["s_and"])
+
+        for result_type, selected_output in (
+            ("highest_conjunction", highest_output),
+            ("lowest_conjunction", lowest_output),
+        ):
+            results[result_type]["s_and"].append({
+                "problem_id": problem_id,
+                "output_index": selected_output["index"],
+                "s_and": selected_output["s_and"],
+                "u_local": selected_output["u_local"],
+                "g_uni": selected_output["g_uni"],
+                "g_nonuni": selected_output["g_nonuni"],
+                "spikes_count": selected_output["spikes"],
+                "falls_count": selected_output["falls"],
+                "accuracy": selected_output["accuracy"],
+                "exact_match": selected_output["exact_match"],
+                "f1": selected_output["f1"],
+            })
+
+    return results
+
+
+def calculate_conjunction_summary_stats(results):
+    """Calculate summary statistics for highest/lowest conjunction scores."""
+    summary = {}
+
+    for result_type in ("highest_conjunction", "lowest_conjunction"):
+        items = results[result_type].get("s_and", [])
+        summary[result_type] = {
+            "s_and": {
+                "count": len(items),
+                "alpha": CONJUNCTION_ALPHA,
+                "beta": CONJUNCTION_BETA,
+                "mean_accuracy": float(np.mean([
+                    float(item["accuracy"]) for item in items
+                ])) if items else 0.0,
+                "std_accuracy": float(np.std([
+                    float(item["accuracy"]) for item in items
+                ])) if items else 0.0,
+                "mean_exact_match": float(np.mean([
+                    item["exact_match"] for item in items
+                ])) if items else 0.0,
+                "std_exact_match": float(np.std([
+                    item["exact_match"] for item in items
+                ])) if items else 0.0,
+                "mean_f1": float(np.mean([
+                    item["f1"] for item in items
+                ])) if items else 0.0,
+                "std_f1": float(np.std([
+                    item["f1"] for item in items
+                ])) if items else 0.0,
+                "mean_s_and": float(np.mean([
+                    item["s_and"] for item in items
+                ])) if items else 0.0,
+                "std_s_and": float(np.std([
+                    item["s_and"] for item in items
+                ])) if items else 0.0,
+                "mean_u_local": float(np.mean([
+                    item["u_local"] for item in items
+                ])) if items else 0.0,
+                "mean_g_nonuni": float(np.mean([
+                    item["g_nonuni"] for item in items
+                ])) if items else 0.0,
+                "mean_spikes_count": float(np.mean([
+                    item["spikes_count"] for item in items
+                ])) if items else 0.0,
+                "mean_falls_count": float(np.mean([
+                    item["falls_count"] for item in items
+                ])) if items else 0.0,
+            }
+        }
+
+    return summary
+
+
 def create_spikes_falls_boxplots(spikes_falls_summary, outdir, filename_prefix, input_filename=None, overall_metrics=None):
     """Create bar graphs for mean accuracy based on spike/fall analysis."""
     # Set up the plotting style
@@ -526,6 +683,77 @@ def create_spikes_falls_boxplots(spikes_falls_summary, outdir, filename_prefix, 
     plt.savefig(plot_file, dpi=300, bbox_inches='tight')
     plt.close()
     
+    return plot_file
+
+
+def create_conjunction_plot(
+    conjunction_summary,
+    outdir,
+    filename_prefix,
+    input_filename=None,
+    overall_metrics=None,
+):
+    """Plot accuracy selected by highest and lowest S_AND scores."""
+    plt.style.use("default")
+    sns.set_palette("husl")
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    dataset_name = (
+        input_filename.split("/")[-2]
+        if input_filename and "/" in input_filename
+        else filename_prefix
+    )
+    fig.suptitle(
+        f"Conjunction UID: S_AND\n{dataset_name}",
+        fontsize=16,
+        fontweight="bold",
+    )
+
+    result_types = ("highest_conjunction", "lowest_conjunction")
+    labels = ("Highest S_AND", "Lowest S_AND")
+    values = [
+        conjunction_summary[result_type]["s_and"]["mean_accuracy"]
+        for result_type in result_types
+    ]
+    x = np.arange(len(labels))
+    bars = ax.bar(
+        x,
+        values,
+        0.6,
+        color=["lightblue", "lightcoral"],
+        alpha=0.8,
+    )
+
+    for bar, value in zip(bars, values):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.001,
+            f"{value:.4f}",
+            ha="center",
+            va="bottom",
+            fontweight="bold",
+            fontsize=10,
+        )
+
+    add_recorded_metric_lines(ax, overall_metrics)
+    add_recorded_metrics_box(fig, overall_metrics)
+    ax.set_title(
+        "Local uniformity AND global non-uniformity "
+        f"(alpha={CONJUNCTION_ALPHA}, beta={CONJUNCTION_BETA})"
+    )
+    ax.set_ylabel("Mean Accuracy")
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    if ax.get_legend_handles_labels()[0]:
+        ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(0, 1.1)
+
+    plot_file = os.path.join(
+        outdir, f"{filename_prefix}_conjunction_s_and.png"
+    )
+    plt.savefig(plot_file, dpi=300, bbox_inches="tight")
+    plt.close()
     return plot_file
 
 
@@ -644,9 +872,15 @@ class SpikesFallsAnalyzer:
     calculate_summary_stats = staticmethod(calculate_spikes_falls_summary_stats)
 
 
+class ConjunctionAnalyzer:
+    analyze = staticmethod(analyze_conjunction_accuracy)
+    calculate_summary_stats = staticmethod(calculate_conjunction_summary_stats)
+
+
 class AnalysisPlotter:
     create_boxplots = staticmethod(create_boxplots)
     create_spikes_falls_boxplots = staticmethod(create_spikes_falls_boxplots)
+    create_conjunction_plot = staticmethod(create_conjunction_plot)
     create_combined_analysis_plot = staticmethod(create_combined_analysis_plot)
 
 
@@ -738,6 +972,13 @@ class UIDAnalysisRunner:
         spikes_falls_results_3sigma = SpikesFallsAnalyzer.analyze(data, threshold_3sigma_pos, threshold_3sigma_neg)
         spikes_falls_summary_3sigma = SpikesFallsAnalyzer.calculate_summary_stats(spikes_falls_results_3sigma)
 
+        conjunction_results = ConjunctionAnalyzer.analyze(
+            data, threshold_3sigma_pos, threshold_3sigma_neg
+        )
+        conjunction_summary = ConjunctionAnalyzer.calculate_summary_stats(
+            conjunction_results
+        )
+
         print("\n" + "="*80)
         print("ACCURACY ANALYSIS BASED ON 3-SIGMA SPIKE/FALL COUNTS")
         print("="*80)
@@ -768,6 +1009,43 @@ class UIDAnalysisRunner:
         )
         with open(spikes_falls_summary_file_3sigma, "w") as f:
             json.dump(spikes_falls_summary_3sigma, f, indent=2)
+
+        print("\n" + "="*80)
+        print("CONJUNCTION ANALYSIS: LOCAL UNIFORMITY AND GLOBAL NON-UNIFORMITY")
+        print("="*80)
+        for result_type in ("highest_conjunction", "lowest_conjunction"):
+            stats = conjunction_summary[result_type]["s_and"]
+            print(
+                f"{result_type.upper().replace('_', ' '):35} | "
+                f"Accuracy: {stats['mean_accuracy']:.4f} +/- "
+                f"{stats['std_accuracy']:.4f} | "
+                f"S_AND: {stats['mean_s_and']:.4f} +/- "
+                f"{stats['std_s_and']:.4f} | "
+                f"U_local: {stats['mean_u_local']:.4f} | "
+                f"G_nonuni: {stats['mean_g_nonuni']:.4f}"
+            )
+
+        conjunction_results_file = os.path.join(
+            self.config.outdir,
+            self.config.input.split("/")[-2] + "_conjunction_s_and_analysis.json",
+        )
+        with open(conjunction_results_file, "w") as f:
+            json.dump(conjunction_results, f, indent=2)
+
+        conjunction_summary_file = os.path.join(
+            self.config.outdir,
+            self.config.input.split("/")[-2] + "_conjunction_s_and_summary.json",
+        )
+        with open(conjunction_summary_file, "w") as f:
+            json.dump(conjunction_summary, f, indent=2)
+
+        conjunction_plot_file = AnalysisPlotter.create_conjunction_plot(
+            conjunction_summary,
+            self.config.outdir,
+            filename_prefix,
+            self.config.input,
+            overall_metrics,
+        )
 
         results_file = os.path.join(self.config.outdir, self.config.input.split("/")[-2] + "_uid_analysis.json")
         with open(results_file, "w") as f:
@@ -800,6 +1078,9 @@ class UIDAnalysisRunner:
         print(f"Spike/Fall plot saved to: {spikes_falls_plot_file}")
         print(f"Spike/Fall analysis (3-sigma thresholds) saved to: {spikes_falls_results_file_3sigma}")
         print(f"Spike/Fall summary (3-sigma thresholds) saved to: {spikes_falls_summary_file_3sigma}")
+        print(f"Conjunction analysis saved to: {conjunction_results_file}")
+        print(f"Conjunction summary saved to: {conjunction_summary_file}")
+        print(f"Conjunction plot saved to: {conjunction_plot_file}")
         print(f"Combined analysis plot saved to: {combined_plot_file}")
 
 def main():

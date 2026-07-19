@@ -20,8 +20,7 @@ Together, these metrics test whether strong reasoning traces are locally smooth 
 ## Checklist
 
 - [x] Local and global uniformity implementation
-- [ ] Joint detection implementation
-- [ ] Robustness to different segmentations
+- [x] Joint detection implementation
 
 ## Running Inference
 
