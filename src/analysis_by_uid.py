@@ -473,7 +473,7 @@ def analyze_conjunction_accuracy(
     Analyze the conjunction of local uniformity and global non-uniformity.
 
     U_local = 1 / (1 + alpha * spikes + beta * falls)
-    G_nonuni = 1 - uid_shannon_entropy
+    G_nonuni = uid_variance_entropy
     S_AND = U_local * G_nonuni
     """
     results = {
@@ -502,23 +502,21 @@ def analyze_conjunction_accuracy(
                 if (
                     isinstance(id_h, list)
                     and len(id_h) >= 2
-                    and "uid_shannon_entropy" in uid_metrics
+                    and "uid_variance_entropy" in uid_metrics
                 ):
                     counts = count_spikes_falls(
                         id_h, threshold_pos, threshold_neg
                     )
-                    g_uni = float(uid_metrics["uid_shannon_entropy"])
-                    if not np.isfinite(g_uni):
+                    g_nonuni = float(uid_metrics["uid_variance_entropy"])
+                    if not np.isfinite(g_nonuni):
                         i += 1
                         continue
 
-                    g_uni = float(np.clip(g_uni, 0.0, 1.0))
                     u_local = 1.0 / (
                         1.0
                         + alpha * counts["spikes"]
                         + beta * counts["falls"]
                     )
-                    g_nonuni = 1.0 - g_uni
                     s_and = u_local * g_nonuni
                     metrics_data = problem[metrics_key]
 
@@ -526,7 +524,6 @@ def analyze_conjunction_accuracy(
                         "index": i,
                         "s_and": s_and,
                         "u_local": u_local,
-                        "g_uni": g_uni,
                         "g_nonuni": g_nonuni,
                         "spikes": counts["spikes"],
                         "falls": counts["falls"],
@@ -551,7 +548,6 @@ def analyze_conjunction_accuracy(
                 "output_index": selected_output["index"],
                 "s_and": selected_output["s_and"],
                 "u_local": selected_output["u_local"],
-                "g_uni": selected_output["g_uni"],
                 "g_nonuni": selected_output["g_nonuni"],
                 "spikes_count": selected_output["spikes"],
                 "falls_count": selected_output["falls"],
